@@ -31,7 +31,7 @@ natfnames=natsort(trialNames);
 %% Read in images
 empty_file_idx_sub = 0;
 all_s = cell(0);
-matrix_timeseries = cell(5000, numfids/2);
+matrix_timeseries = cell(2000, numfids/2);
 
 %% Get first frame
 fileNum = 1;
@@ -59,7 +59,7 @@ total_cells = length(all_s{1});
 %% get subesquent frame
 for fileNum = 3 : 2: numfids - 2
     % get next frame
-    [all_s, frame_2, truth_2] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size);
+    [all_s, frame_2, truth_2] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, num_slices);
     
     %% Loop through struct to find nearest neighbors
     % first frame is always taken from "matrix_timeseries" ==> which has
@@ -96,14 +96,13 @@ for fileNum = 3 : 2: numfids - 2
     z_size = 16
     ssim_val_thresh = 0.30
     dist_thresh = 15
-    upper_dist_thresh = 70
+    upper_dist_thresh = 30
+    histogram(D);
     figure(2);
     idx_non_confident = [];
     for check_neighbor = 1:length(neighbor_idx)
         [crop_frame_1, crop_frame_2, crop_truth_1, crop_truth_2, mip_1, mip_2] = crop_centroids(cur_centroids, next_centroids, frame_1, frame_2, truth_1, truth_2, check_neighbor, neighbor_idx, crop_size, z_size);
-        %% Plot to verify
-        subplot(1, 2, 1); imshow(mip_1);
-        subplot(1, 2, 2); imshow(mip_2);
+
         %% accuracy metrics
         dist = D(check_neighbor);
         ssim_val = ssim(crop_frame_1, crop_frame_2);
@@ -113,7 +112,10 @@ for fileNum = 3 : 2: numfids - 2
         title(strcat('ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
         
         %% if ssim_val very high AND distance small ==> save the cell
-        if ssim_val > ssim_val_thresh && dist < dist_thresh         
+        if ssim_val > ssim_val_thresh && dist < dist_thresh
+            %% Plot to verify
+            %subplot(1, 2, 1); imshow(mip_1);
+            %subplot(1, 2, 2); imshow(mip_2);
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
             centroid = next_cell.centerDAPI;
@@ -216,8 +218,27 @@ for fileNum = 3 : 2: numfids - 2
 end
 
 %% parse the structs to get same output file as what Cody has!
+csv_matrix = [];
+for cell_idx = 1:length(matrix_timeseries(:, 1))
+    for timeframe = 1:length(matrix_timeseries(1, :))
+        if isempty(matrix_timeseries{cell_idx, timeframe})
+           continue; 
+        end
+            
+         matrix_timeseries{cell_idx, timeframe};
+        cur_cell = matrix_timeseries{cell_idx, timeframe};
+        
+        volume = length(cur_cell.voxelIdxList);
+        centroid = cur_cell.centroid;
+        altogether = [cell_idx, timeframe, centroid, volume];
+        
+        csv_matrix = [csv_matrix; altogether];
+        
+    end
+    
+end
 
-
+writematrix(csv_matrix, 'output.csv') 
 
 
 

@@ -148,6 +148,7 @@ end
         if opt == 1
             disp('yay')
         end
+        pause
         
     end
 
