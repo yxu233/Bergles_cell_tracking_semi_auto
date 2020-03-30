@@ -1,11 +1,11 @@
-function [all_s, frame, truth] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, num_slices)
+function [all_s, frame, truth] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice)
 
 %% Load input data
 filename_raw = natfnames{fileNum};
 cd(foldername);
 [frame] = load_3D_gray(filename_raw);
 
-frame = frame(:, :, 1:num_slices);
+frame = frame(:, :, first_slice:last_slice);
 
 %% Also load truth
 filename_raw = natfnames{fileNum + 1};
@@ -13,7 +13,29 @@ cd(foldername);
 [truth] = load_3D_gray(filename_raw);
 truth(truth > 0) = 1;
 
-truth = truth(:, :, 1:num_slices);
+truth = truth(:, :, first_slice:last_slice);
+
+
+%% Eliminate synapses on edges
+%     new_im = zeros(size(truth_binary));
+%     cc = bwconncomp(truth_binary);
+%     objs = regionprops3(cc, 'VoxelList', 'VoxelIdxList');
+%     objs_voxels = objs.VoxelList;
+%     objs_idxList = objs.VoxelIdxList;
+%     for obj_idx = 1:length(objs_voxels)
+%         cur_obj = objs_voxels{obj_idx};
+%         max_z_slice = max(cur_obj(:, 3));
+%         min_z_slice = min(cur_obj(:, 3));
+%
+%         if (max_z_slice == 1 && min_z_slice == 1) || (max_z_slice == length(truth_binary(1, 1, :)) &&  min_z_slice == length(truth_binary(1, 1, :)))
+%             disp('elim\n')
+%             continue
+%         end
+%
+%         new_im(objs_idxList{obj_idx}) = 1;
+%     end
+%     truth_binary = new_im;
+
 
 %% watershed
 %DAPIsize = 0; DAPImetric = 0;

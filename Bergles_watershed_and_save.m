@@ -45,6 +45,7 @@ for fileNum = 1 : numfids
         cd(foldername);
         [gray] = load_3D_gray(filename_raw);
       
+        %gray = gray(:, :, 100:125);
         figure(1); volshow(gray);
         
         %% TIGER - CHANGED "enhance", "Human_OL", and "cropping size" ==> all for Daryan's stuff

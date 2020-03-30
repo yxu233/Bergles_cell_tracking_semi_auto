@@ -44,7 +44,7 @@ while option_num>0 && term == 0
             % create cell object
             cell_obj = cell_class(voxelIdxList,centroid, cell_num);
             matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
-
+            
             term = 1;
             break;
             
@@ -58,18 +58,15 @@ while option_num>0 && term == 0
             cell_point=impoint;
             %% Get XY position from placed dot
             poss_sub =getPosition(cell_point);
-
+            
             %% Get z-position from prompt
             prompt = {'Enter z-axis position:'};
             dlgtitle = 'slice position';
             answer = inputdlg(prompt,dlgtitle)
-
+            
             %% Must also pass the coordinates of the cropping box to be able to put this
             %% back into the original image size, and then find the coordinates of the cell
             %% corresponding to this spot
-
-
-
             % Find matching DAPI point and update it:
             for i = 1:length(s)
                 curDAPI = s(i).objDAPI;
@@ -83,23 +80,27 @@ while option_num>0 && term == 0
             
             plot_im(1);
             
-            %% If key == 4, then need to scale image outwards in the plot
+            %% If key == 4, then delete current cell on current timeframe (i.e. not a real cell)
         elseif option_num == 4
+            matrix_timeseries{check_neighbor, timeframe_idx} = [];
+            term = 1;
+            break;
+            
+            %% If key == 5, then need to scale image outwards in the plot
+        elseif option_num == 5
             %         bw = roipoly;
             %         core = bw;
             
-            %% If key == 5, then do CLAHE?
-        elseif option_num ==5
+            %% If key == 6, then do CLAHE?
+        elseif option_num ==6
             plot_im(0);
             break
             
-            %% If key == 6, add non-exisiting cell
-        elseif option_num ==6
+            %% If key == 7, add non-exisiting cell
+        elseif option_num ==7
             plot_im(0);
             
-            %% If key == 7, remove exisiting cell (by selection)
-        elseif option_num == 7
-            plot_im(0);
+            
         end
     catch
         continue;
@@ -135,19 +136,35 @@ end
         s1 = sliceViewer(RGB_1, 'parent', top_left);
         s2 = sliceViewer(RGB_2, 'parent', top_right);
         
+        % plot max
         ax = axes('parent', bottom_left);
         image(ax, im2uint8(mip_1));
         colormap('gray'); axis off
+        
+        % add overlay
+        mip_center_1 = max(crop_blank_truth_1, [], 3);
+        magenta = cat(3, ones(size(mip_1)), zeros(size(mip_1)), ones(size(mip_1)));
+        hold on;
+        h = imshow(magenta);
+        hold off;
+        set(h, 'AlphaData', mip_center_1)
         title(strcat('psnr:', num2str(psnr_val),'  ssim: ', num2str(ssim_val)))
         
+        % plot max
         ax = axes('parent', bottom_right);
         image(ax, im2uint8(mip_2));
         colormap('gray'); axis off
         title(strcat('  mae: ', num2str(mae_val), '  dist: ', num2str(dist)))
         
-        if opt == 1
-            disp('yay')
-        end
+        % add overlay
+        mip_center_2 = max(crop_blank_truth_2, [], 3);
+        magenta = cat(3, ones(size(mip_2)), zeros(size(mip_2)), ones(size(mip_2)));
+        hold on;
+        h = imshow(magenta);
+        hold off;
+        set(h, 'AlphaData', mip_center_2)
+        title(strcat('psnr:', num2str(psnr_val),'  ssim: ', num2str(ssim_val)))
+        
         pause
         
     end

@@ -6,6 +6,11 @@
 % (2) Maybe do watershed as a pre-processing step (so don't waste time
 % during analysis)
 
+% (3) ***delete everything that only exists on top "x" and bottom "y"
+% slices
+
+% (4) add button to delete current cell on current timeframe if (not) a
+% cell!!!
 
 opengl hardware;
 close all;
@@ -36,8 +41,11 @@ matrix_timeseries = cell(2000, numfids/2);
 %% Get first frame
 fileNum = 1;
 thresh_size = 300; % pixels at the moment
-num_slices = 100; % 100 * 3 == 300 microns
-[all_s, frame_1, truth_1] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, num_slices);
+first_slice = 10;
+last_slice = 110; % 100 * 3 == 300 microns
+[all_s, frame_1, truth_1] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
+
+
 
 %% save all objects in first frame as list of cells
 % maybe need to add way to delete out bad objects here as well???
@@ -59,7 +67,7 @@ total_cells = length(all_s{1});
 %% get subesquent frame
 for fileNum = 3 : 2: numfids - 2
     % get next frame
-    [all_s, frame_2, truth_2] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, num_slices);
+    [all_s, frame_2, truth_2] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
     
     %% Loop through struct to find nearest neighbors
     % first frame is always taken from "matrix_timeseries" ==> which has
@@ -134,8 +142,6 @@ for fileNum = 3 : 2: numfids - 2
     end
     
     
-    
-    
     %% Loop through NON-CONFIDENT ONES for comparison
     % first find index of all non-confident ones
     
@@ -151,8 +157,7 @@ for fileNum = 3 : 2: numfids - 2
                                             ,frame_1, frame_2, truth_1, truth_2...
                                             , mip_1, mip_2, D, check_neighbor, neighbor_idx...
                                             , matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx);
-
-
+                                        
 
         %% For manual correction ==> also need to know indexes of everything
         %% add option for CLAHE?
@@ -160,13 +165,10 @@ for fileNum = 3 : 2: numfids - 2
         %% add option to select correct matching cell body
         %% add option to (1) say true/matched or (2) say not matched
         %cc = bwconncomp(truth);
-        %stats = regionprops3(cc,'Volume','Centroid', 'VoxelIdxList'); %%%***good way to get info about region!!!
-        
+        %stats = regionprops3(cc,'Volume','Centroid', 'VoxelIdxList'); %%%***good way to get info about region!!!   
         %input_im = return_crop_around_centroid(input_im, crop, y, x, z, crop_size, z_size, height, width, depth)
-      
-   
+     
         close all;
-       
     end
     
     %% Identify remaining unassociated cells and add them to the cell list with NEW numbering (at the end of the list)
@@ -205,16 +207,16 @@ for fileNum = 3 : 2: numfids - 2
          end
         
     end
-    
    
+    %% (optional) Double check all the cells in the current timeframe that were NOT associated with stuff
+    %% just to verify they are ACTUALLY cells???
+
     %% set 2nd time frame as 1st time frame for subsequent analysis
     timeframe_idx = timeframe_idx + 1;
     frame_1 = frame_2;
     truth_1 = truth_2;
     
-    
-    
-    
+
 end
 
 %% parse the structs to get same output file as what Cody has!
@@ -235,9 +237,7 @@ for cell_idx = 1:length(matrix_timeseries(:, 1))
         csv_matrix = [csv_matrix; altogether];
         
     end
-    
 end
-
 writematrix(csv_matrix, 'output.csv') 
 
 

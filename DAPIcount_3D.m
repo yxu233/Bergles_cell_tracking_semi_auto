@@ -104,8 +104,9 @@ end
 %% Find min mask
 %bw = ~bwareaopen(~bw, 10);  % clean
 D = -bwdist(~bw);  % EDT
-mask = imregionalmin(D);   % Extended minima
+%mask = imregionalmin(D);   % Extended minima
 
+mask = imextendedmin(D, 2);
 
 %% Watershed segmentation by imposing minima (NO NEED FOR imposing minima) probably b/c gaussfilt renders this useless
 D2 = imimposemin(D, mask);
