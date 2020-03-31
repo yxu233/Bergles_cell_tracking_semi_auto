@@ -45,7 +45,7 @@ natfnames=natsort(trialNames);
 %% Read in images
 empty_file_idx_sub = 0;
 all_s = cell(0);
-matrix_timeseries = cell(1500, numfids/2);
+matrix_timeseries = cell(2000, numfids/2);
 
 
 %% Input dialog values
@@ -235,9 +235,10 @@ for fileNum = 3 : 2: numfids
    
     %% (optional) Double check all the cells in the current timeframe that were NOT associated with stuff
     %% just to verify they are ACTUALLY cells???
-    
-    
+        
     %% add in ability to plot WITHOUT the red/green overlay
+    
+    
     
     
 
@@ -288,9 +289,9 @@ for timeframe_idx = 1:length(matrix_timeseries(1, :))
         cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
         
         voxels = cur_cell.voxelIdxList;
-        cell_number = cur_cell.cell_number;
+        %cell_number = cur_cell.cell_number;
         
-        im_frame(voxels) = list_random_colors(cell_number);
+        im_frame(voxels) = list_random_colors(cell_idx);
     end
     
     % save one frame
