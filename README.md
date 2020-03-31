@@ -13,11 +13,11 @@
 
 
 ### Manual analysis hot-keys:
-* "1"
-* "2"
+* "1" - classify as same tracked cell
+* "2" - classify as no longer tracked
 * "a" - add
 * "s" - scale
-* "d" - delete
+* "d" - delete cell (from current frame) permanently - i.e. if cell body is junk
 * "c" - CLAHE
 
 ### GUI inputs:
