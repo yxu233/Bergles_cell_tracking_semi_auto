@@ -12,7 +12,7 @@
 * 4. Run Bergles_cell_tracking_semi_auto.m to start analysis
 
 
-### Manual analysis hot-keys:
+### Manual analysis hot-keys: - if want new hotkeys, modify "Bergles_manual_count.m"
 * "1" - classify as same tracked cell
 * "2" - classify as no longer tracked
 * "a" - add
