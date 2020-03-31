@@ -3,3 +3,4 @@
 *.tif
 *.csv
 Trained ILASTIK model/Bergles_cell_tracking_ILASTIK_REDO.ilp
+*.mat

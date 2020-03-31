@@ -20,6 +20,8 @@
 % (3) the sliding viewer has clipped off top when scaled
 % (4) Keep scaling at x 2 when it is on the hard one
 % (5) add way to double check cell bodies (that w
+% (6) add output folder
+% (7) eliminate cells on border?
 
 opengl hardware;
 close all;
