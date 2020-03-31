@@ -1,6 +1,6 @@
 # Bergles_cell_tracking_semi_auto
 
-### Installation: (ensure MATLAB 2019a, or else sliceViewer will not work)
+### Installation: (ensure > MATLAB 2019a, or else sliceViewer will not work)
 * 1. Install github desktop: https://desktop.github.com/
 * 2. Clone the git repo so it shows up in github desktop
    
