@@ -32,8 +32,12 @@
 * manual_correct? (Y/N): Y - defines if want to do full auto or semi-auto analysis
 
 
-
-
 ### Demo run:
 * 1. Download data here (5 GB), includes output data from my corrections: https://livejohnshopkins-my.sharepoint.com/:f:/g/personal/yxu130_jh_edu/EpeTEaEYmB5FvK4ESh-uv7oB3cjEyifYDWRSDdLitczvow?e=VHYxb2 
+   
+   
+### Usage notes:
+* For manual correction, ensure that you press the button twice (once to remove "pause" in MATLAB, and once to actually select option)
+* don't press cancel on anything... might crash
+
    
