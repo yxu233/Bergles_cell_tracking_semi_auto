@@ -34,6 +34,8 @@
 
 ### Demo run:
 * 1. Download data here (5 GB), includes output data from my corrections: https://livejohnshopkins-my.sharepoint.com/:f:/g/personal/yxu130_jh_edu/EpeTEaEYmB5FvK4ESh-uv7oB3cjEyifYDWRSDdLitczvow?e=VHYxb2 
+ 
+* Specifically, take a look at the file "Merged.tif" in folder "Outputs attempt 2", which has 2 channels (raw data + tracked outputs) along all timeframes for 300 um (100 slices). NOTE: the colors in the 2nd tracked outputs corresponds to the SAME color for each tracked cell across timeframes, so if you scroll across timeframes and see the same color, that color corresponds to the same cell being tracked.
    
    
 ### Usage notes:
