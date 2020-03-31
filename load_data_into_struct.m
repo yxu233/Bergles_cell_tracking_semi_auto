@@ -75,4 +75,16 @@ for struct_idx = 1:length(all_s)
     end
 end
 
+%% replot full figure with size thresholded image
+% need this generic function for end as well!
+truth = zeros(size(truth));
+s = all_s{end};
+for struct_idx = 1:length(s)
+   cur_voxels = s(struct_idx).objDAPI; 
+   truth(cur_voxels) = 1; 
+   
+end
+
+
+
 end

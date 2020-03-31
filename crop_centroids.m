@@ -1,4 +1,8 @@
 function [crop_frame_1, crop_frame_2, crop_truth_1, crop_truth_2, mip_1, mip_2, crop_blank_truth_1, crop_blank_truth_2] = crop_centroids(cur_centroids, next_centroids, frame_1, frame_2, truth_1, truth_2, check_neighbor, neighbor_idx, crop_size, z_size)
+    
+    crop_size = round(crop_size);
+    z_size = round(z_size);
+
     frame_1_centroid = cur_centroids(check_neighbor, :);
     frame_2_centroid = next_centroids(neighbor_idx(check_neighbor), :);
 
