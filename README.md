@@ -20,8 +20,18 @@
 * "d" - delete cell (from current frame) permanently - i.e. if cell body is junk
 * "c" - CLAHE
 
-### GUI inputs:
-     * Size... ==> leave empty
+### GUI inputs (and their defaults):
+* Crop_size (XY pixels): 200 - defines X and Y lengths for cropping
+* z_size (Z pixels): 25 - defines axial depth in crops
+* ssim_thresh (0 - 1): 0.30 - defines threshold for SSIM used to identify highly-confident pairs
+* low_dist_thresh (0 - 20): 15 - defines euclidean distance threshold for highly-confident pairs (must be super close)
+* upper_dist_thresh (30 - 100): 25 - defines upper threshold for confidently NOT paired (super far)
+* min_size (0 - 500 pixels): 200 - defines minimum size of cell bodies to be tracked
+* first_slice: 10 - first slice of image to analyze
+* last_slice: 110 - last slice of image to analyze (overall ~100 slices == 300 um)
+* manual_correct? (Y/N): Y - defines if want to do full auto or semi-auto analysis
+
+
 
 
 ### Demo run:
