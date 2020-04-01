@@ -19,6 +19,7 @@
 * "s" - scale
 * "d" - delete cell (from current frame) permanently - i.e. if cell body is junk
 * "c" - CLAHE
+* "h" - hide cell body overlay
 
 ### GUI inputs (and their defaults):
 * Crop_size (XY pixels): 200 - defines X and Y lengths for cropping
