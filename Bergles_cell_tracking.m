@@ -22,6 +22,9 @@
 % (5) add way to double check cell bodies (that w
 % (6) add output folder
 % (7) eliminate cells on border?
+% (8) correct cell number for watershed display???
+% (9) Include directional scaling (to microns) for distance metrics
+
 
 opengl hardware;
 close all;
@@ -75,7 +78,6 @@ manual_correct_bool = answer{9};
 %% Get first frame
 fileNum = 1;
 [all_s, frame_1, truth_1] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
-
 
 
 %% save all objects in first frame as list of cells
@@ -133,6 +135,7 @@ for fileNum = 3 : 2: numfids
     % leave only the mediocre SSIMs
     
     %% Loop through each neighbor for comparison
+    disp('finding confidently matched and non-matched cells')
     smaller_crop_size = 60;
     smaller_z_size = 16;
     histogram(D);
@@ -150,8 +153,6 @@ for fileNum = 3 : 2: numfids
         mae_val = meanAbsoluteError(crop_frame_1, crop_frame_2);
         psnr_val = psnr(crop_frame_1, crop_frame_2);
 
-        
-        
         %% if ssim_val very high AND distance small ==> save the cell
         if ssim_val > ssim_val_thresh && dist < dist_thresh
             %% Plot to verify
@@ -178,7 +179,7 @@ for fileNum = 3 : 2: numfids
     
     %% Loop through NON-CONFIDENT ONES for comparison
     % first find index of all non-confident ones
-    
+    disp('please correct non-confident cells')
     if manual_correct_bool == 'Y'
         close all;
         figure(3);
@@ -204,6 +205,7 @@ for fileNum = 3 : 2: numfids
     end
     
     %% Identify rem1aining unassociated cells and add them to the cell list with NEW numbering (at the end of the list)
+    disp('adding non-matched new cells')
     for cell_idx = 1:length(next_timeseries)
          original_cell = next_timeseries(cell_idx).objDAPI;
         
@@ -226,7 +228,6 @@ for fileNum = 3 : 2: numfids
          
          %% save cell if NOT matched after sorting, then add as new cell to matrix_timeseries
          if matched == 0
-              disp('yeet')
              total_cells = total_cells + 1;
              
              next_cell = next_timeseries(cell_idx);
@@ -244,9 +245,6 @@ for fileNum = 3 : 2: numfids
     %% just to verify they are ACTUALLY cells???
         
     %% add in ability to plot WITHOUT the red/green overlay
-    
-    
-    
     
 
     %% set 2nd time frame as 1st time frame for subsequent analysis
@@ -313,6 +311,44 @@ for timeframe_idx = 1:length(matrix_timeseries(1, :))
 end
 
 
+
+%% Plot number of new cells and number of old cells at each timepoint
+new_cells_per_frame = zeros(1, length(matrix_timeseries(1, :)));
+terminated_cells_per_frame = zeros(1, length(matrix_timeseries(1, :)));
+num_total_cells_per_frame = zeros(1, length(matrix_timeseries(1, :)));
+for timeframe_idx = 1:length(matrix_timeseries(1, :))
+    for cell_idx = 1:length(matrix_timeseries(:, 1))
+
+        if isempty(matrix_timeseries{cell_idx, timeframe_idx})
+            continue;
+        end
+        cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
+        
+        % new cell if previous frame empty
+        if timeframe_idx > 1 && isempty(matrix_timeseries{cell_idx, timeframe_idx - 1})
+            new_cells_per_frame(timeframe_idx) =  new_cells_per_frame(timeframe_idx) + 1;
+        end
+        
+        % terminated cells if next frame empty
+        if timeframe_idx + 1 < length(matrix_timeseries(1, :)) && isempty(matrix_timeseries{cell_idx, timeframe_idx + 1})
+            terminated_cells_per_frame(timeframe_idx + 1) =  terminated_cells_per_frame(timeframe_idx + 1) + 1;
+        end
+        
+        % number of totl cells per frame
+        num_total_cells_per_frame(timeframe_idx) = num_total_cells_per_frame(timeframe_idx) + 1;
+        
+    end
+   
+end
+
+figure; bar(new_cells_per_frame); title('New cells per frame');
+xlabel('frame number'); ylabel('number of new cells');
+
+figure; bar(terminated_cells_per_frame); title('terminated cells per frame');
+xlabel('frame number'); ylabel('number of terminated cells');
+
+figure; bar(num_total_cells_per_frame); title('num TOTAL cells per frame');
+xlabel('frame number'); ylabel('num TOTAL cells');
 
 
 

@@ -142,9 +142,14 @@ while option_num>0 && term == 0
         elseif option_num ==7
             plot_im(0);
             
+        elseif option_num=='h'
+            plot_im(8);
+            
         else
-             f = msgbox('Key did not match any command, please1 please reselect');
+             waitfor(msgbox('Key did not match any command, please1 please reselect'));
              plot_im(0);
+             option_num = 100;
+             %pause;
             
         end
     catch
@@ -160,6 +165,8 @@ end
         scale_XYZ = opt;
         if opt == 'adjust'
             disp('adjust');
+        elseif opt == 8
+            disp('hide');
         elseif opt > 0
             scale_XYZ = opt;
             original_size = crop_size;
@@ -188,8 +195,14 @@ end
         
         crop_truth_1(crop_blank_truth_1 == 1) = 0;
         crop_truth_2(crop_blank_truth_2 == 1) = 0;
-        RGB_1 = cat(4, crop_frame_1, crop_truth_1, crop_blank_truth_1);
-        RGB_2 = cat(4, crop_frame_2, crop_truth_2, crop_blank_truth_2);
+        
+        if opt == 8
+            RGB_1 = cat(4, crop_frame_1, crop_blank_truth_1, zeros(size(crop_truth_1)));
+            RGB_2 = cat(4, crop_frame_2, crop_blank_truth_2, zeros(size(crop_truth_2)));
+        else
+            RGB_1 = cat(4, crop_frame_1, crop_truth_1, crop_blank_truth_1);
+            RGB_2 = cat(4, crop_frame_2, crop_truth_2, crop_blank_truth_2);
+        end
         
         %f = figure('units','normalized','outerposition',[0 0 1 1])
         f = figure();
@@ -213,13 +226,19 @@ end
         colormap('gray'); axis off
         
         % add overlay
-        mip_center_1 = max(crop_blank_truth_1, [], 3);
-        magenta = cat(3, ones(size(mip_1)), zeros(size(mip_1)), ones(size(mip_1)));
-        hold on;
-        h = imshow(magenta);
-        hold off;
-        set(h, 'AlphaData', mip_center_1)
+        if opt == 8
+            disp('hide');
+        else
+            mip_center_1 = max(crop_blank_truth_1, [], 3);
+            magenta = cat(3, ones(size(mip_1)), zeros(size(mip_1)), ones(size(mip_1)));
+            hold on;
+            h = imshow(magenta);
+            hold off;
+            set(h, 'AlphaData', mip_center_1)
+        end
+        
         title(strcat('psnr:', num2str(psnr_val),'  ssim: ', num2str(ssim_val)))
+        
         
         % plot max
         if opt == 'adjust'
@@ -228,14 +247,19 @@ end
         ax = axes('parent', bottom_right);
         image(ax, im2uint8(mip_2));
         colormap('gray'); axis off
-
+        
         % add overlay
-        mip_center_2 = max(crop_blank_truth_2, [], 3);
-        magenta = cat(3, ones(size(mip_2)), zeros(size(mip_2)), ones(size(mip_2)));
-        hold on;
-        h = imshow(magenta);
-        hold off;
-        set(h, 'AlphaData', mip_center_2)
+        if opt == 8
+            disp('hide');
+        else
+            mip_center_2 = max(crop_blank_truth_2, [], 3);
+            magenta = cat(3, ones(size(mip_2)), zeros(size(mip_2)), ones(size(mip_2)));
+            hold on;
+            h = imshow(magenta);
+            hold off;
+            set(h, 'AlphaData', mip_center_2)
+        end
+        
         title(strcat('  mae: ', num2str(mae_val), '  dist: ', num2str(dist)))
         
         % restore original crop size
