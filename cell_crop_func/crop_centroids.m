@@ -18,7 +18,7 @@ function [crop_frame_1, crop_frame_2, crop_truth_1, crop_truth_2, mip_1, mip_2, 
     blank_truth(x, y, z) = 1;
     %blank_truth = imdilate(blank_truth, strel('sphere', 3));
     crop_blank_truth_1 = crop_around_centroid(blank_truth, y, x, z, crop_size, z_size, height, width, depth);
-    crop_blank_truth_1 = imdilate(crop_blank_truth_1, strel('sphere', 3));
+    crop_blank_truth_1 = imdilate(crop_blank_truth_1, strel('sphere', 2));
     
     mip_1 = max(crop_frame_1, [], 3);
     %subplot(1, 2, 1); imshow(mip_1);
@@ -35,7 +35,7 @@ function [crop_frame_1, crop_frame_2, crop_truth_1, crop_truth_2, mip_1, mip_2, 
     blank_truth(x, y, z) = 1;
     %blank_truth = imdilate(blank_truth, strel('sphere', 3));
     crop_blank_truth_2 = crop_around_centroid(blank_truth, y, x, z, crop_size, z_size, height, width, depth);
-    crop_blank_truth_2 = imdilate(crop_blank_truth_2, strel('sphere', 3));
+    crop_blank_truth_2 = imdilate(crop_blank_truth_2, strel('sphere', 2));
     
     mip_2 = max(crop_frame_2, [], 3);
     %subplot(1, 2, 2); imshow(mip_2);

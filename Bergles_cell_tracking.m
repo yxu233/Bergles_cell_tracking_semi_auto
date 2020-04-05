@@ -1,5 +1,21 @@
 %% Cell tracking
 
+%% New additions: version 1.2
+%(1) added ability to "add" cells - hotkey == 3
+%(2) now deletes anything solely on single frame
+%(3) also deletes anything in lower part of volume if it does not START
+%there (centroid)
+%(4) also added manual checkup for points at the end which are started as
+%"new" cells
+
+% ***need to plot in separate figure the sliceviewer
+% ***how should we deal with super dim cells with no processes ever?
+% ***note: 10x vs. 20x!!!
+% ***things are fairly consistent now
+% * slightly worse on bad quality window ones (ILASTIK BAD) ==> picking out
+% some really really dim stuff...
+% * should this output be ablet to load back into the syglass?
+
 %% Manual correction keys:
 % 1 == yes, is matched
 % 2 == no, not matched
@@ -12,11 +28,12 @@
 %% Notes:
 % low SSIM ==> mostly due to shifts in axial location/misalignmnet
 % careful that pressing keys sometimes writes onto actual program (so
-% delete those markings)1
+% delete those markings)
+
+% FIXED BERGLES CELL CROP!!!
 
 %% Things to fix:
 % (1) disallow ties? ==> would be much much faster...
-% (2) add plot WITHOUT the green stuff that obscures cell body
 % (3) the sliding viewer has clipped off top when scaled
 % (4) Keep scaling at x 2 when it is on the hard one
 % (5) add way to double check cell bodies (that w
@@ -24,6 +41,11 @@
 % (7) eliminate cells on border?
 % (8) correct cell number for watershed display???
 % (9) Include directional scaling (to microns) for distance metrics
+
+% (10) double check everything in last frame that was not associated with
+% something in the previous frame
+
+% (11) eliminate everything that only exists on a single (or 2?) frames
 
 
 opengl hardware;
@@ -57,11 +79,11 @@ empty_file_idx_sub = 0;
 all_s = cell(0);
 matrix_timeseries = cell(2000, numfids/2);
 
-
 %% Input dialog values
 prompt = {'crop size (XY px): ', 'z_size (Z px): ', 'ssim_thresh (0 - 1): ', 'low_dist_thresh (0 - 20): ', 'upper_dist_thresh (30 - 100): ', 'min_siz (0 - 500): ', 'first_slice: ', 'last_slice: ', 'manual_correct? (Y/N): '};
 dlgtitle = 'Input';
-definput = {'200', '25', '0.30', '15', '25', '200', '10', '110', 'Y'};
+definput = {'200', '20', '0.30', '15', '22', '200', '5', '120', 'Y'};
+%definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
 answer = inputdlg(prompt,dlgtitle, [1, 35], definput);
 
 crop_size = str2num(answer{1})/2;
@@ -159,6 +181,8 @@ for fileNum = 3 : 2: numfids
             %subplot(1, 2, 1); imshow(mip_1);
             %subplot(1, 2, 2); imshow(mip_2);
             %title(strcat('ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
+             
+            
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
             centroid = next_cell.centerDAPI;
@@ -166,7 +190,9 @@ for fileNum = 3 : 2: numfids
             % create cell object
             cell_obj = cell_class(voxelIdxList,centroid, cell_num);
             matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
-            %pause
+            pause
+       
+        %elseif dist_thresh < 5 && ssim_val > 0.2
             
             %% also eliminate based on upper boundary
         elseif dist > upper_dist_thresh
@@ -179,7 +205,7 @@ for fileNum = 3 : 2: numfids
     
     %% Loop through NON-CONFIDENT ONES for comparison
     % first find index of all non-confident ones
-    disp('please correct non-confident cells')
+     disp('please correct non-confident cells')
     if manual_correct_bool == 'Y'
         close all;
         figure(3);
@@ -197,14 +223,16 @@ for fileNum = 3 : 2: numfids
             %% manual correction
             [option_num, matrix_timeseries] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2...
                 ,D, check_neighbor, neighbor_idx...
-                , matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
+                ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
                 ,x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size...
-                ,cur_centroids, next_centroids);
+                ,cur_centroids, next_centroids...
+                ,dist_thresh, ssim_val_thresh);
+            
             close all;
         end
     end
     
-    %% Identify rem1aining unassociated cells and add them to the cell list with NEW numbering (at the end of the list)
+    %% Identify remaining unassociated cells and add them to the cell list with NEW numbering (at the end of the list)
     disp('adding non-matched new cells')
     for cell_idx = 1:length(next_timeseries)
          original_cell = next_timeseries(cell_idx).objDAPI;
@@ -235,7 +263,7 @@ for fileNum = 3 : 2: numfids
              centroid = next_cell.centerDAPI;
              cell_num = check_neighbor;
              % create cell object
-             cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+             cell_obj = cell_class(voxelIdxList,centroid, cel11l_num);
              matrix_timeseries{total_cells, timeframe_idx + 1} =  cell_obj;
          end
         
@@ -244,9 +272,6 @@ for fileNum = 3 : 2: numfids
     %% (optional) Double check all the cells in the current timeframe that were NOT associated with stuff
     %% just to verify they are ACTUALLY cells???
         
-    %% add in ability to plot WITHOUT the red/green overlay
-    
-
     %% set 2nd time frame as 1st time frame for subsequent analysis
     timeframe_idx = timeframe_idx + 1;
     frame_1 = frame_2;
@@ -255,9 +280,90 @@ for fileNum = 3 : 2: numfids
 
 end
 
-%% parse the structs to get same output file as what Cody has!
-%% subtract 1 from timeframe idx AND from cell_idx to match Cody's output!
 
+%% also save matrix_timeseries
+matrix_timeseries_raw = matrix_timeseries;
+save('matrix_timeseries_raw', 'matrix_timeseries_raw');
+
+
+%% parse the structs to get same output file as what Cody has (raw output)
+% subtract 1 from timeframe idx AND from cell_idx to match Cody's output!
+csv_matrix = [];
+for cell_idx = 1:length(matrix_timeseries(:, 1))
+    for timeframe = 1:length(matrix_timeseries(1, :))
+        if isempty(matrix_timeseries{cell_idx, timeframe})
+           continue; 
+        end
+           
+        cur_cell = matrix_timeseries{cell_idx, timeframe};
+        
+        volume = length(cur_cell.voxelIdxList);
+        centroid = cur_cell.centroid;
+        
+        %% Subtract 1 from timeframe index and cell index to match Cody's output!
+        altogether = [cell_idx - 1, timeframe - 1, centroid, volume];
+        
+        csv_matrix = [csv_matrix; altogether];
+        
+    end
+end
+writematrix(csv_matrix, 'output_raw.csv') 
+
+%% Eliminate everything that only exists on a single frame (or 2 frames?)
+%% DOUBLE CHECK everything from LAST FRAME that was NOT associated with a cell in the previous frame
+num_frames_exclude = 1;
+[matrix_timeseries_cleaned] = elim_untracked(matrix_timeseries, num_frames_exclude, foldername, natfnames, crop_size, z_size, thresh_size, first_slice, last_slice);
+matrix_timeseries = matrix_timeseries_cleaned;
+
+% DOUBLE CHECK:
+% (A) if only on 2 frames
+
+% (B) eliminate if located above or below +/- 2 AT THE FIRST CELL POINT
+%% Also eliminate if on edge of crop???
+ all_volumes = [];
+ del_num = 0;
+ for i = 1:length(matrix_timeseries(1, :))
+
+     for j = 1:length(matrix_timeseries(:, 1))
+         if isempty(matrix_timeseries{j, i})
+             continue;
+         end
+         cur_cell = matrix_timeseries{j, i};
+         z_position = round(cur_cell.centroid(3));
+         % delete if z_position of centroid within top 5 frames
+         if z_position > (last_slice - first_slice) - 2 && (i == 1 || isempty(matrix_timeseries{j, i - 1}))
+             matrix_timeseries(j, :) = {[]};
+             del_num = del_num + 1;
+             disp(num2str(del_num));
+         end
+     end
+ end
+
+% (C) if is a NEW cell on any frame (excluding the first)
+%matrix_timeseries = matrix_timeseries_cleaned;
+frame_num = 2;
+for fileNum = 3 : 2: numfids
+    [all_s, frame_1, truth_1] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
+    [matrix_timeseries] = Bergles_manual_correct_last_frame(frame_num, frame_1, truth_1, matrix_timeseries, crop_size, z_size);
+    frame_num = frame_num + 1;
+end
+ 
+ 
+
+%% Get all volumes:
+% all_volumes = [];
+% for i = 1:length(matrix_timeseries(1, :))
+%     for j = 1:length(matrix_timeseries(:, 1))
+%         if isempty(matrix_timeseries{j, i})
+%             continue;
+%         end
+%         cur_cell = matrix_timeseries{j, i};
+%         all_volumes = [all_volumes; length(cur_cell.voxelIdxList)];
+%     end
+% end
+
+%% parse the structs to get same output file as what Cody has!
+% subtract 1 from timeframe idx AND from cell_idx to match Cody's output!
 csv_matrix = [];
 for cell_idx = 1:length(matrix_timeseries(:, 1))
     for timeframe = 1:length(matrix_timeseries(1, :))
@@ -291,6 +397,11 @@ for timeframe_idx = 1:length(matrix_timeseries(1, :))
         if isempty(matrix_timeseries{cell_idx, timeframe_idx})
             continue;
         end
+        
+        %if timeframe_idx + 1 < length(matrix_timeseries) && ~isempty(matrix_timeseries{cell_idx, timeframe_idx + 1})
+        %    continue;
+        %end
+            
         cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
         
         voxels = cur_cell.voxelIdxList;

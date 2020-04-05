@@ -1,4 +1,3 @@
-
 function [crop, box_x_min ,box_x_max, box_y_min, box_y_max, box_z_min, box_z_max] = crop_around_centroid(input_im, y, x, z, crop_size, z_size, height, width, depth)
 box_x_max = x + crop_size; box_x_min = x - crop_size;
 box_y_max = y + crop_size; box_y_min = y - crop_size;
@@ -52,7 +51,7 @@ box_y_max - box_y_min;
 box_z_max - box_z_min;
 
 
-crop = input_im(box_x_min:box_x_max - 1, box_y_min:box_y_max - 1, box_z_min:box_z_max - 1);
+crop = input_im(box_x_min:box_x_max, box_y_min:box_y_max, box_z_min:box_z_max);
 end
 
 

@@ -21,6 +21,10 @@ close all;
 
 cur_dir = pwd;
 addpath(strcat(cur_dir))  % adds path to functions
+addpath('./IO_func/')
+addpath('./man_corr_func/')
+addpath('./watershed_func/')
+addpath('./cell_crop_func/')
 cd(cur_dir);
 
 %% Initialize

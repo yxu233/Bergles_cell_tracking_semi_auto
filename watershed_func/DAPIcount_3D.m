@@ -119,7 +119,7 @@ bw = bw3;
 figure(100); title('DAPI watershed');
 %[B,L] = bwboundaries(bw, 'noholes');
 L = vol_to_labels_random(bw);
-volshow(L);
+%volshow(L);
 %volshow(label2rgb(L, @jet, [.5 .5 .5]));
 hold on;
 
