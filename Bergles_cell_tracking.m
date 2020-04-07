@@ -8,7 +8,6 @@
 %(4) also added manual checkup for points at the end which are started as
 %"new" cells
 
-% ***need to plot in separate figure the sliceviewer
 % ***how should we deal with super dim cells with no processes ever?
 % ***note: 10x vs. 20x!!!
 % ***things are fairly consistent now
@@ -19,6 +18,7 @@
 %% Manual correction keys:
 % 1 == yes, is matched
 % 2 == no, not matched
+% 3 == add new point in any arbitrary location
 
 % a == "add" different associated cell
 % s == "scale" image to new dimensions (to zoom in/out)
