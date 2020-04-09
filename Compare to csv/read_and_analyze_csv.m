@@ -1,10 +1,13 @@
 %% read csv for comparison
 
-addpath('../../cell_crop_func')
-T = readtable('680_syGlass_10x.csv');
+addpath('../cell_crop_func')
+%T = readtable('680_syGlass_10x.csv');
 %T = readtable('650_syGlass_10x.csv');
 %T = readtable('output_650.csv');
 %T = readtable('output_680.csv');
+
+T = readtable('a1901128-r670_syGlass_20x.csv');
+
 T.SERIES
 
 

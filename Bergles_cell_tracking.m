@@ -190,7 +190,7 @@ for fileNum = 3 : 2: numfids
             % create cell object
             cell_obj = cell_class(voxelIdxList,centroid, cell_num);
             matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
-            pause
+            %1pause
        
         %elseif dist_thresh < 5 && ssim_val > 0.2
             
@@ -263,7 +263,7 @@ for fileNum = 3 : 2: numfids
              centroid = next_cell.centerDAPI;
              cell_num = check_neighbor;
              % create cell object
-             cell_obj = cell_class(voxelIdxList,centroid, cel11l_num);
+             cell_obj = cell_class(voxelIdxList,centroid, cell_num);
              matrix_timeseries{total_cells, timeframe_idx + 1} =  cell_obj;
          end
         
