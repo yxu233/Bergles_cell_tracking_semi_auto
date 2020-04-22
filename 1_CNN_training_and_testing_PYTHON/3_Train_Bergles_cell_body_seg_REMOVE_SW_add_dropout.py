@@ -200,9 +200,18 @@ X_val = np.load(name + "X_val.npy")
 Y = np.load(name +  "Y_train.npy")
 Y_val = np.load(name + "Y_val.npy")
 
+all_idx_low_sens = np.load(name + 'all_idx_low_sens.npy')
+
 
 """  Network Begins: """
 s_path = './Checkpoints/'
+
+s_path = './Checkpoints_remove_spatial_weighting_at_67000/'
+
+
+s_path = './(3) Checkpoints_add_dropout/'
+
+
 
 # """ load mean and std """  
 # mean_arr = load_pkl('', 'mean_val_VERIFIED.pkl')
@@ -235,9 +244,9 @@ kernel_size = [depth_filter, height_filter, width_filter]
 
 
 
-y_3D, y_b_3D, L1, L2, L3, L4, L5, L6, L7, L8, L9,L9_conv, L10, L11, logits, softMaxed = create_network_3D(x_3D, y_3D_, kernel_size, training, num_truth_class)
+y_3D, y_b_3D, L1, L2, L3, L4, L5, L6, L7, L8, L9,L9_conv, L10, L11, logits, softMaxed = create_network_3D(x_3D, y_3D_, kernel_size, training, num_truth_class, dropout=1, drop_rate = 0.8)
 accuracy, jaccard, train_step, cross_entropy, loss, cross_entropy, original = costOptm(y_3D, y_b_3D, logits, weight_matrix_3D,
-                                                                                       train_rate=1e-6, epsilon = 1e-8, weight_mat=True, optimizer='adam', multiclass=0)
+                                                                                       train_rate=1e-5, epsilon = 1e-8, weight_mat=True, optimizer='adam', multiclass=0)
 
 
 
@@ -289,61 +298,61 @@ else:
     with open(s_path + 'loss_global.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
         loaded = pickle.load(f)
         plot_cost = loaded[0]
-        #plot_cost = plot_cost[0:3640]
-        plot_cost = plot_cost      
+        plot_cost = plot_cost[0:8000]
+        #plot_cost = plot_cost      
     
     # Getting back the objects:
     with open(s_path + 'loss_global_val.pkl', 'rb') as t:  # Python 3: open(..., 'rb')
         loaded = pickle.load(t)
         plot_cost_val = loaded[0]  
-        #plot_cost_val = plot_cost_val[0:3640]
-        plot_cost_val = plot_cost_val
+        plot_cost_val = plot_cost_val[0:8000]
+        #plot_cost_val = plot_cost_val
 
 
     # Getting back the objects:
     with open(s_path + 'jacc_t.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
         loaded = pickle.load(f)
         plot_jacc = loaded[0]
-        #plot_cost = plot_cost[0:3640]
-        plot_jacc = plot_jacc      
+        plot_jacc = plot_jacc[0:8000]
+        #plot_jacc = plot_jacc      
     
     # Getting back the objects:
     with open(s_path + 'jacc_val.pkl', 'rb') as t:  # Python 3: open(..., 'rb')
         loaded = pickle.load(t)
         plot_jacc_val = loaded[0]  
-        #plot_cost_val = plot_cost_val[0:3640]
-        plot_jacc_val = plot_jacc_val
+        plot_jacc_val = plot_jacc_val[0:8000]
+        #plot_jacc_val = plot_jacc_val
 
 
     # Getting back the objects:
     with open(s_path + 'sens_t.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
         loaded = pickle.load(f)
         plot_sens = loaded[0]
-        #plot_cost = plot_cost[0:3640]
-        plot_sens = plot_sens
+        plot_sens = plot_sens[0:8000]
+        #plot_sens = plot_sens
         
         
     # Getting back the objects:
     with open(s_path + 'sens_val.pkl', 'rb') as t:  # Python 3: open(..., 'rb')
         loaded = pickle.load(t)
         plot_sens_val = loaded[0]  
-        #plot_cost_val = plot_cost_val[0:3640]
-        plot_sens_val = plot_sens_val
+        plot_sens_val = plot_sens_val[0:8000]
+        #plot_sens_val = plot_sens_val
 
 
     # Getting back the objects:
     with open(s_path + 'prec_t.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
         loaded = pickle.load(f)
         plot_prec = loaded[0]
-        #plot_cost = plot_cost[0:3640]
-        plot_prec = plot_prec      
+        plot_prec = plot_prec[0:8000]
+        #plot_prec = plot_prec      
     
     # Getting back the objects:
     with open(s_path + 'prec_val.pkl', 'rb') as t:  # Python 3: open(..., 'rb')
         loaded = pickle.load(t)
         plot_prec_val = loaded[0]  
-        #plot_cost_val = plot_cost_val[0:3640]
-        plot_prec_val = plot_prec_val
+        plot_prec_val = plot_prec_val[0:8000]
+        #plot_prec_val = plot_prec_val
 
 
 
@@ -366,7 +375,7 @@ for P in range(8888888888888888888888888):
     #np.random.shuffle(X); np.random.shuffle(Y);
     S = np.arange(X.shape[0])
     np.random.shuffle(S);
-    X = X[S]; Y = Y[S]
+    X = X[S]; Y = Y[S];
     
     L = np.arange(X_val.shape[0])
     np.random.shuffle(L);
@@ -374,6 +383,18 @@ for P in range(8888888888888888888888888):
     #np.random.shuffle(X_val); np.random.shuffle(Y_val);
     for i in range(len(X)):
              
+        
+        
+        """ Train with BAD sensitivity samples 30% of the time ==> added at 103000"""
+        # idx = i
+        # rand = randint(1, 10)
+        # if rand <= 3:  # run the bad samples for training 30% of the time
+        #     print('yea boi')
+        #     np.random.shuffle(all_idx_low_sens)
+        #     idx = all_idx_low_sens[0]
+            
+        
+        
         """ Load input image """
         input_im = X[i]
 
@@ -393,11 +414,11 @@ for P in range(8888888888888888888888888):
         
         
         """ create spatial weight """
-        sp_weighted_labels = spatial_weight(truth_im[:, :, :, 1],edgeFalloff=10,background=0.01,approximate=True)
+        #sp_weighted_labels = spatial_weight(truth_im[:, :, :, 1],edgeFalloff=10,background=0.01,approximate=True)
 
         """ Create a matrix of weighted labels """
         weighted_labels = np.copy(truth_im)
-        weighted_labels[:, :, :, 1] = sp_weighted_labels
+        #weighted_labels[:, :, :, 1] = sp_weighted_labels
         
             
         """ maybe remove normalization??? """
@@ -407,12 +428,12 @@ for P in range(8888888888888888888888888):
         """ set inputs and truth """
         batch_x.append(input_im)
         batch_y.append(truth_im)
-        batch_weighted.append(weighted_labels)
+        batch_weighted.append(np.ones(np.shape(weighted_labels)))
         
         """ Feed into training loop """
         if len(batch_x) == batch_size:
            
-           feed_dict_TRAIN = {x_3D:batch_x, y_3D_:batch_y, training:0, weight_matrix_3D:batch_weighted}
+           feed_dict_TRAIN = {x_3D:batch_x, y_3D_:batch_y, training:1, weight_matrix_3D:batch_weighted}
                                  
            train_step.run(feed_dict=feed_dict_TRAIN)
 
@@ -457,16 +478,16 @@ for P in range(8888888888888888888888888):
                   truth_im_val = truth_full
      
                   """ create spatial weight """
-                  sp_weighted_labels = spatial_weight(truth_im_val[:, :, :, 1],edgeFalloff=10,background=0.01,approximate=True)
+                  #sp_weighted_labels = spatial_weight(truth_im_val[:, :, :, 1],edgeFalloff=10,background=0.01,approximate=True)
           
                   """ Create a matrix of weighted labels """
                   weighted_labels_val = np.copy(truth_im_val)
-                  weighted_labels_val[:, :, :, 1] = sp_weighted_labels
+                  #weighted_labels_val[:, :, :, 1] = sp_weighted_labels
                           
                   """ set inputs and truth """
                   batch_x_val.append(input_im_val)
                   batch_y_val.append(truth_im_val)
-                  batch_weighted_val.append(weighted_labels_val)
+                  batch_weighted_val.append(np.ones(np.shape(weighted_labels_val)))
                   
                   if len(batch_x_val) == batch_size:
                       break             

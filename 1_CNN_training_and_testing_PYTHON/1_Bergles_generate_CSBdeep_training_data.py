@@ -79,20 +79,26 @@ To train with "mssim_mae" or "mssim" must copy/paste current:
      
      
      
-patch_size = (32, 128, 128)     # ALL MUST BE DIVISIBLE BY 4
+patch_size = (64, 256, 256)     # ALL MUST BE DIVISIBLE BY 4
 
-n_patches_per_image = 50    # ideally should be 15,000
+n_patches_per_image = 25    # ideally should be 15,000
 #""" Load and generate training data """
-raw_data = data.RawData.from_folder(basepath='E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/', source_dirs=['Raw'], 
+raw_data = data.RawData.from_folder(basepath='D:/From Tiger/Tiger temp/cell_tracking_training/1_first_transfer_training_data/', source_dirs=['Raw'], 
                                     target_dir='Truth', axes='CZYX', pattern='*.tif*')
 
 X, Y, XY_axes = data.create_patches(raw_data, patch_size=patch_size, n_patches_per_image=n_patches_per_image,
                                      patch_filter=None, shuffle=True)
 
 #io.save_training_data('training_data_CONFOCAL_PINHOLE', X, Y, XY_axes)
-io.save_training_data('training_data_Bergles_cell_tracking', X, Y, XY_axes)
+io.save_training_data('training_data_Bergles_cell_tracking_FIXED_with', X, Y, XY_axes)
 
 
 
+""" Save training data splits """
+name = 'training_data_Bergles_cell_tracking_FIXED_with_'
+np.save(name + "X_train", X)
+np.save(name + "X_val", X_val)
+np.save(name +  "Y_train", Y)
+np.save(name + "Y_val", Y_val)
 
 

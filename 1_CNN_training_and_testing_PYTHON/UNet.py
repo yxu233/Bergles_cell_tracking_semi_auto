@@ -469,6 +469,3 @@ def create_network_3D(x, y_b, training):
     logits = L11
     
     return y, y_b, L1, L2, L3, L4, L5, L6, L7, L8, L9,L9_conv, L10, L11, logits, softMaxed
-
-
-

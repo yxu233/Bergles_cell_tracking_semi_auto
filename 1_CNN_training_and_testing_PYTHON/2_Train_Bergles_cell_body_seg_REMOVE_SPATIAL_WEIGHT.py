@@ -127,8 +127,6 @@ def plot_max(im, ax=0):
      max_im = np.amax(im, axis=ax)
      plt.figure(); plt.imshow(max_im)
      
-     return max_im
-     
 
 # patch_size = (16, 64, 64)     # ALL MUST BE DIVISIBLE BY 4
 # n_patches_per_image = 8000    # ideally should be 15,000
@@ -222,6 +220,13 @@ input_size = 256
 depth = 64   # ***OR can be 160
 num_truth_class = 1 + 1 # for reconstruction
 multiclass = 0
+
+
+
+# input_size = 128
+# depth = 32   # ***OR can be 160
+# num_truth_class = 1 + 1 # for reconstruction
+# multiclass = 0
 
 
 """ original == 60 * 320 * 320, now == 2100 * 150 * 150    so about 7.5 x larger image """
@@ -362,7 +367,7 @@ tf.trainable_variables()
 
 
 # Required to initialize all
-batch_size = 1; 
+batch_size = 2; 
 save_epoch = 1000;
 plot_every = 10;
 epochs = num_check;
@@ -386,20 +391,28 @@ for P in range(8888888888888888888888888):
         
         
         """ Train with BAD sensitivity samples 30% of the time ==> added at 103000"""
-        idx = i
-        rand = randint(1, 10)
-        if rand <= 4:  # run the bad samples for training 30% of the time
-            print('yea boi')
-            np.random.shuffle(all_idx_low_sens)
-            idx = all_idx_low_sens[0]
+        # idx = i
+        # rand = randint(1, 10)
+        # if rand <= 4:  # run the bad samples for training 30% of the time
+        #     print('yea boi')
+        #     np.random.shuffle(all_idx_low_sens)
+        #     idx = all_idx_low_sens[0]
             
         
         
         """ Load input image """
         input_im = X[i]
+        
+        input_im = input_im[0:depth, 0:input_size, 0:input_size]
+        
 
         """ Load truth image """  
         truth_im = Y[i]
+        
+        
+        truth_im = truth_im[0:depth, 0:input_size, 0:input_size]
+        
+        
         truth_im[truth_im > 0] = 1
         
         background = np.zeros(np.shape(truth_im))
@@ -459,13 +472,18 @@ for P in range(8888888888888888888888888):
                      
                   """ Load input image """
                   input_im_val = X_val[rand_idx]
-            
+                 
+                  input_im_val = input_im_val[0:depth, 0:input_size, 0:input_size]            
   
                   """ maybe remove normalization??? """
                   #input_im_val = normalize_im(input_im_val, mean_arr, std_arr) 
             
                   """ Load truth image """                  
                   truth_im_val = Y_val[rand_idx]
+                  
+                  
+                  truth_im_val = truth_im_val[0:depth, 0:input_size, 0:input_size]
+                  
                   truth_im_val[truth_im_val > 0] = 1
                   
                   background = np.zeros(np.shape(truth_im_val))

@@ -321,13 +321,17 @@ def create_network_3D_PERCEPTUAL_LOSS_DEEP(x, y_b, kernel_size, training, num_cl
 
 
 """ Smaller network architecture """
-def create_network_3D(x, y_b, kernel_size, training, num_classes):
+def create_network_3D(x, y_b, kernel_size, training, num_classes, dropout=0, drop_rate = 0.8):
     # Building Convolutional layers
     siz_f = kernel_size[1]
     siz_f = kernel_size[2]
     siz_f_z = kernel_size[0]
     #training = True
-
+    if dropout:
+        x = tf.layers.dropout(inputs=x, rate=drop_rate, training=training)
+    
+    
+    
     L1 = tf.layers.conv3d(inputs=x, filters=10, kernel_size=[siz_f_z, siz_f, siz_f], strides=[2, 2, 2], padding='same', 
                           activation=tf.nn.relu, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='Conv1_3D')
     L2 = tf.layers.conv3d(inputs=L1, filters=20, kernel_size=[siz_f_z, siz_f, siz_f], strides=[2, 2, 2], padding='same', 

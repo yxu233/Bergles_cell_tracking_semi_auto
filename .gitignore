@@ -14,3 +14,11 @@ Compare semi auto and Cody counts.pptx
 *.data-00000-of-00001
 *.meta
 *.npz
+*.pkl
+1_CNN_training_and_testing_PYTHON/(3) Checkpoints_add_dropout/checkpoint
+1_CNN_training_and_testing_PYTHON/(1) Checkpoints/1st_run_with_error_image/checkpoint
+1_CNN_training_and_testing_PYTHON/(1) Checkpoints/checkpoint
+1_CNN_training_and_testing_PYTHON/Checkpoints_remove_spatial_weighting_at_67000/Attempt_2_good_until_80000/checkpoint
+1_CNN_training_and_testing_PYTHON/Checkpoints_remove_spatial_weighting_at_67000/Attempt_1_continued_halfwat/checkpoint
+1_CNN_training_and_testing_PYTHON/Checkpoints_remove_spatial_weighting_at_67000/checkpoint
+*.npy
