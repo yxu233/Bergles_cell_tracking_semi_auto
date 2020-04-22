@@ -78,11 +78,11 @@ natfnames=natsort(trialNames);
 empty_file_idx_sub = 0;
 all_s = cell(0);
 matrix_timeseries = cell(2000, numfids/2);
-
+111
 %% Input dialog values
 prompt = {'crop size (XY px): ', 'z_size (Z px): ', 'ssim_thresh (0 - 1): ', 'low_dist_thresh (0 - 20): ', 'upper_dist_thresh (30 - 100): ', 'min_siz (0 - 500): ', 'first_slice: ', 'last_slice: ', 'manual_correct? (Y/N): '};
 dlgtitle = 'Input';
-definput = {'200', '20', '0.30', '15', '22', '200', '5', '120', 'Y'};
+definput = {'200', '20', '0.30', '15', '22', '50', '1', '120', 'Y'};
 %definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
 answer = inputdlg(prompt,dlgtitle, [1, 35], definput);
 

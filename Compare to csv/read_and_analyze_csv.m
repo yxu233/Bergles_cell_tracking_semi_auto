@@ -6,7 +6,12 @@ addpath('../cell_crop_func')
 %T = readtable('output_650.csv');
 %T = readtable('output_680.csv');
 
-T = readtable('a1901128-r670_syGlass_20x.csv');
+%T = readtable('a1901128-r670_syGlass_20x.csv');
+
+%T = readtable('MOBPF1_013018_cuprBZA_10x.tif - T=0_610_syGlass_10x.csv');
+
+T = readtable('MOBPM_190226w_2_10x_Reg2.tif - T=0_a1902262-r720_syGlass_20x.csv');
+
 
 T.SERIES
 

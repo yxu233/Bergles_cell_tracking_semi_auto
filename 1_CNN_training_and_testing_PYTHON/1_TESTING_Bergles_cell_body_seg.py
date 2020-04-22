@@ -211,6 +211,7 @@ def find_TP_FP_FN_from_seg(segmentation, truth_im, size_limit=0):
      FP_count = 0;
      labelled = measure.label(seg)
      cc_coloc = measure.regionprops(labelled, intensity_image=coloc)
+     cleaned_seg = np.zeros(np.shape(seg))
      for obj in cc_coloc:
           max_val = obj['max_intensity']
           coords = obj['coords']
@@ -218,11 +219,20 @@ def find_TP_FP_FN_from_seg(segmentation, truth_im, size_limit=0):
           # can also skip by size limit
           if  len(coords) < size_limit:
                continue;
+          else:
+              for obj_idx in range(len(coords)):
+                    cleaned_seg[coords[obj_idx,0], coords[obj_idx,1], coords[obj_idx,2]] = 1
+          
           
           if max_val == 1:
-               FP_count += 1 
+               FP_count += 1
+
+          
+          
+
+
               
-     return TP_count, FN_count, FP_count, cleaned_truth
+     return TP_count, FN_count, FP_count, cleaned_truth, cleaned_seg
 
              
 """ removes detections on the very edges of the image """
@@ -349,9 +359,9 @@ for input_path in list_folder:
 
 
     """ For testing ILASTIK images """
-    # images = glob.glob(os.path.join(input_path,'*_single.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
+    # images = glob.glob(os.path.join(input_path,'*_single_channel.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
     # images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    # examples = [dict(input=i,truth=i.replace('_single.tif','_truth.tif'), ilastik=i.replace('_single.tif','_single_Object Predictions_.tiff')) for i in images]
+    # examples = [dict(input=i,truth=i.replace('_single_channel.tif','_truth.tif'), ilastik=i.replace('_single_channel.tif','_single_Object Predictions_.tiff')) for i in images]
     
     
     try:
@@ -503,7 +513,7 @@ for input_path in list_folder:
 
                           """ Clean segmentation by removing objects on the edge """
                           cleaned_seg = clean_edges(seg_train[0], quad_depth, w=quad_size, h=quad_size, extra_z=1, extra_xy=3)
-                                                    
+                          #cleaned_seg = seg_train
                           
                           
                           """ ADD IN THE NEW SEG??? or just let it overlap??? """                         
@@ -550,20 +560,15 @@ for input_path in list_folder:
             #truth_im_large[0:depth_im, 0:height, 0:width] = truth_im 
 
             truth_im_cleaned = clean_edges(truth_im, depth_im, w=width, h=height, extra_z=1, extra_xy=3)
-                                              
-            TP, FN, FP, truth_im_cleaned = find_TP_FP_FN_from_seg(segmentation, truth_im_cleaned, size_limit=10)
+            #truth_im_cleaned = truth_im             
+                                 
+            TP, FN, FP, truth_im_cleaned, cleaned_seg = find_TP_FP_FN_from_seg(segmentation, truth_im_cleaned, size_limit=5)
 
                   
+            plot_max(cleaned_seg)
             plot_max(truth_im_cleaned)
             
 
-                          
-                          
-            truth_im_cleaned = np.asarray(truth_im_cleaned, np.uint8)
-            imsave(sav_dir + filename + '_' + str(int(i)) +'_truth_im_cleaned.tif', truth_im_cleaned)
-            
-
-            
             if TP + FN == 0: TP;
             else: sensitivity = TP/(TP + FN);     # PPV
                    
@@ -572,10 +577,15 @@ for input_path in list_folder:
    
             print(filename)
             print(str(sensitivity))
-            print(str(precision))
+            print(str(precision))                          
+                          
             
             
+            truth_im_cleaned = np.asarray(truth_im_cleaned, np.uint8)
+            imsave(sav_dir + filename + '_' + str(int(i)) +'_truth_im_cleaned.tif', truth_im_cleaned)
             
+
+                      
             """ Compare with ilastik () if you want to """
 
             ilastik_compare = 0
@@ -594,7 +604,7 @@ for input_path in list_folder:
      
                  ilastik_im_cleaned = clean_edges(ilastik_im, depth_im, w=width, h=height, extra_z=1, extra_xy=3)
                                                    
-                 TP, FN, FP, truth_im_cleaned = find_TP_FP_FN_from_seg(ilastik_im, truth_im_cleaned, size_limit=10)
+                 TP, FN, FP, truth_im_cleaned, cleaned_seg = find_TP_FP_FN_from_seg(ilastik_im, truth_im_cleaned, size_limit=10)
      
                                
                                
@@ -603,7 +613,7 @@ for input_path in list_folder:
                  
                       
                  plot_max(ilastik_im_cleaned)
-                 
+                      
                  if TP + FN == 0: TP;
                  else: sensitivity = TP/(TP + FN);     # PPV
                         
