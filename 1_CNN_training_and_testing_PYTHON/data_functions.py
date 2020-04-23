@@ -28,6 +28,59 @@ from data_functions import *
 from UNet import *
 
 
+
+
+
+
+
+
+
+
+def find_TP_FP_FN_from_im(feed_dict, truth_im, softMaxed):
+     #feed_dict = feed_dict_TRAIN
+     output_train = softMaxed.eval(feed_dict=feed_dict)
+     seg_train = np.argmax(output_train, axis = -1)             
+        
+     true = truth_im[:, :, :, 1]
+     seg = seg_train[-1, :, :, :]
+     #plot_max(seg)
+     #plot_max(true)
+     
+     
+     coloc = seg + true
+     bw_coloc = coloc > 0
+     labelled = measure.label(true)
+     cc_coloc = measure.regionprops(labelled, intensity_image=coloc)
+     
+     true_positive = np.zeros(np.shape(coloc))
+     TP_count = 0;
+     FN_count = 0;
+     for obj in cc_coloc:
+          max_val = obj['max_intensity']
+          coords = obj['coords']
+          if max_val > 1:
+               TP_count += 1
+               #for obj_idx in range(len(coords)):
+               #     true_positive[coords[obj_idx,0], coords[obj_idx,1], coords[obj_idx,2]] = 1
+          else:
+               FN_count += 1
+ 
+     
+     FP_count = 0;
+     labelled = measure.label(bw_coloc)
+     cc_coloc = measure.regionprops(labelled, intensity_image=coloc)
+     for obj in cc_coloc:
+          max_val = obj['max_intensity']
+          coords = obj['coords']
+          if max_val == 1:
+               FP_count += 1 
+              
+     return TP_count, FN_count, FP_count
+
+
+
+
+
 """ Take input bw image and returns coordinates and degrees pixel map, where
          degree == # of pixels in nearby CC space
                  more than 3 means branchpoint

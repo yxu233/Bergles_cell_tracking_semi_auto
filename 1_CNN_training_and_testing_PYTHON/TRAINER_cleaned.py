@@ -2,43 +2,7 @@
 """
 Created on Sunday Dec. 24th
 ============================================================
-
-
- ***NEED TO INSTALL SCIPY???
- 
- 
- Try reducing network size
- 
-
 @author: Tiger
-
-
-
-
-
-***DO YOU HAVE TO SCALE MAE values to be same order of magnitude as MSSIM??? maybe not... b/c amount of movement of MSSSIM is still on same order of magnitude...?
-
-Next tests:
-     9) deeper even!!!
-     10) double convolution layers???
-     11) try different weighting of MAE/MSSIM
-     
-     
-     start watershed segmentation
-     learn to use csbdeep's tiling functions
-     quantify shrinkage
-      
-     
-     
-     
-     
-     
-STUFF TO ADD:
-    - save x, y and x_val, y_val
-    - add transforms
-    - switch away from csbdeep?
-    - boiler plate code
-     
 
 """
 
@@ -65,7 +29,6 @@ from PIL import Image
 from os import listdir
 from os.path import isfile, join
 from natsort import natsort_keygen, ns
-#from skimage import measure
 import pickle as pickle
 import os
 
@@ -74,11 +37,9 @@ from random import randint
 from plot_functions import *
 from data_functions import *
 from data_functions_3D import *
-#from post_process_functions import *
 from UNet import *
 from UNet_3D import *
 import glob, os
-#from tifffile import imsave
 
 from random import randint
 
@@ -96,36 +57,127 @@ from natsort import natsort_keygen, ns
 natsort_key1 = natsort_keygen(key = lambda y: y.lower())      # natural sorting order
 
 
-
-
-
-
 """ Required to allow correct GPU usage ==> or else crashes """
-import tensorflow as tf
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-tf.keras.backend.set_session(tf.Session(config=config))
-
-""" Start training """
-
-name = ''
-X = np.load(name + "X_train.npy")
-X_val = np.load(name + "X_val.npy")
-Y = np.load(name +  "Y_train.npy")
-Y_val = np.load(name + "Y_val.npy")
-
-all_idx_low_sens = np.load(name + 'all_idx_low_sens_0_8.npy')
+# import tensorflow as tf
+# config = tf.ConfigProto()
+# config.gpu_options.allow_growth = True
+# tf.keras.backend.set_session(tf.Session(config=config))
 
 
-"""  Network Begins: """
+from sklearn.model_selection import train_test_split
+import time
+import bcolz
+
+def get_train_and_val_from_bcolz(X, Y, input_path, test_size = 0.1, start_idx=0, end_idx=-1):
+
+    #X = bcolz.open(input_path + 'input_im', mode='r')
+    #Y = bcolz.open(input_path + 'truth_im', mode='r')
+    
+
+    start = time.perf_counter()
+    
+    input_batch = X[start_idx:end_idx]
+    truth_batch = Y[start_idx:end_idx]
+    
+    stop = time.perf_counter()
+    acc_speed = stop - start
+    print(acc_speed)
+    
+ 
+    start = time.perf_counter()
+        
+    X_train, X_valid, y_train, y_valid = train_test_split(input_batch, truth_batch, test_size=test_size, random_state=2018)
+        
+    stop = time.perf_counter()
+    diff = stop - start
+    print(diff)
+            
+    
+    start = time.perf_counter()    
+    
+    X_train = np.asarray(X_train, np.float32)
+    X_valid = np.asarray(X_valid, np.float32)
+    y_train = np.asarray(y_train, np.float32)
+    y_valid = np.asarray(y_valid, np.float32)
+    
+    
+    stop = time.perf_counter()
+    diff = stop - start
+    print(diff)
+    return X_train, X_valid, y_train, y_valid, acc_speed
+
+
+
+
+
+def get_train_and_val_from_bcolz_by_idx(X, Y, input_path, idx_train, idx_valid=0, start_idx=0, end_idx=-1):
+
+
+    #X = bcolz.open(input_path + 'input_im', mode='r')
+    #Y = bcolz.open(input_path + 'truth_im', mode='r')
+    
+
+    start = time.perf_counter()
+    
+    input_batch = []
+    truth_batch = []
+    sub_batch_idx = idx_train[start_idx:end_idx]
+    for i in range(len(sub_batch_idx)):
+        input_batch.append(X[sub_batch_idx[i]])
+        truth_batch.append(Y[sub_batch_idx[i]])
+
+
+    #input_batch = X[sub_batch_idx]
+    #truth_batch = Y[sub_batch_idx]
+    
+    stop = time.perf_counter()
+    diff = stop - start
+    print(diff)
+    
+ 
+    start = time.perf_counter()
+    
+    
+    input_batch = np.asarray(input_batch, np.float32)
+    truth_batch = np.asarray(truth_batch, np.float32)
+    
+    stop = time.perf_counter()
+    diff = stop - start
+    print(diff)
+        
+
+    #start = time.perf_counter()
+    
+    #X_train, X_valid, y_train, y_valid = train_test_split(input_batch, truth_batch, test_size=test_size, random_state=2018)
+    
+    #stop = time.perf_counter()
+    #diff = stop - start
+    #print(diff)
+    input_batch = np.expand_dims(input_batch, axis=-1)
+    #truth_batch = np.expand_dims(truth_batch, axis=-1)
+    return input_batch, truth_batch
+
+
+
+""" shuffles training data """
+def shuffle_data(X_train, X_valid, y_train, y_valid):   
+    idx_train = np.arange(X_train.shape[0])
+    np.random.shuffle(idx_train);
+
+    idx_valid = np.arange(X_valid.shape[0])
+    np.random.shuffle(idx_valid);
+
+    return idx_train, idx_valid
+        
+
+
+""""  Network Begins: """
 s_path = './Checkpoints/'
+input_path = '../Train_tracking_data/Train_tracking_data_analytic_results_2/'
 
+input_path = 'C:/Users/Huganir Lab/Documents/GitHub/Bergles-lab/Training_on_C/'
 
-
-# """ load mean and std """  
-# mean_arr = load_pkl('', 'mean_val_VERIFIED.pkl')
-# std_arr = load_pkl('', 'std_val_VERIFIED.pkl')
-               
+            
 """ SO LAYERS MUST BE 2 x 2 x 2 x 1 for depth convolutions"""
 input_size = 256
 depth = 64   # ***OR can be 160
@@ -136,22 +188,15 @@ multiclass = 0
 """ original == 60 * 320 * 320, now == 2100 * 150 * 150    so about 7.5 x larger image """
 x_3D = tf.placeholder('float32', shape=[None, depth, input_size, input_size, 1], name='3D_x') 
 y_3D_ = tf.placeholder('float32', shape=[None, depth, input_size, input_size, num_truth_class], name='3D_CorrectLabel')
-weight_matrix_3D = tf.placeholder('float32', shape=[None, depth, input_size, input_size, num_truth_class], name = 'weighted_labels')
+#weight_matrix_3D = tf.placeholder('float32', shape=[None, depth, input_size, input_size, num_truth_class], name = 'weighted_labels')
+weight_matrix_3D = []
 training = tf.placeholder(tf.bool, name='training')
 
 """ Creates network and cost function"""
-depth_filter = 5
-height_filter = 5
-width_filter = 5
-kernel_size = [depth_filter, height_filter, width_filter]
-
-
-""" Trained at 1e-5 until 67000 epochs"""
+kernel_size = [5, 5, 5]
 y_3D, y_b_3D, L1, L2, L3, L4, L5, L6, L7, L8, L9,L9_conv, L10, L11, logits, softMaxed = create_network_3D(x_3D, y_3D_, kernel_size, training, num_truth_class)
 accuracy, jaccard, train_step, cross_entropy, loss, cross_entropy, original = costOptm(y_3D, y_b_3D, logits, weight_matrix_3D,
-                                                                                       train_rate=1e-5, epsilon = 1e-8, weight_mat=True, optimizer='adam', multiclass=0)
-
-
+                                                                                       train_rate=1e-5, epsilon = 1e-8, weight_mat=False, optimizer='adam', multiclass=0)
 
 sess = tf.InteractiveSession()
 
@@ -174,16 +219,8 @@ if not onlyfiles_check:
     plot_sens = []; plot_sens_val = [];
     plot_prec = []; plot_prec_val = [];
     
-    
-    #plot_MSSIM = []; plot_MSSIM_val = [];
-    #plot_MAE = []; plot_MAE_val = [];
-    #plot_MSSIM_single = []; plot_loss_single = [];
     num_check= 0;
-    
-    #if multiclass:    
-    #     for i in range(num_truth_class - 1):
-    #          plot_MSSIM.append([])
-    #         plot_MSSIM_val.append([])
+
     
 else:   
     """ Find last checkpoint """       
@@ -197,204 +234,132 @@ else:
     #checkpoint = 'check_36400' 
     saver.restore(sess, s_path + checkpoint)
     
-    # Getting back the objects:
-    with open(s_path + 'loss_global.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-        loaded = pickle.load(f)
-        plot_cost = loaded[0]
-        #plot_cost = plot_cost[0:6700]
-        #plot_cost = plot_cost      
+    plot_cost = list(np.load(s_path + 'plot_cost.npy'))
+    plot_cost_val = list(np.load(s_path + 'plot_cost_val.npy'))
     
-    # Getting back the objects:
-    with open(s_path + 'loss_global_val.pkl', 'rb') as t:  # Python 3: open(..., 'rb')
-        loaded = pickle.load(t)
-        plot_cost_val = loaded[0]  
-        #plot_cost_val = plot_cost_val[0:6700]
-        #plot_cost_val = plot_cost_val
-
-
-    # Getting back the objects:
-    with open(s_path + 'jacc_t.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-        loaded = pickle.load(f)
-        plot_jacc = loaded[0]
-        #plot_jacc = plot_jacc[0:6700]
-        #plot_jacc = plot_jacc      
+    plot_jacc = list(np.load(s_path + 'plot_jacc.npy'))
+    plot_jacc_val = list(np.load(s_path + 'plot_jacc_val.npy'))
     
-    # Getting back the objects:
-    with open(s_path + 'jacc_val.pkl', 'rb') as t:  # Python 3: open(..., 'rb')
-        loaded = pickle.load(t)
-        plot_jacc_val = loaded[0]  
-        #plot_jacc_val = plot_jacc_val[0:6700]
-        #plot_jacc_val = plot_jacc_val
-
-
-    # Getting back the objects:
-    with open(s_path + 'sens_t.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-        loaded = pickle.load(f)
-        plot_sens = loaded[0]
-        #plot_sens = plot_sens[0:6700]
-        #plot_sens = plot_sens
-        
-        
-    # Getting back the objects:
-    with open(s_path + 'sens_val.pkl', 'rb') as t:  # Python 3: open(..., 'rb')
-        loaded = pickle.load(t)
-        plot_sens_val = loaded[0]  
-        #plot_sens_val = plot_sens_val[0:6700]
-        #plot_sens_val = plot_sens_val
-
-
-    # Getting back the objects:
-    with open(s_path + 'prec_t.pkl', 'rb') as f:  # Python 3: open(..., 'rb')
-        loaded = pickle.load(f)
-        plot_prec = loaded[0]
-        #plot_prec = plot_prec[0:6700]
-        #plot_prec = plot_prec      
+    plot_sens = list(np.load(s_path + 'plot_sens.npy'))
+    plot_sens_val = list(np.load(s_path + 'plot_sens_val.npy'))
     
-    # Getting back the objects:
-    with open(s_path + 'prec_val.pkl', 'rb') as t:  # Python 3: open(..., 'rb')
-        loaded = pickle.load(t)
-        plot_prec_val = loaded[0]  
-        #plot_prec_val = plot_prec_val[0:6700]
-        #plot_prec_val = plot_prec_val
-
-
-
+    plot_prec = list(np.load(s_path + 'plot_prec.npy'))
+    plot_prec_val = list(np.load(s_path + 'plot_prec_val.npy'))
+    
 
 """ Prints out all variables in current graph """
 tf.trainable_variables()
 
-
 # Required to initialize all
-batch_size = 1; 
-save_epoch = 1000;
-plot_every = 10;
-epochs = num_check;
+batch_size = 2; save_iter = 10000;
+plot_every = 100; iterations = num_check;
 
 batch_x = []; batch_y = []; batch_weighted = [];
 
 bool_plot_sens = 0
 
-for P in range(8888888888888888888888888):
-    #np.random.shuffle(X); np.random.shuffle(Y);
-    S = np.arange(X.shape[0])
-    np.random.shuffle(S);
-    X = X[S]; Y = Y[S];
+test_size = 0.1
+
+
+
+
+""" Load training data """
+""" *** ADD OPTION TO ONLY READ IN PARTS OF DATA FOR SAKE OF RAM ***"""
+
     
-    L = np.arange(X_val.shape[0])
-    np.random.shuffle(L);
-    X_val = X_val[L]; Y_val = Y_val[L]    
-    #np.random.shuffle(X_val); np.random.shuffle(Y_val);
-    for i in range(len(X)):
-             
+    
+print('loading data')
+load_by_batch_per_epoch = 1; batch_LARGE_size = 1000;
+# """ load mean and std """  
+mean_arr = np.load(input_path + 'mean_VERIFIED.npy')
+std_arr = np.load(input_path + 'std_VERIFIED.npy')
+
+acc_speed_all = []
+
+
+
+X = bcolz.open(input_path + 'input_im', mode='r')
+Y = bcolz.open(input_path + 'truth_im', mode='r')
+if not load_by_batch_per_epoch:
+    X_train, X_valid, y_train, y_valid = get_train_and_val_from_bcolz(X, Y, input_path, test_size = test_size)
+
+    num_train_samples = len(X_train)
+else:
+    counter = list(range(len(X)))
+    idx_train, idx_valid, empty, empty = train_test_split(counter, counter, test_size=test_size, random_state=2018)
+    num_train_samples = len(idx_train)    
+    
+    # load validation once into RAM
+    #X_valid, y_valid = get_train_and_val_from_bcolz_by_idx(X, Y, input_path, idx_valid)
+    
+
+""" Start training loop """
+while(True):  
+    if not load_by_batch_per_epoch:
+      X_train, X_valid, y_train, y_valid = shuffle_data(X_train, X_valid, y_train, y_valid)
+      
+    else:
+      np.random.shuffle(idx_train)
+      np.random.shuffle(idx_valid)
+
         
-        
-        """ Train with BAD sensitivity samples 30% of the time ==> added at 103000"""
-        idx = i
-        rand = randint(1, 10)
-        if rand <= 4:  # run the bad samples for training 30% of the time
-            print('yea boi')
-            np.random.shuffle(all_idx_low_sens)
-            idx = all_idx_low_sens[0]
+    for i in range(0, len(X), batch_size):
+        if load_by_batch_per_epoch and i % batch_LARGE_size == 0:
+            print('getting new batch')
+            X_train = []; X_valid = []; y_train = []; y_valid = [];  # RELEASE from RAM???
+            X_train, X_valid, y_train, y_valid, acc_speed = get_train_and_val_from_bcolz(X, Y, input_path, test_size = test_size, start_idx=i, end_idx=i + batch_LARGE_size)
+            #X_train, y_train = get_train_and_val_from_bcolz_by_idx(X, Y, input_path, idx_train, start_idx=i, end_idx=i + batch_LARGE_size)
+            num_X_train = len(X_train)
+            print('length of training at i')
+            print(i)
+            print(num_X_train)
+            acc_speed_all.append(acc_speed)
+            idx_train_shuff, idx_valid_shuff = shuffle_data(X_train, X_valid, y_train, y_valid)
             
-        
-        
-        """ Load input image """
-        input_im = X[i]
-
-        """ Load truth image """  
-        truth_im = Y[i]
-        truth_im[truth_im > 0] = 1
-        
-        background = np.zeros(np.shape(truth_im))
-        background[truth_im == 0] = 1
-        
-        truth_full = np.zeros([depth, input_size, input_size, num_truth_class])
-        truth_full[:, :, :, 1] = truth_im[:, :, :, 0]
-        truth_full[:, :, :, 0] = background[:, :, :, 0]
-        
-        truth_im = truth_full
-        
-        
-        
-        """ create spatial weight """
-        #sp_weighted_labels = spatial_weight(truth_im[:, :, :, 1],edgeFalloff=10,background=0.01,approximate=True)
-
-        """ Create a matrix of weighted labels """
-        weighted_labels = np.copy(truth_im)
-        #weighted_labels[:, :, :, 1] = sp_weighted_labels
-        
             
-        """ maybe remove normalization??? """
-        # input_im_save = np.copy(input_im)
-        # input_im = normalize_im(input_im, mean_arr, std_arr) 
-
-        """ set inputs and truth """
-        batch_x.append(input_im)
-        batch_y.append(truth_im)
-        batch_weighted.append(np.ones(np.shape(weighted_labels)))
+           
         
-        """ Feed into training loop """
-        if len(batch_x) == batch_size:
-           
-           feed_dict_TRAIN = {x_3D:batch_x, y_3D_:batch_y, training:0, weight_matrix_3D:batch_weighted}
-                                 
-           train_step.run(feed_dict=feed_dict_TRAIN)
+        if iterations == 0:
+            start = time.perf_counter()
+        if iterations == 1000:
+            stop = time.perf_counter()
+            diff = stop - start
+            print(diff)
+            
+            
+        """ Load data """
+        batch_x = X_train[idx_train_shuff[i % (num_X_train-batch_size):i % (num_X_train-batch_size) + batch_size]]
+        batch_y = y_train[idx_train_shuff[i % (num_X_train-batch_size):i % (num_X_train-batch_size) + batch_size]]
+        if batch_x.shape[0] < 2:
+            zzz
 
-           batch_x = []; batch_y = []; batch_weighted = [];
-           epochs = epochs + 1           
-           print('Trained: %d' %(epochs))
+        """ normalization """
+        batch_x = normalize_im(batch_x, mean_arr, std_arr) 
+
+        feed_dict_TRAIN = {x_3D:batch_x, y_3D_:batch_y, training:0}
+                         
+        """ Training: """        
+        train_step.run(feed_dict=feed_dict_TRAIN)
+
+        iterations = iterations + 1           
+        print('Trained: %d' %(iterations))
            
            
-           if epochs % plot_every == 0:
+        if iterations % plot_every == 0:
+
                
               """ Load validation """
-              #plt.close(2)
-              #plt.close(18)
-              #plt.close(19)
-              #plt.close(21)
-              batch_x_val = []
-              batch_y_val = []
-              batch_weighted_val = []
-              for batch_i in range(len(X_val)):
+              rand = randint(0, len(idx_valid_shuff) - batch_size)   
+              batch_x_val = X_valid[idx_valid_shuff[rand:rand+batch_size]]; batch_y_val = y_valid[idx_valid_shuff[rand:rand+batch_size]]
+              
+              """ normalization """
+              batch_x_val = normalize_im(batch_x_val, mean_arr, std_arr) 
+
+              if batch_x_val.shape[0] < 2:
+                    zzz
+
             
-                  # select random validation image:
-                  rand_idx = randint(0, len(X_val)- 1)
-                     
-                  """ Load input image """
-                  input_im_val = X_val[rand_idx]
-            
-  
-                  """ maybe remove normalization??? """
-                  #input_im_val = normalize_im(input_im_val, mean_arr, std_arr) 
-            
-                  """ Load truth image """                  
-                  truth_im_val = Y_val[rand_idx]
-                  truth_im_val[truth_im_val > 0] = 1
-                  
-                  background = np.zeros(np.shape(truth_im_val))
-                  background[truth_im_val == 0] = 1
-                  
-                  truth_full = np.zeros([depth, input_size, input_size, num_truth_class])
-                  truth_full[:, :, :, 1] = truth_im_val[:, :, :, 0]
-                  truth_full[:, :, :, 0] = background[:, :, :, 0]     
-                  
-                  truth_im_val = truth_full
-     
-                  """ create spatial weight """
-                  #sp_weighted_labels = spatial_weight(truth_im_val[:, :, :, 1],edgeFalloff=10,background=0.01,approximate=True)
-          
-                  """ Create a matrix of weighted labels """
-                  weighted_labels_val = np.copy(truth_im_val)
-                  #weighted_labels_val[:, :, :, 1] = sp_weighted_labels
-                          
-                  """ set inputs and truth """
-                  batch_x_val.append(input_im_val)
-                  batch_y_val.append(truth_im_val)
-                  batch_weighted_val.append(np.ones(np.shape(weighted_labels_val)))
-                  
-                  if len(batch_x_val) == batch_size:
-                      break             
-              feed_dict_CROSSVAL = {x_3D:batch_x_val, y_3D_:batch_y_val, training:0, weight_matrix_3D:batch_weighted_val}      
+              feed_dict_CROSSVAL = {x_3D:batch_x_val, y_3D_:batch_y_val, training:0}      
               
  
               """ Training loss"""
@@ -415,105 +380,85 @@ for P in range(8888888888888888888888888):
               plot_jacc_val.append(jacc_val)
 
 
-          
-          
               """ Calculate sensitivity + precision as other metrics """
               if jacc_val > 0.1:
                    bool_plot_sens = 1
                    
               if bool_plot_sens:
-                   
-                   TP, FN, FP = find_TP_FP_FN_from_im(feed_dict_TRAIN, truth_im, softMaxed)
+
+                   start = time.perf_counter()
+
+                   """ For training data """
+                   TP, FN, FP = find_TP_FP_FN_from_im(feed_dict_TRAIN, batch_y[-1], softMaxed)
                    
                    if TP + FN == 0: TP;
                    else: sensitivity = TP/(TP + FN); plot_sens.append(sensitivity);    # PPV
                    
                    if TP + FP == 0: TP;
                    else: precision = TP/(TP + FP);  plot_prec.append(precision)    # precision
-   
-                    
-
                    
-                   TP, FN, FP = find_TP_FP_FN_from_im(feed_dict_CROSSVAL, truth_im_val, softMaxed)
+                   """ For validation """
+                   TP, FN, FP = find_TP_FP_FN_from_im(feed_dict_CROSSVAL, batch_y_val[-1], softMaxed)
                    if TP + FN == 0: TP;
                    else: sensitivity = TP/(TP + FN); plot_sens_val.append(sensitivity);    # PPV
                    
                    if TP + FP == 0: TP;
                    else: precision = TP/(TP + FP); plot_prec_val.append(precision)    # precision                 
      
+                   stop = time.perf_counter()
+                   diff = stop - start
+                   print(diff)
 
-
-                   """ Plot sens + precision """
+                   """ Plot sens + precision + jaccard + loss """
                    plot_metric_fun(plot_sens, plot_sens_val, class_name='', metric_name='sensitivity', plot_num=30)
                    plt.figure(30); plt.savefig(s_path + 'Sensitivity.png')
                    
                    plot_metric_fun(plot_prec, plot_prec_val, class_name='', metric_name='precision', plot_num=31)
                    plt.figure(31); plt.savefig(s_path + 'Precision.png')
-              
-              if not multiclass:
-                   
-                   plot_cost_fun(plot_cost, plot_cost_val)
-                   plot_jaccard_fun(plot_jacc, plot_jacc_val, class_name=' jaccard')
-                   
-                   
-                   plt.figure(18); plt.savefig(s_path + 'global_loss.png')
-                   plt.figure(19); plt.savefig(s_path + 'detailed_loss.png')
-                   plt.figure(21); plt.savefig(s_path + 'Jaccard.png')
-                   plt.figure(25); plt.savefig(s_path + 'global_loss_LOG.png')
-                   
-                   """ Also plot MAE """
-                   #plot_jaccard_fun(plot_MAE, plot_MAE_val, class_name=' MAE')
-                   #plt.figure(21); plt.savefig(s_path + 'MAE.png')
-                                  
-                           
-              plot_depth = 8
-              if epochs > 500:
-                  if epochs % 100 == 0:
-                       plot_trainer_3D_HUGANIR(softMaxed, feed_dict_TRAIN, feed_dict_CROSSVAL, input_im, input_im_val, truth_im, truth_im_val,
-                                       s_path, epochs, plot_depth=plot_depth, multiclass=multiclass)
 
-              elif epochs % plot_every == 0:
-                       plot_trainer_3D_HUGANIR(softMaxed, feed_dict_TRAIN, feed_dict_CROSSVAL, input_im, input_im_val, truth_im, truth_im_val,
-                                       s_path, epochs, plot_depth=plot_depth, multiclass=multiclass)
+
+              plot_metric_fun(plot_jacc, plot_jacc_val, class_name='', metric_name='jaccard', plot_num=32)
+              plt.figure(32); plt.savefig(s_path + 'Jaccard.png')
+              
+                   
+              plot_cost_fun(plot_cost, plot_cost_val)                   
+              plt.figure(18); plt.savefig(s_path + 'global_loss.png')
+              plt.figure(19); plt.savefig(s_path + 'detailed_loss.png')
+              plt.figure(25); plt.savefig(s_path + 'global_loss_LOG.png')
+              plt.close('all')
+                            
+              plot_depth = 8
+              if iterations > 500:
+                  if iterations % 1000 == 0:
+                       plot_trainer_3D_HUGANIR(softMaxed, feed_dict_TRAIN, feed_dict_CROSSVAL, batch_x[-1], batch_x_val[-1], batch_y[-1], batch_y_val[-1],
+                                       s_path, iterations, plot_depth=plot_depth, multiclass=multiclass)
+
+              elif iterations % plot_every == 0:
+                       plot_trainer_3D_HUGANIR(softMaxed, feed_dict_TRAIN, feed_dict_CROSSVAL, batch_x[-1], batch_x_val[-1], batch_y[-1], batch_y_val[-1],
+                                       s_path, iterations, plot_depth=plot_depth, multiclass=multiclass)
+                       
                                                      
-           """ To save (every x epochs) """
-           if epochs % save_epoch == 0:                          
+        """ To save (every x iterations) """
+        if iterations % save_iter == 0:                          
               sess_get = tf.get_default_session()   # IF FORGET TO ADD "sess = tf.InteractiveSession
               saver = tf.train.Saver()
        
-              save_name = s_path + 'check_' +  str(epochs)
+              save_name = s_path + 'check_' +  str(iterations)
               save_path = saver.save(sess, save_name)
                
               """ Saving the objects """
-              save_pkl(plot_cost, s_path, 'loss_global.pkl')
-              save_pkl(plot_cost_val, s_path, 'loss_global_val.pkl')
-              save_pkl(plot_jacc, s_path, 'jacc_t.pkl')
-              save_pkl(plot_jacc_val, s_path, 'jacc_val.pkl')
+              np.save(s_path + 'plot_cost.npy', plot_cost)
+              np.save(s_path + 'plot_cost_val.npy', plot_cost_val)
               
-             
-              save_pkl(plot_sens, s_path, 'sens_t.pkl')
-              save_pkl(plot_sens_val, s_path, 'sens_val.pkl')
+              np.save(s_path + 'plot_jacc.npy', plot_jacc)
+              np.save(s_path + 'plot_jacc_val.npy', plot_jacc_val)
               
-              save_pkl(plot_prec, s_path, 'prec_t.pkl')
-              save_pkl(plot_prec_val, s_path, 'prec_val.pkl')
+              np.save(s_path + 'plot_sens.npy', plot_sens)
+              np.save(s_path + 'plot_sens_val.npy', plot_sens_val)
               
+              np.save(s_path + 'plot_prec.npy', plot_prec)
+              np.save(s_path + 'plot_prec_val.npy', plot_prec_val)
               
-              #save_pkl(plot_MAE, s_path, 'MAE.pkl')
-              #save_pkl(plot_MAE_val, s_path, 'MAE_val.pkl')
-              
-              #save_pkl(validation_counter, s_path, 'val_counter.pkl')
-              #save_pkl(input_counter, s_path, 'input_counter.pkl')   
-              #save_pkl(plot_MSSIM_single, s_path, 'MSSIM_single.pkl')                                
-              #save_pkl(plot_loss_single, s_path, 'loss_single.pkl')  
-              
-              
-              """Getting back the objects"""
-#              plot_cost = load_pkl(s_path, 'loss_global.pkl')
-#              plot_cost_val = load_pkl(s_path, 'loss_global_val.pkl')
-#              plot_MSSIM = load_pkl(s_path, 'MSSIM.pkl')
-#              plot_MSSIM_val = load_pkl(s_path, 'MSSIM_val.pkl')
-#              plot_MSSIM_single = load_pkl(s_path, 'MSSIM_single.pkl')                                
-#              plot_loss_single = load_pkl(s_path, 'loss_single.pkl')
-              
+
               
               
