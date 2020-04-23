@@ -62,9 +62,10 @@ import os
     
 truth = 0
 
-def plot_max(im, ax=0):
+def plot_max(im, ax=0, fig_num=1):
      max_im = np.amax(im, axis=ax)
-     plt.figure(); plt.imshow(max_im[:, :])
+     plt.figure(fig_num); plt.imshow(max_im[:, :])
+     return max_im
      
 
 """ removes detections on the very edges of the image """
@@ -267,11 +268,16 @@ for input_path in list_folder:
                            
                           
                           """ If want to save images as well """
+                          max_quad_intensity = plot_max(quad_intensity, ax=0, fig_num=1)
+                          max_quad_truth = plot_max(quad_truth, ax=0, fig_num=2)
+
 
                           imsave(sav_dir + filename + str(int(x)) + '_' + str(int(y)) + '_' + str(int(z)) +'_quad_INPUT.tif', np.uint8(quad_intensity))
                           imsave(sav_dir + filename + str(int(x)) + '_' + str(int(y)) + '_' + str(int(z)) +'_quad_TRUTH.tif', np.uint8(quad_truth))
                           
                           
+                          if total_samples == 3:
+                               zzz
                           """ Batch for later """
                           # initialize dataset in the file
                           quad_intensity = np.expand_dims(quad_intensity, axis=0)
@@ -316,7 +322,7 @@ for input_path in list_folder:
                           print(total_samples)
      
 
-
+zzz
 """ Load bcolz """
 num_iter = 500
 #sav_dir = 'E:/7) Bergles lab data/RemyelinationData/Training_data_substack/Training_data_substack_analytic_results/'
