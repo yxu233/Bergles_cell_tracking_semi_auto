@@ -145,9 +145,13 @@ for input_path in list_folder:
     """ Load filenames from zip """
     images = glob.glob(os.path.join(input_path,'*_RAW_REGISTERED_substack_1_110.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
     images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    examples = [dict(input=i,truth=i.replace('_RAW_REGISTERED_substack_1_110.tif','_TRUTH_REGISTERED_substack_1_110.tif'), ilastik=i.replace('_RAW_REGISTERED_substack_1_110.tif','_Object_Predictions.tiff')) for i in images]
+    #examples = [dict(input=i,truth=i.replace('_RAW_REGISTERED_substack_1_110.tif','_TRUTH_REGISTERED_substack_1_110.tif'), ilastik=i.replace('_RAW_REGISTERED_substack_1_110.tif','_Object_Predictions.tiff')) for i in images]
 
-    
+
+
+    examples = [dict(input=i,truth=i.replace('_RAW_REGISTERED_substack_1_110.tif','_TRUTH_REGISTERED_substack_1_11_m_ilastik.tif'), ilastik=i.replace('_RAW_REGISTERED_substack_1_110.tif','_Object_Predictions.tiff')) for i in images]
+
+
     try:
         # Create target Directory
         os.mkdir(sav_dir)
@@ -268,16 +272,21 @@ for input_path in list_folder:
                            
                           
                           """ If want to save images as well """
+                          quad_truth[quad_truth > 0] = 255
+                         
+                         
                           max_quad_intensity = plot_max(quad_intensity, ax=0, fig_num=1)
                           max_quad_truth = plot_max(quad_truth, ax=0, fig_num=2)
 
 
                           imsave(sav_dir + filename + str(int(x)) + '_' + str(int(y)) + '_' + str(int(z)) +'_quad_INPUT.tif', np.uint8(quad_intensity))
                           imsave(sav_dir + filename + str(int(x)) + '_' + str(int(y)) + '_' + str(int(z)) +'_quad_TRUTH.tif', np.uint8(quad_truth))
+
+                          imsave(sav_dir + filename + str(int(x)) + '_' + str(int(y)) + '_' + str(int(z)) +'_quad_INPUT_max_proj.tif', np.uint8(max_quad_intensity))
+                          imsave(sav_dir + filename + str(int(x)) + '_' + str(int(y)) + '_' + str(int(z)) +'_quad_TRUTH_max_proj.tif', np.uint8(max_quad_truth))                          
                           
-                          
-                          if total_samples == 3:
-                               zzz
+                          #if total_samples == 3:
+                          #     zzz
                           """ Batch for later """
                           # initialize dataset in the file
                           quad_intensity = np.expand_dims(quad_intensity, axis=0)
@@ -322,30 +331,29 @@ for input_path in list_folder:
                           print(total_samples)
      
 
-zzz
 """ Load bcolz """
 num_iter = 500
 #sav_dir = 'E:/7) Bergles lab data/RemyelinationData/Training_data_substack/Training_data_substack_analytic_results/'
 
 
 
-X = bcolz.open(sav_dir + 'input_im', mode='r')
-Y = bcolz.open(sav_dir + 'truth_im', mode='r')
+input_batch = bcolz.open(sav_dir + 'input_im', mode='r')
+truth_batch = bcolz.open(sav_dir + 'truth_im', mode='r')
 
-import time
-start = time.perf_counter()
+# import time
+# start = time.perf_counter()
 
-input_batch = X[0:-1]
-truth_batch = Y[0:-1]
+# input_batch = X[:]
+# truth_batch = Y[:]
 
 
-input_batch = np.asarray(input_batch, np.float32)
-truth_batch = np.asarray(truth_batch, np.float32)
+# input_batch = np.asarray(input_batch, np.float32)
+# truth_batch = np.asarray(truth_batch, np.float32)
 
-stop = time.perf_counter()
+# stop = time.perf_counter()
 
-diff = stop - start
-print(diff)
+# diff = stop - start
+# print(diff)
 
 
 
@@ -360,8 +368,8 @@ for i in range(len(input_batch)):
         """ Load input image """
         input_im = input_batch[i]
         sum_all = sum_all + input_im
-mean_im = sum_all/len(X)
-mean_val = np.sum(sum_all)/(mean_im.size * len(X))
+mean_im = sum_all/len(input_batch)
+mean_val = np.sum(sum_all)/(mean_im.size * len(input_batch))
 
 stop = time.perf_counter()
 

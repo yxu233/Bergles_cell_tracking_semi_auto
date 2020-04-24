@@ -103,11 +103,11 @@ for fileNum = 1 : 3: numfids
     
     
     %% Also keep all ILASTIK things near bottom of volume
-    last_keep_slice = 100;
+    last_keep_slice = 105;
     for bottom_idx = 1:length(ilastik_regions_table.VoxelIdxList)
        if ilastik_regions_table.Centroid(bottom_idx, 3) > last_keep_slice
            
-           ilastik_cell = ilastik_regions_table.VoxelIdxList{bottom_idx};
+           ilastik_cell = ilastik_regions_table.VoxelIdxList{ilastik_idx};
            new_truth_im(ilastik_cell) = 1;
    
        end
@@ -120,9 +120,6 @@ for fileNum = 1 : 3: numfids
     %labels_norm = mod(labels, 15) 1;
     %labels_norm(labels == 0) = 0;
     %labels = labels;
-    
-    mkdir('output');
-    cd('./output')
     
     z_size = length(new_truth_im(1, 1, :));
     filename_raw_truth_ilastik = filename_raw_truth(1:end-5);
@@ -137,20 +134,21 @@ for fileNum = 1 : 3: numfids
     axis = 3;
     gray_max = max(gray, [], axis);
     filename_raw_gray = filename_raw_gray(1:end-4);
-    imwrite(gray_max, strcat(filename_raw_gray,'_max.tif') , 'writemode', 'append', 'Compression','none')
+    imwrite(gray_max, strcat(filename_raw_gray,'_max_project.tif') , 'writemode', 'append', 'Compression','none')
     
     
     truth_max = max(truth, [], axis);
     filename_raw_truth = filename_raw_truth(1:end-4);
-    imwrite(truth_max, strcat(filename_raw_truth,'_max.tif') , 'writemode', 'append', 'Compression','none')
+    imwrite(truth_max, strcat(filename_raw_truth,'_max_project.tif') , 'writemode', 'append', 'Compression','none')
     
     
     ilastik_max = max(ilastik, [], axis);
-    filename_raw_ilastik = filename_raw_ilastik(1:end-5);
-    imwrite(ilastik_max, strcat(filename_raw_ilastik,'_max.tif') , 'writemode', 'append', 'Compression','none')
+    filename_raw_ilastik = filename_raw_ilastik(1:end-4);
+    imwrite(ilastik_max, strcat(filename_raw_ilastik,'_max_project.tif') , 'writemode', 'append', 'Compression','none')
     
     new_truth_im_max = max(new_truth_im, [], axis);
-    imwrite(new_truth_im_max, strcat(filename_raw_truth_ilastik,'_m_ilastik_max.tif') , 'writemode', 'append', 'Compression','none')
+    filename_raw_truth_ilastik = filename_raw_truth_ilastik(1:end-4);
+    imwrite(new_truth_im_max, strcat(filename_raw_truth_ilastik,'_max_project.tif') , 'writemode', 'append', 'Compression','none')
         
     
     

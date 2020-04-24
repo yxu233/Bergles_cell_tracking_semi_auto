@@ -173,9 +173,15 @@ def shuffle_data(X_train, X_valid, y_train, y_valid):
 
 """"  Network Begins: """
 s_path = './Checkpoints/'
+
+s_path = './Checkpoints_ILASTIK_matched/'
+
 input_path = '../Train_tracking_data/Train_tracking_data_analytic_results_2/'
 
 input_path = 'C:/Users/Huganir Lab/Documents/GitHub/Bergles-lab/Training_on_C/'
+
+input_path = 'C:/Users/Huganir Lab/Documents/GitHub/Bergles-lab/Training_on_C_ILASTIK_matched/'
+
 
             
 """ SO LAYERS MUST BE 2 x 2 x 2 x 1 for depth convolutions"""
