@@ -58,10 +58,10 @@ natsort_key1 = natsort_keygen(key = lambda y: y.lower())      # natural sorting 
 
 
 """ Required to allow correct GPU usage ==> or else crashes """
-# import tensorflow as tf
-# config = tf.ConfigProto()
-# config.gpu_options.allow_growth = True
-# tf.keras.backend.set_session(tf.Session(config=config))
+import tensorflow as tf
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+tf.keras.backend.set_session(tf.Session(config=config))
 
 
 from sklearn.model_selection import train_test_split
@@ -172,15 +172,18 @@ def shuffle_data(X_train, X_valid, y_train, y_valid):
 
 
 """"  Network Begins: """
-s_path = './Checkpoints/'
-
 s_path = './Checkpoints_ILASTIK_matched/'
+
+#s_path = './Checkpoints_ILASTIK_matched/'
 
 input_path = '../Train_tracking_data/Train_tracking_data_analytic_results_2/'
 
 input_path = 'C:/Users/Huganir Lab/Documents/GitHub/Bergles-lab/Training_on_C/'
 
 input_path = 'C:/Users/Huganir Lab/Documents/GitHub/Bergles-lab/Training_on_C_ILASTIK_matched/'
+
+
+input_path = '/lustre04/scratch/yxu233/Training_on_C_ILASTIK_matched/'
 
 
             
