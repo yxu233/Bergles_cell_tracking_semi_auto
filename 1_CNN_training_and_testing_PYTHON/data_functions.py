@@ -17,7 +17,7 @@ from natsort import natsort_keygen, ns
 import os
 import pickle
 import scipy.io as sio
-from tifffile import imsave
+#from tifffile import imsave
 
 import zipfile
 import bz2
@@ -28,7 +28,8 @@ from data_functions import *
 from UNet import *
 
 
-
+#from skan import skeleton_to_csgraph
+from skimage.morphology import skeletonize_3d
 
 
 
@@ -90,8 +91,6 @@ def find_TP_FP_FN_from_im(feed_dict, truth_im, softMaxed):
          
     *** works for 2D and 3D inputs ***
 """
-from skan import skeleton_to_csgraph
-from skimage.morphology import skeletonize_3d
 def bw_skel_and_analyze(bw):
      if bw.ndim == 3:
           skeleton = skeletonize_3d(bw)

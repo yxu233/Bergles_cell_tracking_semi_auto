@@ -15,8 +15,8 @@ import os
 import pickle
 import scipy.io as sio
 
-import zipfile
-import bz2
+#import zipfile
+#import bz2
 
 from plot_functions import *
 from data_functions import *

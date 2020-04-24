@@ -7,4 +7,4 @@
 
 module load cuda cudnn python/3.5   # load python and then tensorflow
 source tensorflow/bin/activate
-python ./TRAINER_cleaned.py --variable_update=parameter_server --local_parameter_device=cpu # script to run (change to Myelin UNet)
+python ./TRAINER_cleaned_no_match_ilastik.py --variable_update=parameter_server --local_parameter_device=cpu # script to run (change to Myelin UNet)

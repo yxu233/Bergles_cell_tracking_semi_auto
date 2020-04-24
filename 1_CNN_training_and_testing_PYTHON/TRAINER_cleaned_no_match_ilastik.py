@@ -177,9 +177,9 @@ s_path = './Checkpoints_ILASTIK_matched/'
 #s_path = './Checkpoints_ILASTIK_matched/'
 
 
-s_path = './2) Checkpoints_ILASTIK_matched/'
+#s_path = './2) Checkpoints_ILASTIK_matched/'
 
-#s_path = './1) Checkpoints_no_ILASTIK_matched/'
+s_path = './1) Checkpoints_no_ILASTIK_matched/'
 
 input_path = '../Train_tracking_data/Train_tracking_data_analytic_results_2/'
 
@@ -189,6 +189,8 @@ input_path = 'C:/Users/Huganir Lab/Documents/GitHub/Bergles-lab/Training_on_C_IL
 
 
 input_path = '/lustre04/scratch/yxu233/Training_on_C_ILASTIK_matched/'
+
+input_path = '/lustre04/scratch/yxu233/Training_on_C/'
 
 
             
