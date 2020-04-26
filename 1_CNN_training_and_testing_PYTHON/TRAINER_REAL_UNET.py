@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Sun Apr 26 14:52:03 2020
+
+@author: Huganir Lab
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Sunday Dec. 24th
 ============================================================
 @author: Tiger
@@ -13,7 +20,7 @@ Created on Sunday Dec. 24th
 #K.set_session(K.tf.Session(config=cfg))
 
 import matplotlib
-matplotlib.rc('xtick', labelsize=8) 
+matplotlib.rc('xtick', labelsize=8)
 matplotlib.rc('ytick', labelsize=8) 
 #matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -183,6 +190,9 @@ s_path = './Checkpoints_ILASTIK_matched/'
 
 #s_path = './1) Checkpoints_no_ILASTIK_matched/'
 
+
+s_path = './(5) Checkpoints_REAL_UNET/'
+
 input_path = '../Train_tracking_data/Train_tracking_data_analytic_results_2/'
 
 input_path = 'C:/Users/Huganir Lab/Documents/GitHub/Bergles-lab/Training_on_C/'
@@ -226,7 +236,8 @@ kernel_size = [5, 5, 5]
 
 
 """ Switched to 1e-5 + dropout at 170,000"""
-y_3D, y_b_3D, L1, L2, L3, L4, L5, L6, L7, L8, L9,L9_conv, L10, L11, logits, softMaxed = create_network_3D(x_3D, y_3D_, kernel_size, training, num_truth_class, dropout=1, drop_rate = 0.8)
+y_3D, y_b_3D, L1, L2, L3, L4, L5, L6, L7, L8, L9,L9_conv, L10, L11, logits, softMaxed = create_network_3D_REAL_UNET(x_3D, y_3D_, kernel_size, training, num_truth_class,
+                                                                                                                    dropout=0, drop_rate = 0)
 accuracy, jaccard, train_step, cross_entropy, loss, cross_entropy, original = costOptm(y_3D, y_b_3D, logits, weight_matrix_3D,
                                                                                        train_rate=1e-5, epsilon = 1e-8, weight_mat=False, optimizer='adam', multiclass=0)
 
@@ -287,7 +298,7 @@ else:
 tf.trainable_variables()
 
 # Required to initialize all
-batch_size = 2; save_iter = 10000;
+batch_size = 1; save_iter = 10000;
 plot_every = 100; iterations = num_check;
 
 batch_x = []; batch_y = []; batch_weighted = [];
