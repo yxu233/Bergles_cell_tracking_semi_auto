@@ -15,7 +15,7 @@ Created on Sunday Dec. 24th
 import matplotlib
 matplotlib.rc('xtick', labelsize=8) 
 matplotlib.rc('ytick', labelsize=8) 
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -192,6 +192,8 @@ input_path = '/lustre04/scratch/yxu233/Training_on_C_ILASTIK_matched/'
 
 input_path = '/lustre04/scratch/yxu233/Training_on_C/'
 
+
+input_path = './Training_on_C/'
 
             
 """ SO LAYERS MUST BE 2 x 2 x 2 x 1 for depth convolutions"""

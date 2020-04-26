@@ -15,7 +15,7 @@ Created on Sunday Dec. 24th
 import matplotlib
 matplotlib.rc('xtick', labelsize=8) 
 matplotlib.rc('ytick', labelsize=8) 
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
