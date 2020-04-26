@@ -203,8 +203,22 @@ multiclass = 0
 x_3D = tf.placeholder('float32', shape=[None, depth, input_size, input_size, 1], name='3D_x') 
 y_3D_ = tf.placeholder('float32', shape=[None, depth, input_size, input_size, num_truth_class], name='3D_CorrectLabel')
 #weight_matrix_3D = tf.placeholder('float32', shape=[None, depth, input_size, input_size, num_truth_class], name = 'weighted_labels')
-weight_matrix_3D = []
-training = tf.placeholder(tf.bool, name='training')
+
+
+# x_3D = tf.placeholder('float32', shape=[None, None, None, None, None], name='3D_x') 
+
+# depth = tf.shape(inputs_)[-1]
+# with tf.control_dependencies([
+#         tf.Assert(
+#             tf.logical_or(tf.equal(depth, 3), tf.equal(depth, 1)), [depth])
+# ]):
+#     inputs = tf.cond(
+#         tf.equal(tf.shape(inputs_)[-1], 3), lambda: inputs_,
+#         lambda: tf.image.grayscale_to_rgb(inputs_))
+
+# y_3D_ = tf.placeholder('float32', shape=[None, None, None, None, None], name='3D_CorrectLabel')
+# weight_matrix_3D = []
+# training = tf.placeholder(tf.bool, name='training')
 
 """ Creates network and cost function"""
 kernel_size = [5, 5, 5]

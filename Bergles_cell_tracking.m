@@ -17,7 +17,7 @@
 
 %% Manual correction keys:
 % 1 == yes, is matched
-% 2 == no, not matched
+% 2 == no, not matched11
 % 3 == add new point in any arbitrary location
 
 % a == "add" different associated cell
@@ -78,12 +78,16 @@ natfnames=natsort(trialNames);
 empty_file_idx_sub = 0;
 all_s = cell(0);
 matrix_timeseries = cell(2000, numfids/2);
-111
+
 %% Input dialog values
 prompt = {'crop size (XY px): ', 'z_size (Z px): ', 'ssim_thresh (0 - 1): ', 'low_dist_thresh (0 - 20): ', 'upper_dist_thresh (30 - 100): ', 'min_siz (0 - 500): ', 'first_slice: ', 'last_slice: ', 'manual_correct? (Y/N): '};
 dlgtitle = 'Input';
-definput = {'200', '20', '0.30', '15', '22', '50', '1', '120', 'Y'};
+definput = {'200', '20', '0.30', '25', '30', '50', '1', '120', 'Y'};
 %definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
+%definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
+
+%% Switched to dist_thresh == 20 from 15 for scaled!!! and upper dist thresh from 20 to 30
+
 answer = inputdlg(prompt,dlgtitle, [1, 35], definput);
 
 crop_size = str2num(answer{1})/2;
@@ -147,8 +151,24 @@ for fileNum = 3 : 2: numfids
     next_centroids = array_centroid_indexes;
     
     
+    %% Use scaled matrix for nearest neighbor analysis
+    cur_centroids_scaled = cur_centroids;
+    cur_centroids_scaled(:, 1) = cur_centroids(:, 1) * 0.83;
+    cur_centroids_scaled(:, 2) = cur_centroids(:, 2) * 0.83;
+    cur_centroids_scaled(:, 3) = cur_centroids(:, 3) * 3;
+    
+    next_centroids_scaled = next_centroids;
+    next_centroids_scaled(:, 1) = next_centroids(:, 1) * 0.83;
+    next_centroids_scaled(:, 2) = next_centroids(:, 2) * 0.83;
+    next_centroids_scaled(:, 3) = next_centroids(:, 3) * 3;
+    
+    
     % find nearest neighbours
-    [neighbor_idx, D] = knnsearch(next_centroids, cur_centroids, 'K', 1);
+    [neighbor_idx, D] = knnsearch(next_centroids_scaled, cur_centroids_scaled, 'K', 1);
+    
+    
+    
+    
     
     %% Do preliminary loop through to find VERY CONFIDENT neighbours
     %% add into the cell list with corresponding cell number
@@ -160,6 +180,7 @@ for fileNum = 3 : 2: numfids
     disp('finding confidently matched and non-matched cells')
     smaller_crop_size = 60;
     smaller_z_size = 16;
+    %figure;
     histogram(D);
     figure(2);
     idx_non_confident = [];
@@ -178,10 +199,10 @@ for fileNum = 3 : 2: numfids
         %% if ssim_val very high AND distance small ==> save the cell
         if ssim_val > ssim_val_thresh && dist < dist_thresh
             %% Plot to verify
-            %subplot(1, 2, 1); imshow(mip_1);
-            %subplot(1, 2, 2); imshow(mip_2);
-            %title(strcat('ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
-             
+%             subplot(1, 2, 1); imshow(mip_1);
+%             subplot(1, 2, 2); imshow(mip_2);
+%             title(strcat('GOOD ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
+            
             
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
@@ -190,22 +211,29 @@ for fileNum = 3 : 2: numfids
             % create cell object
             cell_obj = cell_class(voxelIdxList,centroid, cell_num);
             matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
-            %1pause
-       
-        %elseif dist_thresh < 5 && ssim_val > 0.2
+            %pause
+            
+            %elseif dist_thresh < 5 && ssim_val > 0.2
             
             %% also eliminate based on upper boundary
         elseif dist > upper_dist_thresh
+%             subplot(1, 2, 1); imshow(mip_1);
+%             subplot(1, 2, 2); imshow(mip_2);
+%             title(strcat('UPPER DIST ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
             continue
         else
+%             subplot(1, 2, 1); imshow(mip_1);
+%             subplot(1, 2, 2); imshow(mip_2);
+%             title(strcat('NON CONF ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
             idx_non_confident = [idx_non_confident, check_neighbor];
         end
+        %pause
     end
     
     
     %% Loop through NON-CONFIDENT ONES for comparison
     % first find index of all non-confident ones
-     disp('please correct non-confident cells')
+    disp('please correct non-confident cells')
     if manual_correct_bool == 'Y'
         close all;
         figure(3);
