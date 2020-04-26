@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Sun Apr 26 14:52:03 2020
+
+@author: Huganir Lab
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Sunday Dec. 24th
 ============================================================
 @author: Tiger
@@ -13,9 +20,9 @@ Created on Sunday Dec. 24th
 #K.set_session(K.tf.Session(config=cfg))
 
 import matplotlib
-matplotlib.rc('xtick', labelsize=8) 
+matplotlib.rc('xtick', labelsize=8)
 matplotlib.rc('ytick', labelsize=8) 
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -68,7 +75,7 @@ from sklearn.model_selection import train_test_split
 import time
 import bcolz
 
-def get_train_and_val_from_bcolz(X, Y, input_path, test_size = 0.1, start_idx=0, end_idx=-1):
+def get_train_and_val_from_bcolz(X, Y, input_path, test_size = 0.1, start_idx=0, end_idx=-1, convert_float=1):
 
     #X = bcolz.open(input_path + 'input_im', mode='r')
     #Y = bcolz.open(input_path + 'truth_im', mode='r')
@@ -95,10 +102,11 @@ def get_train_and_val_from_bcolz(X, Y, input_path, test_size = 0.1, start_idx=0,
     
     start = time.perf_counter()    
     
-    X_train = np.asarray(X_train, np.float32)
-    X_valid = np.asarray(X_valid, np.float32)
-    y_train = np.asarray(y_train, np.float32)
-    y_valid = np.asarray(y_valid, np.float32)
+    if convert_float:
+        X_train = np.asarray(X_train, np.float32)
+        X_valid = np.asarray(X_valid, np.float32)
+        y_train = np.asarray(y_train, np.float32)
+        y_valid = np.asarray(y_valid, np.float32)
     
     
     stop = time.perf_counter()
@@ -110,7 +118,7 @@ def get_train_and_val_from_bcolz(X, Y, input_path, test_size = 0.1, start_idx=0,
 
 
 
-def get_train_and_val_from_bcolz_by_idx(X, Y, input_path, idx_train, idx_valid=0, start_idx=0, end_idx=-1):
+def get_train_and_val_from_bcolz_by_idx(X, Y, input_path, idx_train, idx_valid=0, start_idx=0, end_idx=-1, convert_float=1):
 
 
     #X = bcolz.open(input_path + 'input_im', mode='r')
@@ -138,8 +146,9 @@ def get_train_and_val_from_bcolz_by_idx(X, Y, input_path, idx_train, idx_valid=0
     start = time.perf_counter()
     
     
-    input_batch = np.asarray(input_batch, np.float32)
-    truth_batch = np.asarray(truth_batch, np.float32)
+    if convert_float:    
+        input_batch = np.asarray(input_batch, np.float32)
+        truth_batch = np.asarray(truth_batch, np.float32)
     
     stop = time.perf_counter()
     diff = stop - start
@@ -179,7 +188,10 @@ s_path = './Checkpoints_ILASTIK_matched/'
 
 #s_path = './2) Checkpoints_ILASTIK_matched/'
 
-s_path = './1) Checkpoints_no_ILASTIK_matched/'
+#s_path = './1) Checkpoints_no_ILASTIK_matched/'
+
+
+s_path = './(5) Checkpoints_REAL_UNET/'
 
 input_path = '../Train_tracking_data/Train_tracking_data_analytic_results_2/'
 
@@ -188,12 +200,8 @@ input_path = 'C:/Users/Huganir Lab/Documents/GitHub/Bergles-lab/Training_on_C/'
 input_path = 'C:/Users/Huganir Lab/Documents/GitHub/Bergles-lab/Training_on_C_ILASTIK_matched/'
 
 
-input_path = '/lustre04/scratch/yxu233/Training_on_C_ILASTIK_matched/'
+#input_path = '/lustre04/scratch/yxu233/Training_on_C_ILASTIK_matched/'
 
-input_path = '/lustre04/scratch/yxu233/Training_on_C/'
-
-
-input_path = './Training_on_C/'
 
             
 """ SO LAYERS MUST BE 2 x 2 x 2 x 1 for depth convolutions"""
@@ -212,10 +220,31 @@ training = tf.placeholder(tf.bool, name='training')
 
 """ Creates network and cost function"""
 kernel_size = [5, 5, 5]
-y_3D, y_b_3D, L1, L2, L3, L4, L5, L6, L7, L8, L9,L9_conv, L10, L11, logits, softMaxed = create_network_3D(x_3D, y_3D_, kernel_size, training, num_truth_class)
+
+#y_3D, y_b_3D, L1, L2, L3, L4, L5, L6, L7, L8, L9,L9_conv, L10, L11, logits, softMaxed = create_network_3D(x_3D, y_3D_, kernel_size, training, num_truth_class)
+#accuracy, jaccard, train_step, cross_entropy, loss, cross_entropy, original = costOptm(y_3D, y_b_3D, logits, weight_matrix_3D,
+#                                                                                       train_rate=1e-5, epsilon = 1e-8, weight_mat=False, optimizer='adam', multiclass=0)
+
+
+
+""" Switched to 1e-6 at 150,000"""
+# y_3D, y_b_3D, L1, L2, L3, L4, L5, L6, L7, L8, L9,L9_conv, L10, L11, logits, softMaxed = create_network_3D(x_3D, y_3D_, kernel_size, training, num_truth_class)
+# accuracy, jaccard, train_step, cross_entropy, loss, cross_entropy, original = costOptm(y_3D, y_b_3D, logits, weight_matrix_3D,
+#                                                                                        train_rate=1e-6, epsilon = 1e-8, weight_mat=False, optimizer='adam', multiclass=0)
+
+
+
+
+""" Switched to 1e-5 + dropout at 170,000"""
+y_3D, y_b_3D, L1, L2, L3, L4, L5, L6, L7, L8, L9,L9_conv, L10, L11, logits, softMaxed = create_network_3D_REAL_UNET(x_3D, y_3D_, kernel_size, training, num_truth_class,
+                                                                                                                    dropout=0, drop_rate = 0)
 accuracy, jaccard, train_step, cross_entropy, loss, cross_entropy, original = costOptm(y_3D, y_b_3D, logits, weight_matrix_3D,
                                                                                        train_rate=1e-5, epsilon = 1e-8, weight_mat=False, optimizer='adam', multiclass=0)
 
+
+
+
+ 
 sess = tf.InteractiveSession()
 
 """ TO LOAD OLD CHECKPOINT """
@@ -269,7 +298,7 @@ else:
 tf.trainable_variables()
 
 # Required to initialize all
-batch_size = 2; save_iter = 10000;
+batch_size = 1; save_iter = 10000;
 plot_every = 100; iterations = num_check;
 
 batch_x = []; batch_y = []; batch_weighted = [];
@@ -288,6 +317,10 @@ test_size = 0.1
     
 print('loading data')
 load_by_batch_per_epoch = 1; batch_LARGE_size = 1000;
+
+convert_float = 0
+
+
 # """ load mean and std """  
 mean_arr = np.load(input_path + 'mean_VERIFIED.npy')
 std_arr = np.load(input_path + 'std_VERIFIED.npy')
@@ -299,9 +332,11 @@ acc_speed_all = []
 X = bcolz.open(input_path + 'input_im', mode='r')
 Y = bcolz.open(input_path + 'truth_im', mode='r')
 if not load_by_batch_per_epoch:
-    X_train, X_valid, y_train, y_valid = get_train_and_val_from_bcolz(X, Y, input_path, test_size = test_size)
+    #zzz
+    X_train, X_valid, y_train, y_valid = get_train_and_val_from_bcolz(X, Y, input_path, test_size = test_size, convert_float=convert_float)
+    #zzz
 
-    num_train_samples = len(X_train)
+    num_X_train = len(X_train)
 else:
     counter = list(range(len(X)))
     idx_train, idx_valid, empty, empty = train_test_split(counter, counter, test_size=test_size, random_state=2018)
@@ -314,7 +349,8 @@ else:
 """ Start training loop """
 while(True):  
     if not load_by_batch_per_epoch:
-      X_train, X_valid, y_train, y_valid = shuffle_data(X_train, X_valid, y_train, y_valid)
+      idx_train_shuff, idx_valid_shuff = shuffle_data(X_train, X_valid, y_train, y_valid)
+      
       
     else:
       np.random.shuffle(idx_train)
@@ -322,10 +358,11 @@ while(True):
 
         
     for i in range(0, len(X), batch_size):
+        #start = time.perf_counter()
         if load_by_batch_per_epoch and i % batch_LARGE_size == 0:
             print('getting new batch')
             X_train = []; X_valid = []; y_train = []; y_valid = [];  # RELEASE from RAM???
-            X_train, X_valid, y_train, y_valid, acc_speed = get_train_and_val_from_bcolz(X, Y, input_path, test_size = test_size, start_idx=i, end_idx=i + batch_LARGE_size)
+            X_train, X_valid, y_train, y_valid, acc_speed = get_train_and_val_from_bcolz(X, Y, input_path, test_size = test_size, start_idx=i, end_idx=i + batch_LARGE_size,convert_float=convert_float)
             #X_train, y_train = get_train_and_val_from_bcolz_by_idx(X, Y, input_path, idx_train, start_idx=i, end_idx=i + batch_LARGE_size)
             num_X_train = len(X_train)
             print('length of training at i')
@@ -340,9 +377,7 @@ while(True):
         if iterations == 0:
             start = time.perf_counter()
         if iterations == 1000:
-            stop = time.perf_counter()
-            diff = stop - start
-            print(diff)
+            stop = time.perf_counter(); diff = stop - start; print(diff)
             
             
         """ Load data """
@@ -350,11 +385,18 @@ while(True):
         batch_y = y_train[idx_train_shuff[i % (num_X_train-batch_size):i % (num_X_train-batch_size) + batch_size]]
         if batch_x.shape[0] < 2:
             zzz
+            
+        
+        if not convert_float:
+            batch_x = np.asarray(batch_x, dtype=np.float32)
+            batch_y = np.asarray(batch_y, dtype=np.float32)
+            
+            
 
         """ normalization """
         batch_x = normalize_im(batch_x, mean_arr, std_arr) 
 
-        feed_dict_TRAIN = {x_3D:batch_x, y_3D_:batch_y, training:0}
+        feed_dict_TRAIN = {x_3D:batch_x, y_3D_:batch_y, training:1}
                          
         """ Training: """        
         train_step.run(feed_dict=feed_dict_TRAIN)
@@ -376,7 +418,12 @@ while(True):
               if batch_x_val.shape[0] < 2:
                     zzz
 
-            
+
+              if not convert_float:
+                 batch_x = np.asarray(batch_x, dtype=np.float32)
+                 batch_y = np.asarray(batch_y, dtype=np.float32) 
+
+           
               feed_dict_CROSSVAL = {x_3D:batch_x_val, y_3D_:batch_y_val, training:0}      
               
  
@@ -457,6 +504,7 @@ while(True):
                        
                                                      
         """ To save (every x iterations) """
+        #stop = time.perf_counter(); diff = stop - start; print(diff)
         if iterations % save_iter == 0:                          
               sess_get = tf.get_default_session()   # IF FORGET TO ADD "sess = tf.InteractiveSession
               saver = tf.train.Saver()

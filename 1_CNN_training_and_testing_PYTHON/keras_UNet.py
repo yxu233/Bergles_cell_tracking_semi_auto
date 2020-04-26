@@ -36,8 +36,8 @@ start = time.perf_counter()
 #input_batch = X[:, :, :, :, 0]
 #truth_batch = Y[:, :, :, :, 1]
 
-input_batch = X[0:100]
-truth_batch = Y[0:100, :, :, :, 1]
+input_batch = X[0:220]
+truth_batch = Y[0:220, :, :, :, 1]
 truth_batch = np.expand_dims(truth_batch, axis=-1)
 
 
@@ -56,7 +56,7 @@ print(diff)
 # X_valid = input_batch
 # y_valid = truth_batch
 
-X_train, X_valid, y_train, y_valid = train_test_split(input_batch, truth_batch, test_size=0, random_state=2018)
+X_train, X_valid, y_train, y_valid = train_test_split(input_batch, truth_batch, test_size=0.1, random_state=2018)
 
 
 
@@ -133,8 +133,8 @@ def conv3d_block(input_tensor, n_filters, kernel_size=3, batchnorm=True):
         x = BatchNormalization()(x)
     x = Activation("relu")(x)
     # second layer
-    x = Conv3D(filters=n_filters, kernel_size=(kernel_size, kernel_size, kernel_size), kernel_initializer="he_normal",
-               padding="same")(x)
+    #x = Conv3D(filters=n_filters, kernel_size=(kernel_size, kernel_size, kernel_size), kernel_initializer="he_normal",
+    #           padding="same")(x)
     if batchnorm:
         x = BatchNormalization()(x)
     #x = Activation("relu")(x)
@@ -204,7 +204,7 @@ callbacks = [
 ]
 
 
-results = model.fit(X_train, y_train, batch_size=1, epochs=1, callbacks=callbacks,
+results = model.fit(X_train, y_train, batch_size=2, epochs=1, callbacks=callbacks,
                     validation_data=(X_valid, y_valid))
 
 
