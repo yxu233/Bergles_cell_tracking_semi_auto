@@ -499,9 +499,9 @@ for timeframe_idx = 1:length(matrix_timeseries(1, :))
 %         end
 
         %% Skip everything that IS persisting (so leaving all the NEW cells)
-        if timeframe_idx > 1 && ~isempty(matrix_timeseries{cell_idx, timeframe_idx - 1})
-           continue;
-        end
+%         if timeframe_idx > 1 && ~isempty(matrix_timeseries{cell_idx, timeframe_idx - 1})
+%            continue;
+%         end
 
         cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
         
