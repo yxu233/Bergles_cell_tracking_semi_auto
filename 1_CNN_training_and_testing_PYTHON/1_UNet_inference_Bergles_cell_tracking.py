@@ -47,7 +47,7 @@ overlap_percent = 0.5
 """ TO LOAD OLD CHECKPOINT """
 sess = tf.InteractiveSession()
 # Read in file names
-onlyfiles_check = glob.glob(os.path.join(s_path,'check_*'))
+onlyfiles_check = glob.glob(os.path.join(s_path,'*.meta'))
 onlyfiles_check.sort(key = natsort_key1)
 
 """ Find last checkpoint """       
@@ -55,10 +55,10 @@ last_file = onlyfiles_check[-1]
 split = last_file.split('check_')[-1]
 num_check = split.split('.')
 checkpoint = num_check[0]
-checkpoint = 'check_' + checkpoint
+checkpoint = last_file.split('check_')[0] + 'check_' +  checkpoint 
     
-saver = tf.train.import_meta_graph(s_path + checkpoint + '.meta')
-saver.restore(sess, s_path + checkpoint)
+saver = tf.train.import_meta_graph(checkpoint + '.meta')
+saver.restore(sess, checkpoint)
 
 
 graph = tf.get_default_graph()

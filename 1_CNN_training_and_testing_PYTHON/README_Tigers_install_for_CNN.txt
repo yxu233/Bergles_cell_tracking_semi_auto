@@ -18,4 +18,7 @@ To perform inference on new data:
 4) The analysis should then start and the outputs will be placed in a new folder within the selected folders ending in "_analytic_results"
 
 
+Additional notes:
+- files will be overwritten if the output folder name is not changed on a repeated run of the same data
+
 That's it! Then you can open up MATLAB and use the manual correction script to loop through the data and correct as needed.

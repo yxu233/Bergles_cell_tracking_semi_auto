@@ -10,9 +10,9 @@ Trained ILASTIK model/Bergles_cell_tracking_ILASTIK_REDO.ilp
 *.fig
 Compare semi auto and Cody counts.pptx
 *.pyc
-*.index
-*.data-00000-of-00001
-*.meta
+check*.index
+check*.data-00000-of-00001
+check*.meta
 *.npz
 *.pkl
 *.out
