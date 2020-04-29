@@ -408,18 +408,14 @@ writematrix(csv_matrix, 'output_raw.csv')
 
 
 
-
-%% Eliminate everything that only exists on a single frame (or 2 frames?)
-%% DOUBLE CHECK everything from LAST FRAME that was NOT associated with a cell in the previous frame
+%% Additional post-processing of edges and errors
+% (A) Eliminate everything that only exists on a single frame
 num_frames_exclude = 1;
 [matrix_timeseries_cleaned] = elim_untracked(matrix_timeseries, num_frames_exclude, foldername, natfnames, crop_size, z_size, thresh_size, first_slice, last_slice);
 matrix_timeseries = matrix_timeseries_cleaned;
 
-% DOUBLE CHECK:
-% (A) if only on 2 frames
-
 % (B) eliminate if located above or below +/- 2 AT THE FIRST CELL POINT
-%% Also eliminate if on edge of crop???
+% Also eliminate if on edge of crop
  all_volumes = [];
  del_num = 0;
  for i = 1:length(matrix_timeseries(1, :))
@@ -439,8 +435,8 @@ matrix_timeseries = matrix_timeseries_cleaned;
      end
  end
 
-% (C) if is a NEW cell on any frame (excluding the first)
-%matrix_timeseries = matrix_timeseries_cleaned;
+% (C) check all NEW cells to ensure they are actually new (excluding the
+% first frame)
 frame_num = 2;
 for fileNum = 3 : 2: numfids
     [all_s, frame_1, truth_1, og_size] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
@@ -510,7 +506,6 @@ for timeframe_idx = 1:length(matrix_timeseries(1, :))
         cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
         
         voxels = cur_cell.voxelIdxList;
-        %cell_number = cur_cell.cell_number;
         
         im_frame(voxels) = list_random_colors(cell_idx);
     end
@@ -519,12 +514,10 @@ for timeframe_idx = 1:length(matrix_timeseries(1, :))
     filename_raw = natfnames{timeframe_idx * 2 - 1};
     z_size = length(im_frame(1, 1, :));
     
-    
-    %filename_raw = filename_raw(1:end-30)
     im_frame = uint8(im_frame);
     for k = 1:z_size
         input = im_frame(:, :, k);
-        imwrite(input, strcat(filename_raw,'_MAN.tif') , 'writemode', 'append', 'Compression','none')
+        imwrite(input, strcat(filename_raw,'_CORR_SEMI_AUTO.tif') , 'writemode', 'append', 'Compression','none')
     end
 end
 
