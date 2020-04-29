@@ -10,18 +10,22 @@ addpath('../cell_crop_func')
 
 %T = readtable('MOBPF1_013018_cuprBZA_10x.tif - T=0_610_syGlass_10x.csv');
 
-T = readtable('MOBPM_190226w_2_10x_Reg2.tif - T=0_a1902262-r720_syGlass_20x.csv');
+%T = readtable('MOBPM_190226w_2_10x_Reg2.tif - T=0_a1902262-r720_syGlass_20x.csv');
+
+T = readtable('output.csv');
 
 
-T.SERIES
 
+matrix_timeseries = cell(5000, max( T.Var2) + 1);
 
-matrix_timeseries = cell(2000, max(T.FRAME) + 1);
-
-for i = 1:length(T.SERIES)
-    
-   cell_num = T.SERIES(i) + 1;
-   frame_num = T.FRAME(i) + 1;
+for i = 1:length(T.Var1 )
+%     
+%    cell_num = T.SERIES(i) + 1;
+%    frame_num = T.FRAME(i) + 1;
+%    
+   cell_num = T.Var1(i) + 1;
+   frame_num = T.Var2(i) + 1;
+   
    centroid = [];
    voxelIdxList = [];
    
@@ -73,39 +77,39 @@ xlabel('frame number'); ylabel('num TOTAL cells');
 
 
 %% Save image with only the new cells on this frame
-frame_num = 8;
-timeframe_idx = frame_num;
-
-% can be modified:
-im_frame = zeros([1024, 1024, 185]);
-%[all_s, frame_1, truth_1] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
-for cell_idx = 1:length(matrix_timeseries(:, 1))
-    
-    if isempty(matrix_timeseries{cell_idx, timeframe_idx})
-        continue;
-    end
-    
-    % new cell if previous frame empty
-    if timeframe_idx > 1 && isempty(matrix_timeseries{cell_idx, timeframe_idx - 1})
-        disp('in')
-        cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
-        
-        voxels = cur_cell.voxelIdxList;
-        %cell_number = cur_cell.cell_number;
-        
-        im_frame(voxels) = 1;
-    end
-end
-
-% save one frame
-filename_raw = 'only_new_cells';
-z_size = length(im_frame(1, 1, :));
-
-im_frame = uint8(im_frame);
-for k = 1:z_size
-    input = im_frame(:, :, k);
-    imwrite(input, strcat(filename_raw,'_current_frame.tif') , 'writemode', 'append', 'Compression','none')
-end
+% frame_num = 8;
+% timeframe_idx = frame_num;
+% 
+% % can be modified:
+% im_frame = zeros([1024, 1024, 185]);
+% %[all_s, frame_1, truth_1] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
+% for cell_idx = 1:length(matrix_timeseries(:, 1))
+%     
+%     if isempty(matrix_timeseries{cell_idx, timeframe_idx})
+%         continue;
+%     end
+%     
+%     % new cell if previous frame empty
+%     if timeframe_idx > 1 && isempty(matrix_timeseries{cell_idx, timeframe_idx - 1})
+%         disp('in')
+%         cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
+%         
+%         voxels = cur_cell.voxelIdxList;
+%         %cell_number = cur_cell.cell_number;
+%         
+%         im_frame(voxels) = 1;
+%     end
+% end
+% 
+% % save one frame
+% filename_raw = 'only_new_cells';
+% z_size = length(im_frame(1, 1, :));
+% 
+% im_frame = uint8(im_frame);
+% for k = 1:z_size
+%     input = im_frame(:, :, k);
+%     imwrite(input, strcat(filename_raw,'_current_frame.tif') , 'writemode', 'append', 'Compression','none')
+% end
 
 
 

@@ -1,9 +1,10 @@
-function [all_s, frame, truth] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice)
+function [all_s, frame, truth, og_size] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice)
 
 %% Load input data
 filename_raw = natfnames{fileNum};
 cd(foldername);
 [frame] = load_3D_gray(filename_raw);
+og_size = size(frame);
 
 frame = frame(:, :, first_slice:last_slice);
 
