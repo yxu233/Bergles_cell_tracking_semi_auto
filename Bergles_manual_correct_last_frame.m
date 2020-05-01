@@ -27,11 +27,13 @@ for i = 1:length(matrix_timeseries(:, frame_num))
     
     mip_1 = max(crop_frame_1, [], 3); 
     figure(5);
-    subplot(2,2,1);
+       % txt = {'Check newly added cells are real and also elim from edges.', 'Press: "1" to Keep, "2" to Elim'};
+   % text(0,0, txt)
+    subplot(1,2,1);
     imshow(mip_1);
     %colormap('gray'); axis off
     
-    subplot(2, 2, 2);
+    subplot(1, 2, 2);
     imshow(mip_1);
     mip_center_1 = max(crop_blank_truth_1, [], 3);
     magenta = cat(3, ones(size(mip_1)), zeros(size(mip_1)), ones(size(mip_1)));
@@ -39,6 +41,10 @@ for i = 1:length(matrix_timeseries(:, frame_num))
     h = imshow(magenta);
     hold off;
     set(h, 'AlphaData', mip_center_1)
+    
+    
+    txt = {'Double check newly added cells are real and also elim from edges of image', 'Press: "1" to Keep, "2" to Elim'};
+    text(-250,250, txt)
     pause
     
     try
