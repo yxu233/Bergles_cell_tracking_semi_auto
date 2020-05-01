@@ -19,7 +19,8 @@ from data_functions_CLEANED import *
     
 
 """ Perform inference by splitting input volume into subparts """
-def UNet_inference_by_subparts(input_im, overlap_percent, quad_size, quad_depth, mean_arr, std_arr,x_3D, y_3D_, training, softMaxed, num_truth_class=1):
+def UNet_inference_by_subparts(input_im, overlap_percent, quad_size, quad_depth, mean_arr, std_arr,
+                               x_3D, y_3D_, training, softMaxed, skip_top=0, num_truth_class=1):
      im_size = np.shape(input_im);
      width = im_size[1];  height = im_size[2]; depth_im = im_size[0];
         
@@ -73,10 +74,13 @@ def UNet_inference_by_subparts(input_im, overlap_percent, quad_size, quad_depth,
                    output_tile = softMaxed.eval(feed_dict=feed_dict)
                    seg_train = np.argmax(output_tile, axis=-1)
         
-                   """ Clean segmentation by removing objects on the edge """
-                   cleaned_seg = clean_edges(seg_train[0], quad_depth, w=quad_size, h=quad_size, extra_z=1, extra_xy=3)
-                                             
-                   
+                   """ Clean segmentation by removing objects on the edge """  
+                   if skip_top and z == 0:
+                        #print('skip top')
+                        cleaned_seg = clean_edges(seg_train[0], extra_z=1, extra_xy=3, skip_top=skip_top)                                             
+                   else:
+                        cleaned_seg = clean_edges(seg_train[0], extra_z=1, extra_xy=3)
+                    
                    
                    """ ADD IN THE NEW SEG??? or just let it overlap??? """                         
                    #segmentation[z:z + quad_depth, x:x + quad_size, y:y + quad_size] = cleaned_seg                        
@@ -84,8 +88,8 @@ def UNet_inference_by_subparts(input_im, overlap_percent, quad_size, quad_depth,
          
                    total_blocks += 1
                    
-                   print('inference on sublock: ')
-                   print([x, y, z])
+                   #print('inference on sublock: ')
+                   #print([x, y, z])
         
      return segmentation
             

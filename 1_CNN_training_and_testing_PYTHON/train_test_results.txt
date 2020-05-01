@@ -85,7 +85,7 @@ MOBPF_190106w_5_cuprBZA_10x.tif - T=6_single
 """
 
 
-""" With 0.5 overlap
+""" With 0.5 overlap - with SMALL UNET
 
 MOBPF_190105w_1_cuprBZA_10x_T=0_single_channel_RAW_REGISTERED
 0.9047619047619048
@@ -110,7 +110,9 @@ MOBPF_190106w_5_cuprBZA_10x.tif - T=6_single_RAW_REGISTERED
 
 
 
-"""Directory  E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/Test_trained_ILASTIK_matched_registered//Test_trained_ILASTIK_matched_registered_analytic_results_2  already exists
+""" With REAL UNET
+
+Directory  E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/Test_trained_ILASTIK_matched_registered//Test_trained_ILASTIK_matched_registered_analytic_results_2  already exists
 MOBPF_190105w_1_cuprBZA_10x_T=0_single_channel_RAW_REGISTERED
 0.896358543417367
 0.9195402298850575
@@ -153,4 +155,153 @@ MOBPF_190105w_1_cuprBZA_10x_T=3_single_channel
 
 """ with REAL UNet 
 
+Directory  E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/Test_trained//Test_trained_analytic_results  already exists
+Starting inference on volume: 0 of total: 3
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=0_single_channel_RAW_REGISTERED
+0.9722222222222222
+0.9545454545454546
+Starting inference on volume: 1 of total: 3
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=7_single_channel_RAW_REGISTERED
+0.7538461538461538
+0.9423076923076923
+Starting inference on volume: 2 of total: 3
+MOBPF_190630w_14_10x.tif - T=0_RAW_REGISTERED
+0.8962655601659751
+0.9621380846325167
+
+
+
+
+
+
+
+
+
+Directory  E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/Test_FOR_manual_correction/670_raw_and_outputs//670_raw_and_outputs_analytic_results_old_check  Created 
+Starting inference on volume: 0 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=0_single_channel
+0.968944099378882
+0.3804878048780488
+Starting inference on volume: 1 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=1_single_channel
+0.9473684210526315
+0.47058823529411764
+Starting inference on volume: 2 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=2_single_channel
+0.95
+0.4889705882352941
+Starting inference on volume: 3 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=3_single_channel
+0.8780487804878049
+0.6878980891719745
+Starting inference on volume: 4 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=4_single_channel
+0.8378378378378378
+0.5470588235294118
+Starting inference on volume: 5 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=5_single_channel
+0.8695652173913043
+0.4580152671755725
+Starting inference on volume: 6 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=6_single_channel
+0.9154929577464789
+0.436241610738255
+Starting inference on volume: 7 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=7_single_channel
+0.7792207792207793
+0.6382978723404256
+
 """
+
+
+""" REAL UNET - 140,000
+Directory  E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/Test_FOR_manual_correction/680_raw_and_outputs//680_raw_and_outputs_analytic_results  already exists
+Starting inference on volume: 0 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=0_single_channel
+0.9545454545454546
+0.3707627118644068
+Starting inference on volume: 1 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=1_single_channel
+0.9558823529411765
+0.41533546325878595
+Starting inference on volume: 2 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=2_single_channel
+0.9335863377609108
+0.41414141414141414
+Starting inference on volume: 3 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=3_single_channel
+0.9422632794457275
+0.337468982630273
+Starting inference on volume: 4 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=4_single_channel
+0.8993055555555556
+0.29298642533936653
+Starting inference on volume: 5 of total: 9
+C:\Users\tiger\Documents\GitHub\Bergles_cell_tracking_semi_auto\1_CNN_training_and_testing_PYTHON\plot_functions_CLEANED.py:52: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`).
+  plt.figure(); plt.imshow(max_im)
+MOBPF_190105w_1_cuprBZA_10x_T=5_single_channel
+0.9022988505747126
+0.3536036036036036
+Starting inference on volume: 6 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=6_single_channel
+0.9555555555555556
+0.3891402714932127
+Starting inference on volume: 7 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=7_single_channel
+0.9029126213592233
+0.49076517150395776
+Starting inference on volume: 8 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=8_single_channel
+0.8744588744588745
+0.5855072463768116
+
+
+
+
+
+
+
+
+
+Directory  E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/Test_FOR_manual_correction/650_raw_and_outputs//650_raw_and_outputs_analytic_results  already exists
+Starting inference on volume: 0 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=0_single
+0.9764243614931237
+0.3609295570079884
+Starting inference on volume: 1 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=1_single
+0.9859719438877755
+0.3438155136268344
+Starting inference on volume: 2 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=2_single
+0.9811320754716981
+0.3443708609271523
+Starting inference on volume: 3 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=3_single
+0.949238578680203
+0.24621461487820934
+Starting inference on volume: 4 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=4_single
+0.9308943089430894
+0.19539249146757678
+Starting inference on volume: 5 of total: 9
+C:\Users\tiger\Documents\GitHub\Bergles_cell_tracking_semi_auto\1_CNN_training_and_testing_PYTHON\plot_functions_CLEANED.py:52: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`).
+  plt.figure(); plt.imshow(max_im)
+MOBPF_190106w_5_cuprBZA_10x.tif - T=5_single
+0.8958333333333334
+0.2778675282714055
+Starting inference on volume: 6 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=6_single
+0.9315068493150684
+0.3008849557522124
+Starting inference on volume: 7 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=7_single
+0.9444444444444444
+0.32118758434547906
+Starting inference on volume: 8 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=8_single
+0.9612676056338029
+0.3238434163701068
+
+
+ """

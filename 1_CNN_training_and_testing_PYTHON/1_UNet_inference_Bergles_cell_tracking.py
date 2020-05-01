@@ -115,14 +115,14 @@ for input_path in list_folder:
     examples = [dict(input=i,truth=i.replace('.tif','_truth.tif'), ilastik=i.replace('.tif','_single_Object Predictions_.tiff')) for i in images]
 
 
-    # images = glob.glob(os.path.join(input_path,'*_single_channel.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
-    # images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    # examples = [dict(input=i,truth=i.replace('_single_channel.tif','_truth.tif'), ilastik=i.replace('_single_channel.tif','_single_Object Predictions_.tiff')) for i in images]
+    #images = glob.glob(os.path.join(input_path,'*_single_channel.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
+    #images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
+    #examples = [dict(input=i,truth=i.replace('_single_channel.tif','_truth.tif'), ilastik=i.replace('_single_channel.tif','_single_Object Predictions_.tiff')) for i in images]
 
 
-    # images = glob.glob(os.path.join(input_path,'*_RAW_REGISTERED.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
-    # images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    # examples = [dict(input=i,truth=i.replace('_RAW_REGISTERED.tif','_TRUTH_REGISTERED.tif'), ilastik=i.replace('_RAW_REGISTERED.tif','_single_Object Predictions_.tiff')) for i in images]
+    #images = glob.glob(os.path.join(input_path,'*_RAW_REGISTERED.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
+    #images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
+    #examples = [dict(input=i,truth=i.replace('_RAW_REGISTERED.tif','_TRUTH_REGISTERED.tif'), ilastik=i.replace('_RAW_REGISTERED.tif','_single_Object Predictions_.tiff')) for i in images]
         
                 
         
@@ -155,13 +155,13 @@ for input_path in list_folder:
             """ Analyze each block with offset in all directions """
             
             # Display the image
-            max_im = plot_max(input_im, ax=0)
+            #max_im = plot_max(input_im, ax=0)
             
             print('Starting inference on volume: ' + str(i) + ' of total: ' + str(len(examples)))
             plot_max(input_im)
             segmentation = UNet_inference_by_subparts(input_im, overlap_percent, quad_size=input_size, quad_depth=depth,
                                                       mean_arr=mean_arr, std_arr=std_arr, num_truth_class=num_truth_class,
-                                                      x_3D=x_3D, y_3D_=y_3D_, training=training, softMaxed=softMaxed)
+                                                      x_3D=x_3D, y_3D_=y_3D_, training=training, softMaxed=softMaxed, skip_top=1)
            
             segmentation[segmentation > 0] = 255
             plot_max(segmentation)
@@ -184,8 +184,8 @@ for input_path in list_folder:
             # truth_im = open_image_sequence_to_3D(truth_name, width_max='default', height_max='default', depth='default')
             # truth_im[truth_im > 0] = 1                                   
             
-            # truth_im_cleaned = clean_edges(truth_im, depth_im, w=width, h=height, extra_z=1, extra_xy=3)
-                                              
+            # truth_im_cleaned = clean_edges(truth_im, extra_z=1, extra_xy=3, skip_top=1)
+                                             
             # TP, FN, FP, truth_im_cleaned, cleaned_seg = find_TP_FP_FN_from_seg(segmentation, truth_im_cleaned, size_limit=5)
 
                   
@@ -198,7 +198,7 @@ for input_path in list_folder:
                    
             # if TP + FP == 0: TP;
             # else: precision = TP/(TP + FP);     # precision
-   
+
             # print(filename)
             # print(str(sensitivity))
             # print(str(precision))

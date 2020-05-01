@@ -113,39 +113,66 @@ def bw_skel_and_analyze(bw):
 
 
 """ removes detections on the very edges of the image """
-def clean_edges(im, depth, w, h, extra_z=1, extra_xy=5):
+def clean_edges(im, extra_z=1, extra_xy=3, skip_top=0):
+     im_size = np.shape(im);
+     w = im_size[1];  h = im_size[2]; depth = im_size[0];
      labelled = measure.label(im)
      cc_coloc = measure.regionprops(labelled)
     
      cleaned_im = np.zeros(np.shape(im))
      for obj in cc_coloc:
-         #max_val = obj['max_intensity']
          coords = obj['coords']
          
          bool_edge = 0
          for c in coords:
-              if (c[0] <= 0 + extra_z or c[0] >= depth - extra_z):
-                   #print('badz')
+              if ((c[0] <= 0 + extra_z and not skip_top) or c[0] >= depth - extra_z):
                    bool_edge = 1
                    break;
               if (c[1] <= 0 + extra_xy or c[1] >= w - extra_xy):
-                   #print('badx')
                    bool_edge = 1
                    break;                                       
               if (c[2] <= 0 + extra_xy or c[2] >= h - extra_xy):
-                   #print('bady')
                    bool_edge = 1
                    break;                                        
-                   
-                   
-    
+
          if not bool_edge:
-              #print('good')
               for obj_idx in range(len(coords)):
                    cleaned_im[coords[obj_idx,0], coords[obj_idx,1], coords[obj_idx,2]] = 1
 
      return cleaned_im                     
             
+def find_TP_FP_FN_from_im(seg_train, truth_im):
+
+     coloc = seg_train + truth_im
+     bw_coloc = coloc > 0
+     labelled = measure.label(truth_im)
+     cc_coloc = measure.regionprops(labelled, intensity_image=coloc)
+     
+     true_positive = np.zeros(np.shape(coloc))
+     TP_count = 0;
+     FN_count = 0;
+     for obj in cc_coloc:
+          max_val = obj['max_intensity']
+          coords = obj['coords']
+          if max_val > 1:
+               TP_count += 1
+               #for obj_idx in range(len(coords)):
+               #     true_positive[coords[obj_idx,0], coords[obj_idx,1], coords[obj_idx,2]] = 1
+          else:
+               FN_count += 1
+ 
+     
+     FP_count = 0;
+     labelled = measure.label(bw_coloc)
+     cc_coloc = measure.regionprops(labelled, intensity_image=coloc)
+     for obj in cc_coloc:
+          max_val = obj['max_intensity']
+          coords = obj['coords']
+          if max_val == 1:
+               FP_count += 1 
+              
+     return TP_count, FN_count, FP_count
+
 
 def find_TP_FP_FN_from_seg(segmentation, truth_im, size_limit=0):
      seg = segmentation      

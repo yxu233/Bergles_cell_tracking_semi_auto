@@ -77,10 +77,6 @@ import bcolz
 
 def get_train_and_val_from_bcolz(X, Y, input_path, test_size = 0.1, start_idx=0, end_idx=-1, convert_float=1):
 
-    #X = bcolz.open(input_path + 'input_im', mode='r')
-    #Y = bcolz.open(input_path + 'truth_im', mode='r')
-    
-
     start = time.perf_counter()
     
     input_batch = X[start_idx:end_idx]
@@ -113,58 +109,6 @@ def get_train_and_val_from_bcolz(X, Y, input_path, test_size = 0.1, start_idx=0,
     diff = stop - start
     print(diff)
     return X_train, X_valid, y_train, y_valid, acc_speed
-
-
-
-
-
-def get_train_and_val_from_bcolz_by_idx(X, Y, input_path, idx_train, idx_valid=0, start_idx=0, end_idx=-1, convert_float=1):
-
-
-    #X = bcolz.open(input_path + 'input_im', mode='r')
-    #Y = bcolz.open(input_path + 'truth_im', mode='r')
-    
-
-    start = time.perf_counter()
-    
-    input_batch = []
-    truth_batch = []
-    sub_batch_idx = idx_train[start_idx:end_idx]
-    for i in range(len(sub_batch_idx)):
-        input_batch.append(X[sub_batch_idx[i]])
-        truth_batch.append(Y[sub_batch_idx[i]])
-
-
-    #input_batch = X[sub_batch_idx]
-    #truth_batch = Y[sub_batch_idx]
-    
-    stop = time.perf_counter()
-    diff = stop - start
-    print(diff)
-    
- 
-    start = time.perf_counter()
-    
-    
-    if convert_float:    
-        input_batch = np.asarray(input_batch, np.float32)
-        truth_batch = np.asarray(truth_batch, np.float32)
-    
-    stop = time.perf_counter()
-    diff = stop - start
-    print(diff)
-        
-
-    #start = time.perf_counter()
-    
-    #X_train, X_valid, y_train, y_valid = train_test_split(input_batch, truth_batch, test_size=test_size, random_state=2018)
-    
-    #stop = time.perf_counter()
-    #diff = stop - start
-    #print(diff)
-    input_batch = np.expand_dims(input_batch, axis=-1)
-    #truth_batch = np.expand_dims(truth_batch, axis=-1)
-    return input_batch, truth_batch
 
 
 
