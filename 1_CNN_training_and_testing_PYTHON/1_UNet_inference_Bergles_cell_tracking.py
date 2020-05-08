@@ -188,7 +188,7 @@ for input_path in list_folder:
                                              
             # TP, FN, FP, truth_im_cleaned, cleaned_seg = find_TP_FP_FN_from_seg(segmentation, truth_im_cleaned, size_limit=5)
 
-                  
+                 
             # plot_max(truth_im_cleaned)
             # plot_max(cleaned_seg)
             
