@@ -76,7 +76,7 @@ while option_num>0 && term == 0
             % Get z-position from prompt
             prompt = {'Enter z-axis position:'};
             dlgtitle = 'slice position';
-            definput = {'9'};
+            definput = {'11'};
             answer = inputdlg(prompt,dlgtitle, [1, 35], definput);
             
             coordinates = [round(poss_sub), str2num(answer{1})];
@@ -219,7 +219,7 @@ while option_num>0 && term == 0
             plot_im(8);
             
         else
-            waitfor(msgbox('Key did not match any command, please1 please reselect'));
+            waitfor(msgbox('Key did not match any command, please reselect'));
             plot_im(0);
             option_num = 100;
             %pause;
@@ -313,7 +313,7 @@ end
             set(h, 'AlphaData', mip_center_1)
         end
         
-        title(strcat('psnr:', num2str(psnr_val),'  ssim: ', num2str(ssim_val)))
+        title(strcat('ssim: ', num2str(ssim_val)))
         
         
         % plot max
@@ -336,7 +336,7 @@ end
             set(h, 'AlphaData', mip_center_2)
         end
         
-        title(strcat('  mae: ', num2str(mae_val), '  dist: ', num2str(dist)))
+        title(strcat('  dist: ', num2str(dist)))
         
         % restore original crop size
         if opt == 'adjust'

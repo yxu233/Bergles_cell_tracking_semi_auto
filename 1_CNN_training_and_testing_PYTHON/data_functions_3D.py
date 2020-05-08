@@ -18,8 +18,8 @@ import scipy.io as sio
 #import zipfile
 #import bz2
 
-from plot_functions import *
-from data_functions import *
+#from plot_functions import *
+#from data_functions import *
 #from post_process_functions import *
 #from UNet import *
 
@@ -95,46 +95,6 @@ def open_image_sequence_to_3D(input_name, width_max='default', height_max='defau
 
 
 
-""" Generates hybrid 2D/3D layers by copying middle slice weights from 2D to 3D conv layer """
-def generate_hybrid_layer(inputs, filters, kernel_size, strides, padding, activation, kernel_initializer, name, deconvolve = 0):
-
-    if not deconvolve:
-        temp_layer = tf.layers.conv3d(inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides, padding=padding,
-                                      activation=activation, kernel_initializer=kernel_initializer, name=name + '_new_3D_tmp')
-    else:
-        temp_layer = tf.layers.conv3d_transpose(inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides, padding=padding,
-                                      activation=activation, kernel_initializer=kernel_initializer, name=name + '_new_3D_tmp')
-    w1 = tf.get_default_graph().get_tensor_by_name(name + "/kernel:0")
-    w2 = tf.get_default_graph().get_tensor_by_name(name + "_new_3D_tmp/kernel:0")
-
-    tf.global_variables_initializer().run(); tf.local_variables_initializer().run()   # HAVE TO HAVE THESE in order to initialize the newly created layers
-    
-    w1_r = sess.run(w1);  w2_r = sess.run(w2)
-    print("w1_r and w2_r should be different: %.5f" %(np.sum(w1_r - w2_r))) # checks that w1_r and w2_r are different
-    
-    middle_slice = math.ceil(siz_f / 2);  w2_r[middle_slice, :, :, :, :] = w1_r   # Transfers weights to middle slice
-    print("w2_r and w1_r should now be same: %.5f" %(np.sum(w2_r[middle_slice, :, :, :, :] - w1_r))) # checks that w1_r and w2_r are different
-    
-    new_w2 = tf.constant_initializer(w2_r)    # converts weight matrix into a NEW useable kernel so that can initialize the next step!!!
-    if not deconvolve:
-        hybrid_layer = tf.layers.conv3d(inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides, padding=padding,
-                                      activation=activation, kernel_initializer=new_w2, name=name + '_new_3D')
-    else:
-        hybrid_layer = tf.layers.conv3d_transpose(inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides, padding=padding,
-                                      activation=activation, kernel_initializer=new_w2, name=name + '_new_3D')
-        
-    
-    """ Debug/check that weights are now correctly set"""
-    w3 = tf.get_default_graph().get_tensor_by_name(name + "_new_3D/kernel:0")
-    
-    tf.global_variables_initializer().run(); tf.local_variables_initializer().run()   # HAVE TO HAVE THESE in order to initialize the newly created layers
-    
-    # Check to see if the newly created layer has the correct new spliced weights
-    w3_r = sess.run(w3)
-    print("w2_r and w1_r should now be same: %.5f" %(np.sum(w2_r[middle_slice, :, :, :, :] - w1_r))) # checks that w1_r and w2_r are different
-    print("w3_r and w2_r should now be same: %.5f" %(np.sum(w3_r  - w2_r))) # checks that w1_r and w2_r are different  
-    
-    return hybrid_layer
 
 
 """ Loads single channel truth data """

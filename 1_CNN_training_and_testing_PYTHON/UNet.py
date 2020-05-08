@@ -13,13 +13,88 @@ import numpy as np
 import scipy
 import math
 
-from plot_functions import *
-from data_functions import *
+#from plot_functions import *
+from data_functions_CLEANED import *
 #from post_process_functions import *
-from UNet import *
+    
 
-
-
+""" Perform inference by splitting input volume into subparts """
+def UNet_inference_by_subparts(input_im, overlap_percent, quad_size, quad_depth, mean_arr, std_arr,
+                               x_3D, y_3D_, training, softMaxed, skip_top=0, num_truth_class=1):
+     im_size = np.shape(input_im);
+     width = im_size[1];  height = im_size[2]; depth_im = im_size[0];
+        
+     segmentation = np.zeros([depth_im, width, height])
+     total_blocks = 0;
+     all_xyz = []                                               
+     
+        
+     for x in range(0, width + quad_size, round(quad_size - quad_size * overlap_percent)):
+          if x + quad_size > width:
+               difference = (x + quad_size) - width
+               x = x - difference
+                    
+          for y in range(0, height + quad_size, round(quad_size - quad_size * overlap_percent)):
+               
+               if y + quad_size > height:
+                    difference = (y + quad_size) - height
+                    y = y - difference
+               
+               for z in range(0, depth_im + quad_depth, round(quad_depth - quad_depth * overlap_percent)):
+                   batch_x = []; batch_y = [];
+         
+                   if z + quad_depth > depth_im:
+                        difference = (z + quad_depth) - depth_im
+                        z = z - difference
+                   
+                       
+                   """ Check if repeated """
+                   skip = 0
+                   for coord in all_xyz:
+                        if coord == [x,y,z]:
+                             skip = 1
+                             break                      
+                   if skip:  continue
+                        
+                   all_xyz.append([x, y, z])
+                   
+                   quad_intensity = input_im[z:z + quad_depth, x:x + quad_size, y:y + quad_size];  
+                   
+                   quad_intensity = normalize_im(quad_intensity, mean_arr, std_arr) 
+                                                   
+                   """ Analyze """
+                   """ set inputs and truth """
+                   quad_intensity = np.expand_dims(quad_intensity, axis=-1)
+                   batch_x.append(quad_intensity)
+                   batch_y.append(np.zeros([quad_depth, quad_size, quad_size, num_truth_class]))
+             
+                   """ Feed into training loop """
+                   feed_dict = {x_3D:batch_x, y_3D_:batch_y, training:1} 
+                   
+                   output_tile = softMaxed.eval(feed_dict=feed_dict)
+                   seg_train = np.argmax(output_tile, axis=-1)
+        
+                   """ Clean segmentation by removing objects on the edge """  
+                   if skip_top and z == 0:
+                        #print('skip top')
+                        cleaned_seg = clean_edges(seg_train[0], extra_z=1, extra_xy=3, skip_top=skip_top)                                             
+                   else:
+                        cleaned_seg = clean_edges(seg_train[0], extra_z=1, extra_xy=3)
+                    
+                   
+                   """ ADD IN THE NEW SEG??? or just let it overlap??? """                         
+                   #segmentation[z:z + quad_depth, x:x + quad_size, y:y + quad_size] = cleaned_seg                        
+                   segmentation[z:z + quad_depth, x:x + quad_size, y:y + quad_size] = cleaned_seg + segmentation[z:z + quad_depth, x:x + quad_size, y:y + quad_size]
+         
+                   total_blocks += 1
+                   
+                   #print('inference on sublock: ')
+                   #print([x, y, z])
+        
+     return segmentation
+            
+               
+            
 """ Perceptual loss training: defined as MS-SSIM + L1 norm (MAE) """
 def costOptm_MSSSIM_MAE(y, y_b, logits, train_rate=1e-5, epsilon = 1e-8, optimizer='adam', loss_function='MSSIM-MAE'):
      
@@ -266,72 +341,6 @@ def costOptm_CLASSW(y, y_b, logits):
     jaccard = tf.reduce_mean(intersection / union)   
     
     return accuracy, jaccard, train_step, cross_entropy, loss, cross_entropy, weighted_loss
-
-#
-#""" Initializes cost function with no Weight """
-#def costOptm_noW(y, y_b, logits):
-#    # Choose fitness/cost function. Many options:
-#    loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_b, logits=logits) # calculate loss
-#    cross_entropy = tf.reduce_mean(loss)         # single loss value
-#    train_step = tf.train.AdamOptimizer(1e-5).minimize(cross_entropy)  # train_step uses Adam Optimizer
-# 
-#    """ Accuracy 
-#    """ 
-#    correct_prediction = tf.equal(tf.argmax(y, 3), tf.argmax(y_b, 3))  # accuracy prediction
-#    accuracy = tf.reduce_mean(tf.cast(correct_prediction, 'float'))    
-#    
-#    """ Jaccard
-#    """
-#    output = tf.cast(tf.argmax(y,axis=-1), dtype=tf.float32)
-#    truth = tf.cast(tf.argmax(y_b,axis=-1), dtype=tf.float32)
-#    intersection = tf.reduce_sum(tf.reduce_sum(tf.multiply(output, truth), axis=-1),axis=-1)
-#    union = tf.reduce_sum(tf.reduce_sum(tf.cast(tf.add(output, truth)>= 1, dtype=tf.float32), axis=-1),axis=-1) + 0.0000001
-#    jaccard = tf.reduce_mean(intersection / union)   
-#    
-#    
-#    weighted_loss = 0
-#    return accuracy, jaccard, train_step, cross_entropy, loss, cross_entropy, weighted_loss
-#
-#
-#""" Initialized cost function with both spatial AND class weighting """
-#def costOptm_BOTH(y, y_b, logits, weighted_labels, weight_mat=True):
-#    # Choose fitness/cost function. Many options:
-#    loss = tf.nn.softmax_cross_entropy_with_logits(labels=y_b, logits=logits) # calculate loss
-#    if weight_mat:
-#        w_reduced = tf.reduce_mean(weighted_labels, axis=-1)
-#        loss = tf.multiply(loss, w_reduced)    
-#    #loss = tf.cast(loss, tf.float64)
-#    
-#    
-#    class_1 = np.float32(1.0)
-#    class_2 = np.float32(10.0)   
-#    shape = np.concatenate(([1], y_b.get_shape().as_list()[1:3], [1]), axis=0) 
-#    first_c = tf.constant(class_1, shape=shape)
-#    second_c = tf.constant(class_2, shape=shape)
-#    weights = tf.concat([first_c, second_c], axis=-1)  
-#    multiplied = tf.multiply(y_b, weights)
-#    w_reduced = tf.reduce_mean(multiplied, axis=-1)
-# 
-#    weighted_loss = tf.multiply(loss, w_reduced)          # multiply by label weights
-#        
-#    cross_entropy = tf.reduce_mean(weighted_loss)         # single loss value
-#    
-#    train_step = tf.train.AdamOptimizer(1e-5).minimize(cross_entropy)  # train_step uses Adam Optimizer
-# 
-#    """ Accuracy 
-#    """ 
-#    correct_prediction = tf.equal(tf.argmax(y, 3), tf.argmax(y_b, 3))  # accuracy prediction
-#    accuracy = tf.reduce_mean(tf.cast(correct_prediction, 'float'))    
-#    
-#    """ Jaccard
-#    """
-#    output = tf.cast(tf.argmax(y,axis=-1), dtype=tf.float32)
-#    truth = tf.cast(tf.argmax(y_b,axis=-1), dtype=tf.float32)
-#    intersection = tf.reduce_sum(tf.reduce_sum(tf.multiply(output, truth), axis=-1),axis=-1)
-#    union = tf.reduce_sum(tf.reduce_sum(tf.cast(tf.add(output, truth)>= 1, dtype=tf.float32), axis=-1),axis=-1) + 0.0000001
-#    jaccard = tf.reduce_mean(intersection / union)   
-#        
-#    return accuracy, jaccard, train_step, cross_entropy, loss, cross_entropy, weighted_loss
 
 
 """ Creates network architecture for UNet """

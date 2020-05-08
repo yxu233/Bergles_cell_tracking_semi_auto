@@ -1,4 +1,22 @@
 %% Cell tracking
+%% Final notes:
+% 1) Best with good window + good registration (almost no correction
+% needed) ==> ~90 - 95% sensitivity and precision for matching Cody's segmentations
+% 2) with worse windows + blur ==> 85 - 90% sensitivity and precision
+% 3) Time to do analysis of 1024 x 1024 x 130 volume is about 1 hour, but
+% time increases quite a lot with number of lower layers you add to the
+% segmentation. Also, of course, depends on quality of images +
+% registration.
+% 4) Manual correction is mostly just spent correcting cells in the lower
+% 20 slices of the z-stack. This is the most time consuming part. In cases
+% where a lot of the lower cells die, the manual correction can be blazing
+% fast (like correct only 1 or 2 cells)
+%
+%
+% OVERALL: wayyy better than ILASTIK, and is essentially "fully-auto" for
+% the top 100 z-slices on good quality images. Almost 90% of manual
+% correction time is spent on correcting cells in lower layers.
+
 
 %% New additions: version 1.2
 %(1) added ability to "add" cells - hotkey == 3
@@ -17,7 +35,7 @@
 
 %% Manual correction keys:
 % 1 == yes, is matched
-% 2 == no, not matched
+% 2 == no, not matched11
 % 3 == add new point in any arbitrary location
 
 % a == "add" different associated cell
@@ -77,13 +95,17 @@ natfnames=natsort(trialNames);
 %% Read in images
 empty_file_idx_sub = 0;
 all_s = cell(0);
-matrix_timeseries = cell(2000, numfids/2);
-111
+matrix_timeseries = cell(5000, numfids/2);
+
 %% Input dialog values
 prompt = {'crop size (XY px): ', 'z_size (Z px): ', 'ssim_thresh (0 - 1): ', 'low_dist_thresh (0 - 20): ', 'upper_dist_thresh (30 - 100): ', 'min_siz (0 - 500): ', 'first_slice: ', 'last_slice: ', 'manual_correct? (Y/N): '};
 dlgtitle = 'Input';
-definput = {'200', '20', '0.30', '15', '22', '50', '1', '120', 'Y'};
+definput = {'200', '20', '0.30', '25', '35', '10', '1', '130', 'Y'};
 %definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
+%definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
+
+%% Switched to dist_thresh == 20 from 15 for scaled!!! and upper dist thresh from 20 to 30
+
 answer = inputdlg(prompt,dlgtitle, [1, 35], definput);
 
 crop_size = str2num(answer{1})/2;
@@ -99,7 +121,7 @@ manual_correct_bool = answer{9};
 
 %% Get first frame
 fileNum = 1;
-[all_s, frame_1, truth_1] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
+[all_s, frame_1, truth_1, og_size] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
 
 
 %% save all objects in first frame as list of cells
@@ -121,8 +143,33 @@ total_cells = length(all_s{1});
 
 %% get subesquent frame
 for fileNum = 3 : 2: numfids
+
+    %% Also eliminate if on edges of crop??? Either XY +/- 2 or Z +/- 2
+    del_num = 0;
+    im_size = size(frame_1);
+    height = im_size(1);  width = im_size(2); depth = im_size(3);
+    for j = 1:length(matrix_timeseries(:, 1))
+        if isempty(matrix_timeseries{j, timeframe_idx})
+            continue;
+        end
+        cur_cell = matrix_timeseries{j, timeframe_idx};
+        z_p = round(cur_cell.centroid(3));
+        x_p = round(cur_cell.centroid(2));
+        y_p = round(cur_cell.centroid(1));
+        % delete if z_position of centroid within top 5 frames
+        if z_p > (last_slice - first_slice) - 2 || x_p <= 2 || x_p > height - 2 || y_p <= 2 || y_p > width -2
+            matrix_timeseries(j, :) = {[]};
+            del_num = del_num + 1;
+            disp(num2str(del_num));
+        end
+    end
+
+    
     % get next frame
-    [all_s, frame_2, truth_2] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
+    [all_s, frame_2, truth_2, og_size] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
+    
+    %% Delete things near edges of image???
+    
     
     %% Loop through struct to find nearest neighbors
     % first frame is always taken from "matrix_timeseries" ==> which has
@@ -145,10 +192,23 @@ for fileNum = 3 : 2: numfids
         array_centroid_indexes = [array_centroid_indexes; next_timeseries(idx).centerDAPI];
     end
     next_centroids = array_centroid_indexes;
+        
+    %% Use scaled matrix for nearest neighbor analysis
+    cur_centroids_scaled = cur_centroids;
+    cur_centroids_scaled(:, 1) = cur_centroids(:, 1) * 0.83;
+    cur_centroids_scaled(:, 2) = cur_centroids(:, 2) * 0.83;
+    cur_centroids_scaled(:, 3) = cur_centroids(:, 3) * 3;
+    
+    next_centroids_scaled = next_centroids;
+    next_centroids_scaled(:, 1) = next_centroids(:, 1) * 0.83;
+    next_centroids_scaled(:, 2) = next_centroids(:, 2) * 0.83;
+    next_centroids_scaled(:, 3) = next_centroids(:, 3) * 3;
     
     
     % find nearest neighbours
-    [neighbor_idx, D] = knnsearch(next_centroids, cur_centroids, 'K', 1);
+    [neighbor_idx, D] = knnsearch(next_centroids_scaled, cur_centroids_scaled, 'K', 1);
+     
+    
     
     %% Do preliminary loop through to find VERY CONFIDENT neighbours
     %% add into the cell list with corresponding cell number
@@ -160,6 +220,7 @@ for fileNum = 3 : 2: numfids
     disp('finding confidently matched and non-matched cells')
     smaller_crop_size = 60;
     smaller_z_size = 16;
+    %figure;
     histogram(D);
     figure(2);
     idx_non_confident = [];
@@ -178,10 +239,10 @@ for fileNum = 3 : 2: numfids
         %% if ssim_val very high AND distance small ==> save the cell
         if ssim_val > ssim_val_thresh && dist < dist_thresh
             %% Plot to verify
-            %subplot(1, 2, 1); imshow(mip_1);
-            %subplot(1, 2, 2); imshow(mip_2);
-            %title(strcat('ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
-             
+%             subplot(1, 2, 1); imshow(mip_1);
+%             subplot(1, 2, 2); imshow(mip_2);
+%             title(strcat('GOOD ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
+            
             
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
@@ -190,22 +251,38 @@ for fileNum = 3 : 2: numfids
             % create cell object
             cell_obj = cell_class(voxelIdxList,centroid, cell_num);
             matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
-            %1pause
-       
-        %elseif dist_thresh < 5 && ssim_val > 0.2
+            %pause
+            
+            %% Also more lenient if distance away is super small
+        elseif dist < 5 && ssim_val > 0.2
+            next_cell = next_timeseries(neighbor_idx(check_neighbor));
+            voxelIdxList = next_cell.objDAPI;
+            centroid = next_cell.centerDAPI;
+            cell_num = check_neighbor;
+            % create cell object
+            cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+            matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;            
+            
             
             %% also eliminate based on upper boundary
         elseif dist > upper_dist_thresh
+            subplot(1, 2, 1); imshow(mip_1);
+            subplot(1, 2, 2); imshow(mip_2);
+            title(strcat('UPPER DIST ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
             continue
         else
+%             subplot(1, 2, 1); imshow(mip_1);
+%             subplot(1, 2, 2); imshow(mip_2);
+%             title(strcat('NON CONF ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
             idx_non_confident = [idx_non_confident, check_neighbor];
         end
+        %pause
     end
     
     
     %% Loop through NON-CONFIDENT ONES for comparison
     % first find index of all non-confident ones
-     disp('please correct non-confident cells')
+    disp('please correct non-confident cells')
     if manual_correct_bool == 'Y'
         close all;
         figure(3);
@@ -268,7 +345,26 @@ for fileNum = 3 : 2: numfids
          end
         
     end
-   
+ 
+    %% Nothing below the last 10 frames can be a new cell after the first frame has been tested
+    del_num = 0;
+    for i = 1:length(matrix_timeseries(1, :))
+        for j = 1:length(matrix_timeseries(:, 1))
+            if isempty(matrix_timeseries{j, i})
+                continue;
+            end
+            cur_cell = matrix_timeseries{j, i};
+            z_position = round(cur_cell.centroid(3));
+            
+            
+            if z_position > (last_slice - first_slice) - 10 && i > 1 && isempty(matrix_timeseries{j, i - 1})
+                matrix_timeseries(j, :) = {[]};
+                del_num = del_num + 1;
+                disp(num2str(del_num));
+            end
+        end
+    end
+    
     %% (optional) Double check all the cells in the current timeframe that were NOT associated with stuff
     %% just to verify they are ACTUALLY cells???
         
@@ -279,6 +375,7 @@ for fileNum = 3 : 2: numfids
     
 
 end
+
 
 
 %% also save matrix_timeseries
@@ -309,17 +406,16 @@ for cell_idx = 1:length(matrix_timeseries(:, 1))
 end
 writematrix(csv_matrix, 'output_raw.csv') 
 
-%% Eliminate everything that only exists on a single frame (or 2 frames?)
-%% DOUBLE CHECK everything from LAST FRAME that was NOT associated with a cell in the previous frame
+
+
+%% Additional post-processing of edges and errors
+% (A) Eliminate everything that only exists on a single frame
 num_frames_exclude = 1;
 [matrix_timeseries_cleaned] = elim_untracked(matrix_timeseries, num_frames_exclude, foldername, natfnames, crop_size, z_size, thresh_size, first_slice, last_slice);
 matrix_timeseries = matrix_timeseries_cleaned;
 
-% DOUBLE CHECK:
-% (A) if only on 2 frames
-
 % (B) eliminate if located above or below +/- 2 AT THE FIRST CELL POINT
-%% Also eliminate if on edge of crop???
+% Also eliminate if on edge of crop
  all_volumes = [];
  del_num = 0;
  for i = 1:length(matrix_timeseries(1, :))
@@ -339,11 +435,11 @@ matrix_timeseries = matrix_timeseries_cleaned;
      end
  end
 
-% (C) if is a NEW cell on any frame (excluding the first)
-%matrix_timeseries = matrix_timeseries_cleaned;
+% (C) check all NEW cells to ensure they are actually new (excluding the
+% first frame)
 frame_num = 2;
 for fileNum = 3 : 2: numfids
-    [all_s, frame_1, truth_1] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
+    [all_s, frame_1, truth_1, og_size] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
     [matrix_timeseries] = Bergles_manual_correct_last_frame(frame_num, frame_1, truth_1, matrix_timeseries, crop_size, z_size);
     frame_num = frame_num + 1;
 end
@@ -391,21 +487,25 @@ save('matrix_timeseries', 'matrix_timeseries');
 %% Recreate the output DAPI for each frame with cell number for each (create rainbow image)
 list_random_colors = randi([1, 20], [1, length(matrix_timeseries)]);
 for timeframe_idx = 1:length(matrix_timeseries(1, :))
-    im_frame = zeros(size(frame_1));
+    im_frame = zeros(og_size);
     for cell_idx = 1:length(matrix_timeseries(:, 1))
 
         if isempty(matrix_timeseries{cell_idx, timeframe_idx})
             continue;
         end
         
-        %if timeframe_idx + 1 < length(matrix_timeseries) && ~isempty(matrix_timeseries{cell_idx, timeframe_idx + 1})
-        %    continue;
-        %end
-            
+%         if timeframe_idx + 1 < length(matrix_timeseries) && ~isempty(matrix_timeseries{cell_idx, timeframe_idx + 1})
+%            continue;
+%         end
+
+        %% Skip everything that IS persisting (so leaving all the NEW cells)
+%         if timeframe_idx > 1 && ~isempty(matrix_timeseries{cell_idx, timeframe_idx - 1})
+%            continue;
+%         end
+
         cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
         
         voxels = cur_cell.voxelIdxList;
-        %cell_number = cur_cell.cell_number;
         
         im_frame(voxels) = list_random_colors(cell_idx);
     end
@@ -417,7 +517,7 @@ for timeframe_idx = 1:length(matrix_timeseries(1, :))
     im_frame = uint8(im_frame);
     for k = 1:z_size
         input = im_frame(:, :, k);
-        imwrite(input, strcat(filename_raw,'_output_SEMI_AUTO.tif') , 'writemode', 'append', 'Compression','none')
+        imwrite(input, strcat(filename_raw,'_CORR_SEMI_AUTO.tif') , 'writemode', 'append', 'Compression','none')
     end
 end
 

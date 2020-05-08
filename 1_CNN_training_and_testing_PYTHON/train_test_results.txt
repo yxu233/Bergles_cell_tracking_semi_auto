@@ -1,0 +1,307 @@
+
+
+
+0.9351851851851852
+0.9181818181818182
+0.8153846153846154
+0.9814814814814815
+0.8775933609958506
+0.831041257367387
+
+
+
+0.9351851851851852
+0.9439252336448598
+0.8153846153846154
+0.9464285714285714
+0.8858921161825726
+0.9405286343612335
+
+
+
+
+0.8046272493573264  0.87
+0.828042328042328  0.83
+
+0.9665809768637532
+0.6596491228070176
+
+
+
+MOBPF_190105w_1_cuprBZA_10x_T=0_single_channel_RAW_REGISTERED
+0.8795518207282913
+0.8373333333333334
+MOBPF_190105w_1_cuprBZA_10x_T=4_single_channel_aRECOVERY_RAW_REGISTERED
+0.8873239436619719
+0.6472602739726028
+MOBPF_190105w_1_cuprBZA_10x_T=8_single_channel_RAW_REGISTERED
+0.8679245283018868
+0.8070175438596491
+MOBPF_190106w_5_cuprBZA_10x.tif - T=0_single_RAW_REGISTERED
+0.922879177377892
+0.8692493946731235
+MOBPF_190106w_5_cuprBZA_10x.tif - T=2_single_RAW_REGISTERED
+0.9189944134078212
+0.8308080808080808
+MOBPF_190106w_5_cuprBZA_10x.tif - T=6_single_RAW_REGISTERED
+0.9315789473684211
+0.8119266055045872
+
+
+Run with ILASTIK
+MOBPF_190105w_1_cuprBZA_10x_T=0_single
+0.8046272493573264
+0.828042328042328
+0.9665809768637532
+0.6596491228070176
+MOBPF_190105w_1_cuprBZA_10x_T=4_single
+0.7907949790794979
+0.6494845360824743
+0.9121338912133892
+0.4678111587982833
+MOBPF_190105w_1_cuprBZA_10x_T=8_single
+0.8476190476190476
+0.7876106194690266
+0.8238095238095238
+0.6577946768060836
+MOBPF_190106w_5_cuprBZA_10x.tif - T=0_single
+0.9149484536082474
+0.8637469586374696
+0.9845360824742269
+0.583206106870229
+MOBPF_190106w_5_cuprBZA_10x.tif - T=2_single
+0.9103641456582633
+0.8207070707070707
+0.9719887955182073
+0.5447409733124019
+MOBPF_190106w_5_cuprBZA_10x.tif - T=6_single
+0.9263157894736842
+0.7892376681614349
+0.9368421052631579
+0.42280285035629456
+
+
+
+"""
+
+
+""" With 0.5 overlap - with SMALL UNET
+
+MOBPF_190105w_1_cuprBZA_10x_T=0_single_channel_RAW_REGISTERED
+0.9047619047619048
+0.8922651933701657
+MOBPF_190105w_1_cuprBZA_10x_T=4_single_channel_aRECOVERY_RAW_REGISTERED
+0.8967136150234741
+0.7860082304526749
+MOBPF_190105w_1_cuprBZA_10x_T=8_single_channel_RAW_REGISTERED
+0.8490566037735849
+0.8955223880597015
+MOBPF_190106w_5_cuprBZA_10x.tif - T=0_single_RAW_REGISTERED
+0.897172236503856
+0.8790931989924433
+MOBPF_190106w_5_cuprBZA_10x.tif - T=2_single_RAW_REGISTERED
+0.9245810055865922
+0.8575129533678757
+MOBPF_190106w_5_cuprBZA_10x.tif - T=6_single_RAW_REGISTERED
+0.9105263157894737
+0.8199052132701422
+
+"""
+
+
+
+""" With REAL UNET
+
+Directory  E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/Test_trained_ILASTIK_matched_registered//Test_trained_ILASTIK_matched_registered_analytic_results_2  already exists
+MOBPF_190105w_1_cuprBZA_10x_T=0_single_channel_RAW_REGISTERED
+0.896358543417367
+0.9195402298850575
+MOBPF_190105w_1_cuprBZA_10x_T=4_single_channel_aRECOVERY_RAW_REGISTERED
+0.8967136150234741
+0.8526785714285714
+MOBPF_190105w_1_cuprBZA_10x_T=8_single_channel_RAW_REGISTERED
+0.8443396226415094
+0.9179487179487179
+MOBPF_190106w_5_cuprBZA_10x.tif - T=0_single_RAW_REGISTERED
+0.9074550128534704
+0.9028132992327366
+
+MOBPF_190106w_5_cuprBZA_10x.tif - T=2_single_RAW_REGISTERED
+0.9217877094972067
+0.8707124010554089
+MOBPF_190106w_5_cuprBZA_10x.tif - T=6_single_RAW_REGISTERED
+0.9052631578947369
+0.8557213930348259
+"""
+
+
+
+""" with small UNET
+MOBPF_190105w_1_cuprBZA_10x_T=0_single_channel
+0.9544626593806922
+0.34405778069599474
+MOBPF_190105w_1_cuprBZA_10x_T=1_single_channel
+0.9648798521256932
+0.3301707779886148
+MOBPF_190105w_1_cuprBZA_10x_T=2_single_channel
+0.9467680608365019
+0.3425034387895461
+MOBPF_190105w_1_cuprBZA_10x_T=3_single_channel
+0.9443155452436195
+0.29751461988304095
+
+"""
+
+
+""" with REAL UNet 
+
+Directory  E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/Test_trained//Test_trained_analytic_results  already exists
+Starting inference on volume: 0 of total: 3
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=0_single_channel_RAW_REGISTERED
+0.9722222222222222
+0.9545454545454546
+Starting inference on volume: 1 of total: 3
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=7_single_channel_RAW_REGISTERED
+0.7538461538461538
+0.9423076923076923
+Starting inference on volume: 2 of total: 3
+MOBPF_190630w_14_10x.tif - T=0_RAW_REGISTERED
+0.8962655601659751
+0.9621380846325167
+
+
+
+
+
+
+
+
+
+Directory  E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/Test_FOR_manual_correction/670_raw_and_outputs//670_raw_and_outputs_analytic_results_old_check  Created 
+Starting inference on volume: 0 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=0_single_channel
+0.968944099378882
+0.3804878048780488
+Starting inference on volume: 1 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=1_single_channel
+0.9473684210526315
+0.47058823529411764
+Starting inference on volume: 2 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=2_single_channel
+0.95
+0.4889705882352941
+Starting inference on volume: 3 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=3_single_channel
+0.8780487804878049
+0.6878980891719745
+Starting inference on volume: 4 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=4_single_channel
+0.8378378378378378
+0.5470588235294118
+Starting inference on volume: 5 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=5_single_channel
+0.8695652173913043
+0.4580152671755725
+Starting inference on volume: 6 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=6_single_channel
+0.9154929577464789
+0.436241610738255
+Starting inference on volume: 7 of total: 8
+MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=7_single_channel
+0.7792207792207793
+0.6382978723404256
+
+"""
+
+
+""" REAL UNET - 140,000
+Directory  E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/Test_FOR_manual_correction/680_raw_and_outputs//680_raw_and_outputs_analytic_results  already exists
+Starting inference on volume: 0 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=0_single_channel
+0.9545454545454546
+0.3707627118644068
+Starting inference on volume: 1 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=1_single_channel
+0.9558823529411765
+0.41533546325878595
+Starting inference on volume: 2 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=2_single_channel
+0.9335863377609108
+0.41414141414141414
+Starting inference on volume: 3 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=3_single_channel
+0.9422632794457275
+0.337468982630273
+Starting inference on volume: 4 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=4_single_channel
+0.8993055555555556
+0.29298642533936653
+Starting inference on volume: 5 of total: 9
+C:\Users\tiger\Documents\GitHub\Bergles_cell_tracking_semi_auto\1_CNN_training_and_testing_PYTHON\plot_functions_CLEANED.py:52: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`).
+  plt.figure(); plt.imshow(max_im)
+MOBPF_190105w_1_cuprBZA_10x_T=5_single_channel
+0.9022988505747126
+0.3536036036036036
+Starting inference on volume: 6 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=6_single_channel
+0.9555555555555556
+0.3891402714932127
+Starting inference on volume: 7 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=7_single_channel
+0.9029126213592233
+0.49076517150395776
+Starting inference on volume: 8 of total: 9
+MOBPF_190105w_1_cuprBZA_10x_T=8_single_channel
+0.8744588744588745
+0.5855072463768116
+
+
+
+
+
+
+
+
+
+Directory  E:/7) Bergles lab data/RemyelinationData/Training_data_CSBDEEP/Test_FOR_manual_correction/650_raw_and_outputs//650_raw_and_outputs_analytic_results  already exists
+Starting inference on volume: 0 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=0_single
+0.9764243614931237
+0.3609295570079884
+Starting inference on volume: 1 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=1_single
+0.9859719438877755
+0.3438155136268344
+Starting inference on volume: 2 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=2_single
+0.9811320754716981
+0.3443708609271523
+Starting inference on volume: 3 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=3_single
+0.949238578680203
+0.24621461487820934
+Starting inference on volume: 4 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=4_single
+0.9308943089430894
+0.19539249146757678
+Starting inference on volume: 5 of total: 9
+C:\Users\tiger\Documents\GitHub\Bergles_cell_tracking_semi_auto\1_CNN_training_and_testing_PYTHON\plot_functions_CLEANED.py:52: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`).
+  plt.figure(); plt.imshow(max_im)
+MOBPF_190106w_5_cuprBZA_10x.tif - T=5_single
+0.8958333333333334
+0.2778675282714055
+Starting inference on volume: 6 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=6_single
+0.9315068493150684
+0.3008849557522124
+Starting inference on volume: 7 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=7_single
+0.9444444444444444
+0.32118758434547906
+Starting inference on volume: 8 of total: 9
+MOBPF_190106w_5_cuprBZA_10x.tif - T=8_single
+0.9612676056338029
+0.3238434163701068
+
+
+ """

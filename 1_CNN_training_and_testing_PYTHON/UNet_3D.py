@@ -12,8 +12,8 @@ import numpy as np
 import scipy
 import math
 
-from plot_functions import *
-from data_functions import *
+from plot_functions_CLEANED import *
+from data_functions_CLEANED import *
 #from post_process_functions import *
 from UNet import *
 
@@ -479,6 +479,7 @@ def create_network_3D_REAL_UNET(x, y_b, kernel_size, training, num_classes, drop
     #                       activation=tf.nn.relu, kernel_initializer=tf.contrib.layers.xavier_initializer(), name='DeConv5_3D_2')
     L10 = []
           
+    """ ACTIVATION OF LAST LAYER MUST BE NONE ==> can't be sigmoidal!!! """
     # 1 x 1 convolution (NO upsampling) 
     L11 = tf.layers.conv3d(inputs=L9_conv, filters=num_classes, kernel_size=[siz_f_z, siz_f, siz_f], strides=[1, 1, 1], padding='same', activation=None, 
                           kernel_initializer=tf.contrib.layers.xavier_initializer(), name='Conv1x1_D')
