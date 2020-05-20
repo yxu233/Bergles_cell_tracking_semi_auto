@@ -18,6 +18,19 @@
 % correction time is spent on correcting cells in lower layers.
 
 
+
+%% New additions: version 1.3
+% (1) Non-cell centered figures + green/red overlay?  ==> DONE ==> added extra dot
+% color for guidance
+% (2) Counter for # of cells left to check ==> DONE ***Note: isn't
+% accurate, b/c of 2nd round
+% (3) Add timepoint # on top of images ==> DONE
+% (4) Change color scheme on top image stackes for data/seg ==> to
+% white/red or green/red
+% (5) Color code z-projection view to see what has already been tracked
+% (6) REMOVE FINAL NEW CELL CHECKERTPP
+
+
 %% New additions: version 1.2
 %(1) added ability to "add" cells - hotkey == 3
 %(2) now deletes anything solely on single frame
@@ -100,7 +113,7 @@ matrix_timeseries = cell(5000, numfids/2);
 %% Input dialog values
 prompt = {'crop size (XY px): ', 'z_size (Z px): ', 'ssim_thresh (0 - 1): ', 'low_dist_thresh (0 - 20): ', 'upper_dist_thresh (30 - 100): ', 'min_siz (0 - 500): ', 'first_slice: ', 'last_slice: ', 'manual_correct? (Y/N): '};
 dlgtitle = 'Input';
-definput = {'200', '20', '0.30', '25', '35', '10', '1', '130', 'Y'};
+definput = {'200', '20', '0.30', '0', '35', '10', '1', '130', 'Y'};
 %definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
 %definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
 
@@ -283,6 +296,7 @@ for fileNum = 3 : 2: numfids
     %% Loop through NON-CONFIDENT ONES for comparison
     % first find index of all non-confident ones
     disp('please correct non-confident cells')
+    total_num_frames = numfids/2;
     if manual_correct_bool == 'Y'
         close all;
         figure(3);
@@ -298,12 +312,15 @@ for fileNum = 3 : 2: numfids
             
             
             %% manual correction
+            cur_cell_idx = idx_nc;
+            total_cells_to_correct = length(idx_non_confident);
             [option_num, matrix_timeseries] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2...
                 ,D, check_neighbor, neighbor_idx...
                 ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
                 ,x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size...
                 ,cur_centroids, next_centroids...
-                ,dist_thresh, ssim_val_thresh);
+                ,dist_thresh, ssim_val_thresh...
+                ,cur_cell_idx, total_cells_to_correct, total_num_frames);
             
             close all;
         end

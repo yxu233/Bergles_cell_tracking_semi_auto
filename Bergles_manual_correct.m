@@ -1,4 +1,4 @@
-function [option_num, matrix_timeseries] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2, D, check_neighbor, neighbor_idx, matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx, x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size,cur_centroids, next_centroids, dist_thresh, ssim_val_thresh)
+function [option_num, matrix_timeseries] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2, D, check_neighbor, neighbor_idx, matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx, x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size,cur_centroids, next_centroids, dist_thresh, ssim_val_thresh, cur_cell_idx, total_cells_to_correct, total_num_frames)
 
 % Allows user to manually correct the counted the fully counted image:
 
@@ -254,14 +254,59 @@ end
         %% get crops
         close all;
         [crop_frame_1, crop_frame_2, crop_truth_1, crop_truth_2, mip_1, mip_2, crop_blank_truth_1, crop_blank_truth_2] = crop_centroids(cur_centroids, next_centroids, frame_1, frame_2, truth_1, truth_2, check_neighbor, neighbor_idx, crop_size, z_size);
+ 
+        %% Switched to plotting with crops relative to ORIGINAL timeframe
+        crop_size = round(crop_size);
+        z_size = round(z_size);
+        
+        frame_1_centroid = cur_centroids(check_neighbor, :);
+        % get frame 1 crop
+        y = round(frame_1_centroid(1)); x = round(frame_1_centroid(2)); z = round(frame_1_centroid(3));
+        im_size = size(frame_1);
+        height = im_size(1);  width = im_size(2); depth = im_size(3);
+        crop_frame_1 = crop_around_centroid(frame_1, y, x, z, crop_size, z_size, height, width, depth);
+        crop_truth_1 = crop_around_centroid(truth_1, y, x, z, crop_size, z_size, height, width, depth);
+        
+        % get a truth with ONLY the current cell of interest
+        blank_truth = zeros(size(truth_1));
+        blank_truth(x, y, z) = 1;
+        %blank_truth = imdilate(blank_truth, strel('sphere', 3));
+        crop_blank_truth_1 = crop_around_centroid(blank_truth, y, x, z, crop_size, z_size, height, width, depth);
+        crop_blank_truth_1 = imdilate(crop_blank_truth_1, strel('sphere', 2));
+        
+        mip_1 = max(crop_frame_1, [], 3);
+        %subplot(1, 2, 1); imshow(mip_1);
+        
+        
         
         frame_2_centroid = next_centroids(neighbor_idx(check_neighbor), :);
-        y = round(frame_2_centroid(1)); x = round(frame_2_centroid(2)); z = round(frame_2_centroid(3));
+        %y = round(frame_2_centroid(1)); x = round(frame_2_centroid(2)); z = round(frame_2_centroid(3));
+%         im_size = size(frame_2);
+%         height = im_size(1);  width = im_size(2); depth = im_size(3);
+%         [crop_frame_2, x_min, x_max, y_min, y_max, z_min, z_max] = crop_around_centroid(frame_2, y, x, z, crop_size, z_size, height, width, depth);
+%        
+        
+        % get frame 2 crop
+        %y = round(frame_2_centroid(1)); x = round(frame_2_centroid(2)); z = round(frame_2_centroid(3));
         im_size = size(frame_2);
         height = im_size(1);  width = im_size(2); depth = im_size(3);
-        [crop_frame_2, x_min, x_max, y_min, y_max, z_min, z_max] = crop_around_centroid(frame_2, y, x, z, crop_size, z_size, height, width, depth);
+        crop_frame_2 = crop_around_centroid(frame_2, y, x, z, crop_size, z_size, height, width, depth);
+        crop_truth_2 = crop_around_centroid(truth_2, y, x, z, crop_size, z_size, height, width, depth);
+
+        % get a truth with ONLY the current cell of interest
+        y_2 = round(frame_2_centroid(1)); x_2 = round(frame_2_centroid(2)); z_2 = round(frame_2_centroid(3));
+        blank_truth = zeros(size(truth_2));
+        blank_truth(x_2, y_2, z_2) = 1;
+        %blank_truth = imdilate(blank_truth, strel('sphere', 3));
+        crop_blank_truth_2 = crop_around_centroid(blank_truth, y, x, z, crop_size, z_size, height, width, depth);
+        crop_blank_truth_2 = imdilate(crop_blank_truth_2, strel('sphere', 2));
+
+        mip_2 = max(crop_frame_2, [], 3);
+        %subplot(1, 2, 2); imshow(mip_2);   
         
         
+        
+
         %% accuracy metrics
         dist = D(check_neighbor);
         ssim_val = ssim(crop_frame_1, crop_frame_2);
@@ -275,8 +320,8 @@ end
             RGB_1 = cat(4, crop_frame_1, crop_blank_truth_1, crop_blank_truth_1);
             RGB_2 = cat(4, crop_frame_2, crop_blank_truth_2, crop_blank_truth_2);
         else
-            RGB_1 = cat(4, crop_frame_1, crop_truth_1, crop_blank_truth_1);
-            RGB_2 = cat(4, crop_frame_2, crop_truth_2, crop_blank_truth_2);
+            RGB_1 = cat(4, crop_truth_1, crop_frame_1, crop_blank_truth_1);
+            RGB_2 = cat(4, crop_truth_2, crop_frame_2, crop_blank_truth_2);
         end
         
         %f = figure('units','normalized','outerposition',[0 0 1 1])
@@ -313,7 +358,63 @@ end
             set(h, 'AlphaData', mip_center_1)
         end
         
-        title(strcat('ssim: ', num2str(ssim_val)))
+        title(strcat('ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
+        text(-88, 0, strcat('Frame: ',{' '}, num2str(timeframe_idx), ' of total: ', {' '},num2str(total_num_frames)))
+        
+        %% Add overlay of tracked cells with diff colors
+        %% (1) Create rainbow thing and get crop
+        %% (2) loop through and use the create overlay to make for each color type
+        
+        %% Recreate the output DAPI for each frame with cell number for each (create rainbow image)
+      
+        im_frame = zeros(size(frame_1));
+        im_frame_2 = zeros(size(frame_2));
+        for cell_idx = 1:length(matrix_timeseries(:, 1))
+            
+            % only add color to cells that are matched on the next frame
+            if isempty(matrix_timeseries{cell_idx, timeframe_idx + 1})
+                continue;
+            end
+            cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
+            voxels = cur_cell.voxelIdxList;
+            im_frame(voxels) = cell_idx;
+            
+            % add the 2nd frame color at the same time
+            cur_cell = matrix_timeseries{cell_idx, timeframe_idx + 1};
+            voxels = cur_cell.voxelIdxList;
+            im_frame_2(voxels) = cell_idx;
+        end
+        
+        labels_crop_truth_1 = crop_around_centroid(im_frame, y, x, z, crop_size, z_size, height, width, depth);
+        
+        unique_cells = unique(labels_crop_truth_1);
+        list_random_colors = rand([length(matrix_timeseries), 3]);
+        for color_idx = 1:length(unique_cells)
+            cell_idx = unique_cells(color_idx);
+            if cell_idx == 0; continue; end
+            crop_only_cur_color = labels_crop_truth_1;
+            crop_only_cur_color(crop_only_cur_color ~= cell_idx) = 0;
+            mip_center_1 = max(crop_only_cur_color, [], 3);
+            
+            %red_val = rand(1) * ones(size(mip_center_1));
+            cur_color = list_random_colors(cell_idx, :);
+            green_val = cur_color(2) * ones(size(mip_center_1));
+            blue_val = cur_color(3) * ones(size(mip_center_1));
+            
+            color_mat = cat(3, zeros(size(mip_center_1)), green_val, blue_val);
+            hold on;
+            h = imshow(color_mat);
+            hold off;
+            set(h, 'AlphaData', mip_center_1)
+        end
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         % plot max
@@ -336,7 +437,63 @@ end
             set(h, 'AlphaData', mip_center_2)
         end
         
-        title(strcat('  dist: ', num2str(dist)))
+        %% add overlay of where cell is on the ORIGINAL timeframe
+       if opt == 8
+            disp('hide');
+        else
+            mip_center_1 = max(crop_blank_truth_1, [], 3);
+            magenta = cat(3, zeros(size(mip_1)), ones(size(mip_1)), zeros(size(mip_1)));
+            hold on;
+            h = imshow(magenta);
+            hold off;
+            set(h, 'AlphaData', mip_center_1)
+        end
+        
+        
+        title(strcat('Correcting cell: ', {' '},num2str(cur_cell_idx), ' of total: ', {' '},num2str(total_cells_to_correct)))
+        text(-88, 0, strcat('Frame: ', {' '}, num2str(timeframe_idx + 1), ' of total: ', {' '},num2str(total_num_frames)))
+        
+        text(-88, 20, strcat('Green dot:'))
+        text(-88, 30, strcat('location on left frame') )
+        
+        text(-88, 50, strcat('Magenta dot:'))
+        text(-88, 60, strcat('location on right frame') )
+        
+        
+        
+        
+        %% Add overlay of tracked cells with diff colors
+        labels_crop_truth_2 = crop_around_centroid(im_frame_2, y, x, z, crop_size, z_size, height, width, depth);
+        
+        unique_cells = unique(labels_crop_truth_2);
+        for color_idx = 1:length(unique_cells)
+            cell_idx = unique_cells(color_idx);
+            if cell_idx == 0; continue; end
+            crop_only_cur_color = labels_crop_truth_2;
+            crop_only_cur_color(crop_only_cur_color ~= cell_idx) = 0;
+            mip_center_2 = max(crop_only_cur_color, [], 3);
+            
+            %red_val = rand(1) * ones(size(mip_center_2));
+                   cur_color = list_random_colors(cell_idx, :);
+            green_val = cur_color(2) * ones(size(mip_center_1));
+            blue_val = cur_color(3) * ones(size(mip_center_1));
+            
+            
+            color_mat = cat(3, zeros(size(mip_center_1)),green_val, blue_val);
+            hold on;
+            h = imshow(color_mat);
+            hold off;
+            set(h, 'AlphaData', mip_center_2)
+        end
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         % restore original crop size
         if opt == 'adjust'
