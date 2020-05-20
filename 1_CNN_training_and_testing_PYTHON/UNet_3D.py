@@ -481,7 +481,7 @@ def create_network_3D_REAL_UNET(x, y_b, kernel_size, training, num_classes, drop
           
     """ ACTIVATION OF LAST LAYER MUST BE NONE ==> can't be sigmoidal!!! """
     # 1 x 1 convolution (NO upsampling) 
-    L11 = tf.layers.conv3d(inputs=L9_conv, filters=num_classes, kernel_size=[siz_f_z, siz_f, siz_f], strides=[1, 1, 1], padding='same', activation='sigmoid', 
+    L11 = tf.layers.conv3d(inputs=L9_conv, filters=num_classes, kernel_size=[siz_f_z, siz_f, siz_f], strides=[1, 1, 1], padding='same', activation=None, 
                           kernel_initializer=tf.contrib.layers.xavier_initializer(), name='Conv1x1_D')
    
     softMaxed = tf.nn.softmax(L11, name='Softmaxed')   # for the output, but NOT the logits

@@ -135,7 +135,10 @@ s_path = './Checkpoints_ILASTIK_matched/'
 #s_path = './1) Checkpoints_no_ILASTIK_matched/'
 
 
-s_path = './(5) Checkpoints_REAL_UNET/'
+#s_path = './(5) Checkpoints_REAL_UNET/'
+
+
+s_path = './(6) Check 3x3 kernel/'
 
 input_path = '../Train_tracking_data/Train_tracking_data_analytic_results_2/'
 
@@ -260,7 +263,7 @@ test_size = 0.1
     
     
 print('loading data')
-load_by_batch_per_epoch = 1; batch_LARGE_size = 1000;
+load_by_batch_per_epoch = 1; batch_LARGE_size = 100;
 
 convert_float = 0
 
@@ -320,14 +323,14 @@ while(True):
         
         if iterations == 0:
             start = time.perf_counter()
-        if iterations == 1000:
+        if iterations == 99:
             stop = time.perf_counter(); diff = stop - start; print(diff)
             
             
         """ Load data """
         batch_x = X_train[idx_train_shuff[i % (num_X_train-batch_size):i % (num_X_train-batch_size) + batch_size]]
         batch_y = y_train[idx_train_shuff[i % (num_X_train-batch_size):i % (num_X_train-batch_size) + batch_size]]
-        if batch_x.shape[0] < 2:
+        if batch_x.shape[0] == 0:
             zzz
             
         
@@ -359,7 +362,7 @@ while(True):
               """ normalization """
               batch_x_val = normalize_im(batch_x_val, mean_arr, std_arr) 
 
-              if batch_x_val.shape[0] < 2:
+              if batch_x_val.shape[0] == 0:
                     zzz
 
 
