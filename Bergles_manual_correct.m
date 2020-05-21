@@ -321,9 +321,6 @@ end
         crop_blank_truth_2_PREV = crop_around_centroid(blank_truth, y, x, z, crop_size, z_size, height, width, depth);
         crop_blank_truth_2_PREV = imdilate(crop_blank_truth_2_PREV, strel('sphere', 1));
                 
-        
-        
-
         %% accuracy metrics
         dist = D(check_neighbor);
         ssim_val = ssim(crop_frame_1, crop_frame_2);
@@ -495,9 +492,7 @@ end
             hold off;
             set(h, 'AlphaData', mip_center_1)
         end
-        
-        title('Scaled XZ project + tracking (centered crop +/- 30 px)')
-        
+       
         
         %% add overlay of where cell is on the ORIGINAL timeframe
         if opt == 8
@@ -518,6 +513,8 @@ end
             set(h, 'AlphaData', mip_center_1)
         end
         
+        
+        title('RIGHT frame: Scaled XZ project + tracking (centered crop +/- 30 px)')
         
         
         %% add overlay of current cell
@@ -540,7 +537,83 @@ end
             set(h, 'AlphaData', mip_center_2)
         end
         
+        %% (2.2) Plot XZ view of left frame + track of line movement???
+        %% ***MAKE SURE THE SCALING IS ALWAYS ACCURATE
         
+        middle_top = uipanel('Parent',p, 'Position', [.367 0.6 .28 .20]);
+        % set 0 to things +/- 20 pixels away from the current centroid to
+        % clear up the XZ projection a bit
+        crop_frame_1_temp = crop_frame_1;
+        location = find(crop_blank_truth_1);
+        [a, b, c] = ind2sub(size(crop_blank_truth_1), location);
+        x_center = round(mean(a));
+        pad = 20;
+        top = x_center + pad; bottom = x_center - pad;
+        if x_center + pad + 2 > length(crop_frame_1_temp(:, 1, 1))
+            top = length(crop_frame_1_temp(:, 1, 1));
+        elseif x_center - pad - 2 <= 0
+            bottom = 1;
+        end
+        crop_frame_1_temp(1:bottom, :, :) = 0;
+        crop_frame_1_temp(top:end, :, :) = 0;
+        
+        mip_1_XZ = squeeze(max(crop_frame_1_temp, [], 1));
+        mip_1_XZ = permute(mip_1_XZ, [2 1]);  XZ_size = size(mip_1_XZ);
+        
+        
+        
+        mip_1_XZ = imresize(mip_1_XZ, [XZ_size(1) * 3, XZ_size(2) * 0.83]);
+        ax = axes('parent', middle_top);
+        imshow(mip_1_XZ);
+        colormap('gray'); axis off
+        
+        % Add overlay of previous track
+        if opt == 8
+            disp('hide');
+        else
+            mip_center_1 = squeeze(max(crop_blank_truth_2_PREV, [], 1));
+            mip_center_1 = permute(mip_center_1, [2 1]);
+            XZ_size = size(mip_center_1);
+            mip_center_1 = imresize(mip_center_1, [XZ_size(1) * 3, XZ_size(2) * 0.83]);
+            
+            % CONNECT TO FORM LINE
+            mip_center_1 = imdilate(mip_center_1, strel('disk', 2));
+            mip_center_1 = bwskel(imbinarize(mip_center_1));
+            mip_center_1 = imdilate(mip_center_1, strel('disk', 1));
+            %figure; imshow(mip_center_1);
+            
+            blue = cat(3, zeros(size(mip_center_1)), zeros(size(mip_center_1)), ones(size(mip_center_1)));
+            hold on;
+            h = imshow(blue);
+            hold off;
+            set(h, 'AlphaData', mip_center_1)
+        end
+        
+        %% add overlay of current cell
+        if opt == 8
+            disp('hide');
+        else
+            mip_center_1 = squeeze(max(crop_blank_truth_1, [], 1));
+            mip_center_1 = permute(mip_center_1, [2 1]);
+            mip_center_1 = bwskel(imbinarize(mip_center_1));
+            
+            XZ_size = size(mip_center_1);
+            mip_center_1 = imresize(mip_center_1, [XZ_size(1) * 3, XZ_size(2) * 0.83]);
+            
+            mip_center_1 = imdilate(mip_center_1, strel('disk', 1));
+            magenta = cat(3, zeros(size(mip_center_1)), ones(size(mip_center_1)), zeros(size(mip_center_1)));
+            hold on;
+            h = imshow(magenta);
+            hold off;
+            set(h, 'AlphaData', mip_center_1)
+        end
+        
+        title('LEFT frame: Scaled XZ project + tracking (crop +/- 30 px)')
+        
+
+
+
+
     
         %% (3) Plot bottom RIGHT graph - plot max
         if opt == 'adjust'

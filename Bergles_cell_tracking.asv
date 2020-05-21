@@ -26,9 +26,6 @@
 % (5) *** add depth of current slice
 % (6) add vector crop plot to help when manual correcting as well???
 
-% (7) move distance metric up as first thing to check 
-% (8) make other metrics more lenient!!!
-
 
 %%
 % (2) Some cells touching need to be separated
@@ -237,8 +234,15 @@ for fileNum = 3 : 2: numfids
     next_centroids_scaled(:, 2) = next_centroids(:, 2) * 0.83;
     next_centroids_scaled(:, 3) = next_centroids(:, 3) * 3;
     
+    
     % find nearest neighbours
     [neighbor_idx, D] = knnsearch(next_centroids_scaled, cur_centroids_scaled, 'K', 1);
+    
+    
+    
+    
+    
+    
     
     %% ***use this for vec analysis later
     % (1) First create a matrix with all cells given idx corresponding
@@ -267,7 +271,6 @@ for fileNum = 3 : 2: numfids
     idx_non_confident = [];
     num_matched = 0;
     for check_neighbor = 1:length(neighbor_idx)
-        close all;
         if isnan(D(check_neighbor))   % skip all the "nans"
             continue;
         end
@@ -306,17 +309,6 @@ for fileNum = 3 : 2: numfids
             outlier_vec_bool = find(ismember(outliers_idx, check_neighbor));
             
             outlier_vec_bool
-
-            % cell # 95 was missed
-            
-        end
-        
-        %% if ssim_val very high AND distance small ==> save the cell
-        if dist > upper_dist_thresh
-            continue
-            
-        elseif ~isempty(outlier_vec_bool)
-            idx_non_confident = [idx_non_confident, check_neighbor];
             %% Plot for  debug
             plot_full_figure_debug(frame_1, frame_2, truth_1, truth_2, crop_frame_1, crop_frame_2...
                 ,crop_truth_1, crop_truth_2,D, check_neighbor, neighbor_idx...
@@ -324,14 +316,24 @@ for fileNum = 3 : 2: numfids
                 ,smaller_crop_size, smaller_z_size...
                 ,cur_centroids, crop_blank_truth_1, crop_blank_truth_2, next_centroids);
             pause()
+            close all;
+            
+            % 95 missed
+            
+        end
+        
+        %% if ssim_val very high AND distance small ==> save the cell
+        if ~isempty(outlier_vec_bool)
+            idx_non_confident = [idx_non_confident, check_neighbor];
         elseif ssim_val > ssim_val_thresh && dist < dist_thresh
             
             %% Plot for debug
-            %             plot_full_figure_debug(frame_1, frame_2, truth_1, truth_2, crop_frame_1, crop_frame_2...
-            %                 ,crop_truth_1, crop_truth_2,D, check_neighbor, neighbor_idx...
-            %                 ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
-            %                 ,smaller_crop_size, smaller_z_size...
-            %                 ,cur_centroids, crop_blank_truth_1, crop_blank_truth_2, next_centroids);
+            % close all;
+%             plot_full_figure_debug(frame_1, frame_2, truth_1, truth_2, crop_frame_1, crop_frame_2...
+%                 ,crop_truth_1, crop_truth_2,D, check_neighbor, neighbor_idx...
+%                 ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
+%                 ,smaller_crop_size, smaller_z_size...
+%                 ,cur_centroids, crop_blank_truth_1, crop_blank_truth_2, next_centroids);
             %pause()
             
             %% Plot to verify
@@ -349,6 +351,9 @@ for fileNum = 3 : 2: numfids
             %% Also more lenient if distance away is super small
         elseif dist <= 7 && ssim_val >= 0.2
             %             % Plot for debug
+            %
+            % close all;
+            %
             %             plot_full_figure_debug(frame_1, frame_2, truth_1, truth_2, crop_frame_1, crop_frame_2...
             %                 ,crop_truth_1, crop_truth_2,D, check_neighbor, neighbor_idx...
             %                 ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
@@ -369,7 +374,8 @@ for fileNum = 3 : 2: numfids
             
             disp(strcat('Number of cells matched:' , num2str(num_matched)))
             %% also eliminate based on upper boundary
-   
+        elseif dist > upper_dist_thresh
+            continue
         else
             %             subplot(1, 2, 1); imshow(mip_1);
             %             subplot(1, 2, 2); imshow(mip_2);
