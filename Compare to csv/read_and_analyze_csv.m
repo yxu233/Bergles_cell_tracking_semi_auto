@@ -14,6 +14,10 @@ T = readtable('a1901128-r670_syGlass_20x.csv');
 
 %T = readtable('output.csv');
 
+T = readtable('syglassCheck.csv');
+
+
+T = readtable('MOBPF_190627w_5_syglassCorrectedTracks.csv');
 
 
 matrix_timeseries = cell(5000, max(T.FRAME) + 1);

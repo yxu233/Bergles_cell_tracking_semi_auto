@@ -18,6 +18,14 @@
 % correction time is spent on correcting cells in lower layers.
 
 
+%% 
+% (2) Some cells touching need to be separated
+% (3) Are you using the "3" or "a" button to add?
+% showing trajectory?
+% (5) find average trajectory around cell
+
+%% (is cellular debris causing an issue???)
+
 
 %% New additions: version 1.3
 % (1) Non-cell centered figures + green/red overlay?  ==> DONE ==> added extra dot
@@ -108,12 +116,12 @@ natfnames=natsort(trialNames);
 %% Read in images
 empty_file_idx_sub = 0;
 all_s = cell(0);
-matrix_timeseries = cell(5000, numfids/2);
+matrix_timeseries = cell(10000, numfids/2);
 
 %% Input dialog values
 prompt = {'crop size (XY px): ', 'z_size (Z px): ', 'ssim_thresh (0 - 1): ', 'low_dist_thresh (0 - 20): ', 'upper_dist_thresh (30 - 100): ', 'min_siz (0 - 500): ', 'first_slice: ', 'last_slice: ', 'manual_correct? (Y/N): '};
 dlgtitle = 'Input';
-definput = {'200', '20', '0.30', '0', '35', '10', '1', '130', 'Y'};
+definput = {'200', '20', '0.30', '20', '30', '10', '1', '130', 'Y'};
 %definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
 %definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
 
@@ -173,7 +181,7 @@ for fileNum = 3 : 2: numfids
         if z_p > (last_slice - first_slice) - 2 || x_p <= 2 || x_p > height - 2 || y_p <= 2 || y_p > width -2
             matrix_timeseries(j, :) = {[]};
             del_num = del_num + 1;
-            disp(num2str(del_num));
+            %disp(num2str(del_num));
         end
     end
 
@@ -237,6 +245,7 @@ for fileNum = 3 : 2: numfids
     histogram(D);
     figure(2);
     idx_non_confident = [];
+    num_matched = 0;
     for check_neighbor = 1:length(neighbor_idx)
         if isnan(D(check_neighbor))   % skip all the "nans"
            continue;
@@ -255,8 +264,6 @@ for fileNum = 3 : 2: numfids
 %             subplot(1, 2, 1); imshow(mip_1);
 %             subplot(1, 2, 2); imshow(mip_2);
 %             title(strcat('GOOD ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
-            
-            
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
             centroid = next_cell.centerDAPI;
@@ -265,26 +272,45 @@ for fileNum = 3 : 2: numfids
             cell_obj = cell_class(voxelIdxList,centroid, cell_num);
             matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
             %pause
-            
+            num_matched = num_matched + 1;
+            disp(strcat('Number of cells matched:' , num2str(num_matched)))
             %% Also more lenient if distance away is super small
-        elseif dist < 5 && ssim_val > 0.2
+        elseif dist <= 8 && ssim_val >= 0.2
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
             centroid = next_cell.centerDAPI;
             cell_num = check_neighbor;
             % create cell object
             cell_obj = cell_class(voxelIdxList,centroid, cell_num);
-            matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;            
+            matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
             
             
+            
+%             blank = zeros(size(mip_1));
+%             blank(voxelIdxList) = 1;
+%             mip_1 = cat(3, blank, mip_1, zeros(size(blank)));
+%             subplot(1, 2, 1); imshow(mip_1);
+%             
+            
+            
+%             subplot(1, 2, 2); imshow(mip_2);
+%             title(strcat('UPPER DIST ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
+%     
+%                     
+%             pause()
+            
+            num_matched = num_matched + 1;
+    
+            
+            disp(strcat('Number of cells matched:' , num2str(num_matched)))
             %% also eliminate based on upper boundary
         elseif dist > upper_dist_thresh
-            subplot(1, 2, 1); imshow(mip_1);
-            subplot(1, 2, 2); imshow(mip_2);
-            title(strcat('UPPER DIST ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
+            %subplot(1, 2, 1); imshow(mip_1);
+            %subplot(1, 2, 2); imshow(mip_2);
+            %title(strcat('UPPER DIST ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
             continue
         else
-%             subplot(1, 2, 1); imshow(mip_1);
+            %             subplot(1, 2, 1); imshow(mip_1);
 %             subplot(1, 2, 2); imshow(mip_2);
 %             title(strcat('NON CONF ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
             idx_non_confident = [idx_non_confident, check_neighbor];

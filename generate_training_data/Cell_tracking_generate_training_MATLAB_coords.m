@@ -93,9 +93,10 @@ for fileNum = 1:length(natfnames_csv)
     all_Z = all_Z(idx_cells);
     all_X = all_X(idx_cells);
     all_Y = all_Y(idx_cells);
+    series = series(idx_cells);
     
     
-    together = [frame, all_X, all_Y, all_Z];
+    together = [frame, all_X, all_Y, all_Z, series];
     [~,idx] = sort(together(:,1)); % sort just the first column
     sortedmat = together(idx,:);   % sort the whole matrix using the sort indices
     
@@ -112,7 +113,7 @@ for fileNum = 1:length(natfnames_csv)
             
             lin_ind = sub2ind(size(blank_im), x, y, z);
             blank_im(lin_ind) = 1;
-            
+            %blank_im(lin_ind) = mod(sortedmat(i, 5), 5) + 100;
         else
             cur_idx = cur_idx + 1;
             %figure(); volshow(blank_im);
