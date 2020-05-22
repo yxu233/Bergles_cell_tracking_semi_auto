@@ -25,7 +25,6 @@ end
 
 % (2) Find the vectors for all of the cells in the indexes above
 all_unit_v = [];
-if plot_bool; figure; hold on; end
 for idx_crop = 1:length(cells_in_crop)   % skip 0
     check_cell_dist = cells_in_crop(idx_crop);
     

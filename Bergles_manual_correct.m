@@ -1,4 +1,4 @@
-function [option_num, matrix_timeseries] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2, D, check_neighbor, neighbor_idx, matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx, x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size,cur_centroids, next_centroids, dist_thresh, ssim_val_thresh, cur_cell_idx, total_cells_to_correct, total_num_frames)
+function [option_num, matrix_timeseries] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2, D, check_neighbor, neighbor_idx, matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx, x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size,cur_centroids, next_centroids, dist_thresh, ssim_val_thresh, cur_cell_idx, total_cells_to_correct, total_num_frames, cur_centroids_scaled, next_centroids_scaled, dist_label_idx_matrix)
 
 % Allows user to manually correct the counted the fully counted image:
 
@@ -43,9 +43,9 @@ while option_num>0 && term == 0
                 cell_obj = cell_class(voxelIdxList,centroid, cell_num);
                 matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
                 
-                %% add newly selected cell from option 3 below
+                %% add newly selected cell from option "a" below
             elseif option_new_cell == 1
-                disp('yeet')
+                %disp('yeet')
                 next_cell = next_timeseries(sorted_idx);
                 voxelIdxList = next_cell.objDAPI;
                 centroid = next_cell.centerDAPI;
@@ -56,6 +56,12 @@ while option_num>0 && term == 0
                 
                 sorted_idx = 0;
                 option_new_cell = 0;
+               
+                %% add newly selected cell from option "3" below
+            elseif option_new_cell == 2
+                disp('yeet')
+                option_new_cell = 0;
+                %continue;  % because already added below
             end
             
             
@@ -64,6 +70,7 @@ while option_num>0 && term == 0
             
             %% If key == 2, then NOT the same cell, so don't include
         elseif option_num==2
+            matrix_timeseries{check_neighbor, timeframe_idx + 1} = [];
             term = 2;
             
             %% If key == a, "add" then need to assign to NEW point
@@ -152,7 +159,7 @@ while option_num>0 && term == 0
             
             %% If key == 3, add non-exisiting cell   ==> NOT YET WORKING
         elseif option_num ==3
-            %3plot_im(0);
+            %plot_im(0);
             cell_point=impoint;
             % Get XY position from placed dot
             poss_sub =getPosition(cell_point);
@@ -194,6 +201,7 @@ while option_num>0 && term == 0
             %% set point as this new one in the points array for plotting
             next_centroids(neighbor_idx(check_neighbor), :) = [y(round(length(y)/2)), x(round(length(x)/2)), z(round(length(z)/2))];
             
+            option_new_cell = 2;
             
             %% Plot how it looks now
             delete(cell_point);
@@ -319,8 +327,35 @@ end
             end
         end
         crop_blank_truth_2_PREV = crop_around_centroid(blank_truth, y, x, z, crop_size, z_size, height, width, depth);
-        crop_blank_truth_2_PREV = imdilate(crop_blank_truth_2_PREV, strel('sphere', 1));
+        
+        
+        %% Connect the dots and make XY and XZ projections
+        crop_blank_XY = max(crop_blank_truth_2_PREV, [], 3);
+        cc = bwconncomp(crop_blank_XY);
+        centers = regionprops(cc, 'Centroid');
+        for center_idx = 1:length(centers) - 1
+           cur_centers = centers(center_idx).Centroid;
+           next_centers = centers(center_idx + 1).Centroid;
+           
+           crop_blank_XY = func_DrawLine(crop_blank_XY, cur_centers(2), cur_centers(1), next_centers(2), next_centers(1), 1);
+        end
+        crop_blank_XY = imdilate(crop_blank_XY, strel('disk', 1));
+        
+        crop_blank_XZ = squeeze(max(crop_blank_truth_2_PREV, [], 1));
+        crop_blank_XZ = permute(crop_blank_XZ, [2 1]);
+        cc = bwconncomp(crop_blank_XZ);
+        centers = regionprops(cc, 'Centroid');
+        for center_idx = 1:length(centers) - 1
+            cur_centers = centers(center_idx).Centroid;
+            next_centers = centers(center_idx + 1).Centroid;
+            
+            crop_blank_XZ = func_DrawLine(crop_blank_XZ, cur_centers(2), cur_centers(1), next_centers(2), next_centers(1), 1);
+        end
+        crop_blank_XZ = imdilate(crop_blank_XZ, strel('disk', 1));
                 
+        
+        
+        
         %% accuracy metrics
         dist = D(check_neighbor);
         ssim_val = ssim(crop_frame_1, crop_frame_2);
@@ -439,7 +474,7 @@ end
         text(-88, 80, strcat('Blue line:'))
         text(-88, 90, strcat('loc on previous frames') )
         
-        
+        text(-88, 110, strcat('Current top slice:', {' '}, num2str(z - z_size/2)))
         
         %% (2) Plot XZ view of right frame + track of line movement???
         %% ***MAKE SURE THE SCALING IS ALWAYS ACCURATE
@@ -475,8 +510,7 @@ end
         if opt == 8
             disp('hide');
         else
-            mip_center_1 = squeeze(max(crop_blank_truth_2_PREV, [], 1));
-            mip_center_1 = permute(mip_center_1, [2 1]);
+            mip_center_1 = crop_blank_XZ;
             XZ_size = size(mip_center_1);
             mip_center_1 = imresize(mip_center_1, [XZ_size(1) * 3, XZ_size(2) * 0.83]);
            
@@ -571,8 +605,7 @@ end
         if opt == 8
             disp('hide');
         else
-            mip_center_1 = squeeze(max(crop_blank_truth_2_PREV, [], 1));
-            mip_center_1 = permute(mip_center_1, [2 1]);
+            mip_center_1 = crop_blank_XZ;
             XZ_size = size(mip_center_1);
             mip_center_1 = imresize(mip_center_1, [XZ_size(1) * 3, XZ_size(2) * 0.83]);
             
@@ -654,7 +687,7 @@ end
         if opt == 8
             disp('hide');
         else
-            mip_center_1 = max(crop_blank_truth_2_PREV, [], 3);
+            mip_center_1 = crop_blank_XY;
             % CONNECT TO FORM LINE
             mip_center_1 = imdilate(mip_center_1, strel('disk', 10));
             mip_center_1 = bwskel(imbinarize(mip_center_1));
@@ -693,11 +726,72 @@ end
             hold off;
             set(h, 'AlphaData', mip_center_2)
         end
-            
+        
         title(strcat('Correcting cell: ', {' '},num2str(cur_cell_idx), ' of total: ', {' '},num2str(total_cells_to_correct)))
         text(-88, 0, strcat('Frame: ', {' '}, num2str(timeframe_idx + 1), ' of total: ', {' '},num2str(total_num_frames)))
- 
         
+        
+        
+        
+        %% (4) Add graph of vectors
+        top_right_corner = uipanel('Parent',p, 'Position', [.85 0.65 .15 .3]);
+        ax = axes('parent', top_right_corner);
+        
+        plot_bool = 1;
+        skip = 1;
+        % skip this if less than 5 cells to get vectors from
+        hold on;
+        [avg_vec, all_unit_v, all_dist_to_avg, cells_in_crop] = find_avg_vectors(dist_label_idx_matrix...
+            , cur_timeseries ,frame_1, crop_size, z_size, cur_centroids...
+            ,cur_centroids_scaled, next_centroids_scaled...
+            , check_neighbor, neighbor_idx, plot_bool, skip);
+        
+        % (3) get current vector
+        outlier_vec_bool = []; outlier_vec_bool_95 = [];
+        if skip && length(cells_in_crop) > 5
+            cell_of_interest =  cur_centroids_scaled(check_neighbor, :);
+            neighbor_of_cell =  next_centroids_scaled(neighbor_idx(check_neighbor), :);
+            vector = cell_of_interest - neighbor_of_cell;
+            unit_v_check = vector/norm(vector);
+            if plot_bool
+                plot3([0, unit_v_check(1)], [0, unit_v_check(2)], [0, unit_v_check(3)], 'LineWidth', 10);
+            end
+            dist_to_avg = abs(avg_vec) - abs(unit_v_check);
+            dist_to_avg = norm(dist_to_avg);
+            
+            % (4) check if it is an outlier to the 90th percentile:
+            outliers = find(isoutlier(all_dist_to_avg, 'percentiles', [0, 90]));
+            outliers_idx = cells_in_crop(outliers);
+            
+            outlier_vec_bool = find(ismember(outliers_idx, check_neighbor));
+            
+            % (5) check if it is a LARGE outlier to the 95th percentile:
+            outliers = find(isoutlier(all_dist_to_avg, 'percentiles', [0, 95]));
+            outliers_idx = cells_in_crop(outliers);
+            
+            outlier_vec_bool_95 = find(ismember(outliers_idx, check_neighbor));
+            
+        end
+        
+        %% CLEAR the plot if NOT an outlier!!!
+        if isempty(outlier_vec_bool)
+            top_right_corner = uipanel('Parent',p, 'Position', [.85 0.65 .15 .3]);
+            ax = axes('parent', top_right_corner);
+            axis off
+            title('Insufficient cells or movement')
+            
+        elseif ~isempty(outlier_vec_bool_95)
+             title('movmt vectors 95th percentile');
+      
+        else
+              title('movmt vectors 90th percentile');
+              
+        end
+        
+        
+        
+        
+  
         % restore original crop size
         if opt == 'adjust'
             disp('adjust');

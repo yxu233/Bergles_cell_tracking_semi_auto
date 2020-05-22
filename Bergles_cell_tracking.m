@@ -19,15 +19,18 @@
 
 
 %% More updates:
-% (1) removed small crop size... but maybe shouldn't have???
-% (2) added 2nd z project for left frame
-% (3) ***add drawLine function
-% (4) ***find vector of movement (average in a region)? as a metric
-% (5) *** add depth of current slice
-% (6) add vector crop plot to help when manual correcting as well???
+% (1) removed small crop size... but maybe shouldn't have??? ==> DONE
+% (2) added 2nd z project for left frame ==> DONE
+% (4) ***find vector of movement (average in a region)? as a metric ==>
+% DONE
+% (5) *** add depth of current slice ==> DONE
+% (6) add vector crop plot to help when manual correcting as well??? ==>
+% DONE
+% (7) move distance metric up as first thing to check ==> DONE 
+% (8) make other metrics more lenient!!!  ==> DONE
 
-% (7) move distance metric up as first thing to check 
-% (8) make other metrics more lenient!!!
+% (3) ***add drawLine function ==> DONE
+% (9) ***add check for matched cells
 
 
 %%
@@ -279,7 +282,7 @@ for fileNum = 3 : 2: numfids
         mae_val = meanAbsoluteError(crop_frame_1, crop_frame_2);
         psnr_val = psnr(crop_frame_1, crop_frame_2);
         
-        plot_bool = 1;
+        plot_bool = 0;
         skip = 1;
         % skip this if less than 5 cells to get vectors from
         [avg_vec, all_unit_v, all_dist_to_avg, cells_in_crop] = find_avg_vectors(dist_label_idx_matrix... 
@@ -294,8 +297,9 @@ for fileNum = 3 : 2: numfids
             neighbor_of_cell =  next_centroids_scaled(neighbor_idx(check_neighbor), :);
             vector = cell_of_interest - neighbor_of_cell;
             unit_v_check = vector/norm(vector);
-            plot3([0, unit_v_check(1)], [0, unit_v_check(2)], [0, unit_v_check(3)], 'LineWidth', 10);
-            
+            if plot_bool
+                plot3([0, unit_v_check(1)], [0, unit_v_check(2)], [0, unit_v_check(3)], 'LineWidth', 10);
+            end
             dist_to_avg = abs(avg_vec) - abs(unit_v_check);
             dist_to_avg = norm(dist_to_avg);
             
@@ -305,36 +309,26 @@ for fileNum = 3 : 2: numfids
             
             outlier_vec_bool = find(ismember(outliers_idx, check_neighbor));
             
-            outlier_vec_bool
+            %outlier_vec_bool
 
             % cell # 95 was missed
             
         end
         
-        %% if ssim_val very high AND distance small ==> save the cell
+        %% If super far away, just discard the cell
         if dist > upper_dist_thresh
             continue
-            
         elseif ~isempty(outlier_vec_bool)
             idx_non_confident = [idx_non_confident, check_neighbor];
             %% Plot for  debug
-            plot_full_figure_debug(frame_1, frame_2, truth_1, truth_2, crop_frame_1, crop_frame_2...
-                ,crop_truth_1, crop_truth_2,D, check_neighbor, neighbor_idx...
-                ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
-                ,smaller_crop_size, smaller_z_size...
-                ,cur_centroids, crop_blank_truth_1, crop_blank_truth_2, next_centroids);
-            pause()
+%             plot_full_figure_debug(frame_1, frame_2, truth_1, truth_2, crop_frame_1, crop_frame_2...
+%                 ,crop_truth_1, crop_truth_2,D, check_neighbor, neighbor_idx...
+%                 ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
+%                 ,smaller_crop_size, smaller_z_size...
+%                 ,cur_centroids, crop_blank_truth_1, crop_blank_truth_2, next_centroids);
+%             pause()
+ %% if ssim_val very high AND distance small ==> save the cell
         elseif ssim_val > ssim_val_thresh && dist < dist_thresh
-            
-            %% Plot for debug
-            %             plot_full_figure_debug(frame_1, frame_2, truth_1, truth_2, crop_frame_1, crop_frame_2...
-            %                 ,crop_truth_1, crop_truth_2,D, check_neighbor, neighbor_idx...
-            %                 ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
-            %                 ,smaller_crop_size, smaller_z_size...
-            %                 ,cur_centroids, crop_blank_truth_1, crop_blank_truth_2, next_centroids);
-            %pause()
-            
-            %% Plot to verify
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
             centroid = next_cell.centerDAPI;
@@ -346,17 +340,9 @@ for fileNum = 3 : 2: numfids
 
             num_matched = num_matched + 1;
             disp(strcat('Number of cells matched:' , num2str(num_matched)))
+            
             %% Also more lenient if distance away is super small
-        elseif dist <= 7 && ssim_val >= 0.2
-            %             % Plot for debug
-            %             plot_full_figure_debug(frame_1, frame_2, truth_1, truth_2, crop_frame_1, crop_frame_2...
-            %                 ,crop_truth_1, crop_truth_2,D, check_neighbor, neighbor_idx...
-            %                 ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
-            %                 ,smaller_crop_size, smaller_z_size...
-            %                 ,cur_centroids, crop_blank_truth_1, crop_blank_truth_2, next_centroids);
-            %             pause()
-
-
+        elseif dist <= 10 && ssim_val >= 0.2
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
             centroid = next_cell.centerDAPI;
@@ -371,12 +357,8 @@ for fileNum = 3 : 2: numfids
             %% also eliminate based on upper boundary
    
         else
-            %             subplot(1, 2, 1); imshow(mip_1);
-            %             subplot(1, 2, 2); imshow(mip_2);
-            %             title(strcat('NON CONF ssim: ', num2str(ssim_val), '  dist: ', num2str(dist)))
             idx_non_confident = [idx_non_confident, check_neighbor];
         end
-        %pause
     end
     
     
@@ -407,7 +389,8 @@ for fileNum = 3 : 2: numfids
                 ,x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size...
                 ,cur_centroids, next_centroids...
                 ,dist_thresh, ssim_val_thresh...
-                ,cur_cell_idx, total_cells_to_correct, total_num_frames);
+                ,cur_cell_idx, total_cells_to_correct, total_num_frames...
+                ,cur_centroids_scaled, next_centroids_scaled, dist_label_idx_matrix);
             
             close all;
         end
@@ -447,6 +430,26 @@ for fileNum = 3 : 2: numfids
             cell_obj = cell_class(voxelIdxList,centroid, cell_num);
             matrix_timeseries{total_cells, timeframe_idx + 1} =  cell_obj;
         end
+        
+        
+        
+        %% Clean double counted cells
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
     end
     
@@ -512,6 +515,113 @@ writematrix(csv_matrix, 'output_raw.csv')
 
 
 
+
+
+%% Find all cells that are double matched and correct them
+[idx_double_counte] = Bergles_manual_correct_double_count(frame_1, truth_1, matrix_timeseries, crop_size, z_size);
+
+
+for timeframe_idx = 1:max(idx_double_counted(:, 1))
+    fileNum = timeframe_idx * 2 - 1;
+    [all_s, frame_1, truth_1, og_size] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
+    [all_s, frame_2, truth_2, og_size] = load_data_into_struct(foldername, natfnames, fileNum + 2, all_s, thresh_size, first_slice, last_slice);
+    
+    
+    %% Loop through struct to find nearest neighbors
+    % first frame is always taken from "matrix_timeseries" ==> which has
+    % been cleaned and sorted
+    cur_timeseries = {matrix_timeseries{:, timeframe_idx}};
+    array_centroid_indexes = [];
+    for idx = 1:length(cur_timeseries)
+        if ~isempty(cur_timeseries{idx})
+            array_centroid_indexes = [array_centroid_indexes; cur_timeseries{idx}.centroid];
+        else
+            array_centroid_indexes = [array_centroid_indexes; [nan, nan, nan]];
+        end
+    end
+    cur_centroids = array_centroid_indexes;
+    
+    % 2nd frame is taken from the unsorted "all_s"
+    next_timeseries = all_s{timeframe_idx + 1};
+    array_centroid_indexes = [];
+    for idx = 1:length(next_timeseries)
+        array_centroid_indexes = [array_centroid_indexes; next_timeseries(idx).centerDAPI];
+    end
+    next_centroids = array_centroid_indexes;
+    
+    %% Use scaled matrix for nearest neighbor analysis
+    cur_centroids_scaled = cur_centroids;
+    cur_centroids_scaled(:, 1) = cur_centroids(:, 1) * 0.83;
+    cur_centroids_scaled(:, 2) = cur_centroids(:, 2) * 0.83;
+    cur_centroids_scaled(:, 3) = cur_centroids(:, 3) * 3;
+    
+    next_centroids_scaled = next_centroids;
+    next_centroids_scaled(:, 1) = next_centroids(:, 1) * 0.83;
+    next_centroids_scaled(:, 2) = next_centroids(:, 2) * 0.83;
+    next_centroids_scaled(:, 3) = next_centroids(:, 3) * 3;
+    
+    % find nearest neighbours
+    [neighbor_idx, D] = knnsearch(next_centroids_scaled, cur_centroids_scaled, 'K', 1);
+    
+    %% ***use this for vec analysis later
+    % (1) First create a matrix with all cells given idx corresponding
+    % to knn analysis so can find them in a crop
+    dist_label_idx_matrix = zeros(size(frame_1));
+    for dist_idx = 1:length(cur_timeseries)
+        if ~isempty(cur_timeseries{dist_idx})
+            dist_label_idx_matrix(cur_timeseries{dist_idx}.voxelIdxList) = dist_idx;
+        end
+    end
+    
+    
+    disp('please correct double_counted cells')
+    total_num_frames = 1;
+    
+    % ensure only from frame of interest
+    tmp_idx_double_counted = find(idx_double_counted == timeframe_idx(:, 1) + 1);
+    tmp_idx_double_counted = idx_double_counted(tmp_idx_double_counted, :);
+    tmp_idx_double_counted = unique(tmp_idx_double_counted(:, 2:3));
+    
+    if manual_correct_bool == 'Y'
+        close all;
+        figure(3);
+        for idx_nc = 1:length(tmp_idx_double_counted)
+            check_neighbor = tmp_idx_double_counted(idx_nc);
+            
+            
+            %% Get x_min, x_max ect... for crop box limits
+            frame_2_centroid = next_centroids(tmp_idx_double_counted(idx_nc), :);
+            
+            y = round(frame_2_centroid(1)); x = round(frame_2_centroid(2)); z = round(frame_2_centroid(3));
+            im_size = size(frame_2);
+            height = im_size(1);  width = im_size(2); depth = im_size(3);
+            [crop_frame_2, x_min, x_max, y_min, y_max, z_min, z_max] = crop_around_centroid(frame_2, y, x, z, crop_size, z_size, height, width, depth);
+            
+            
+            %% manual correction
+            cur_cell_idx = idx_nc;
+            total_cells_to_correct = length(tmp_idx_double_counted);
+            [option_num, matrix_timeseries] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2...
+                ,D, check_neighbor, neighbor_idx...
+                ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
+                ,x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size...
+                ,cur_centroids, next_centroids...
+                ,dist_thresh, ssim_val_thresh...
+                ,cur_cell_idx, total_cells_to_correct, total_num_frames...
+                ,cur_centroids_scaled, next_centroids_scaled, dist_label_idx_matrix);
+            
+            close all;
+        end
+    end
+    
+end
+
+
+
+
+
+
+
 %% Additional post-processing of edges and errors
 % (A) Eliminate everything that only exists on a single frame
 num_frames_exclude = 1;
@@ -539,14 +649,14 @@ for i = 1:length(matrix_timeseries(1, :))
     end
 end
 
-% (C) check all NEW cells to ensure they are actually new (excluding the
+%% (C) check all NEW cells to ensure they are actually new (excluding the
 % first frame)
-frame_num = 2;
-for fileNum = 3 : 2: numfids
-    [all_s, frame_1, truth_1, og_size] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
-    [matrix_timeseries] = Bergles_manual_correct_last_frame(frame_num, frame_1, truth_1, matrix_timeseries, crop_size, z_size);
-    frame_num = frame_num + 1;
-end
+% frame_num = 2;
+% for fileNum = 3 : 2: numfids
+%     [all_s, frame_1, truth_1, og_size] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
+%     [matrix_timeseries] = Bergles_manual_correct_last_frame(frame_num, frame_1, truth_1, matrix_timeseries, crop_size, z_size);
+%     frame_num = frame_num + 1;
+% end
 
 
 
