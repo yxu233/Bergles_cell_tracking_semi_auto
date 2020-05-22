@@ -8,11 +8,12 @@ term = 0;
 
 
 %% 2nd check of ssim and distance metric with expanded crop
-if ssim_val > ssim_val_thresh && dist < dist_thresh
-    option_num = 10;
-else
-    option_num = 1;
-end
+% if ssim_val > ssim_val_thresh && dist < dist_thresh
+%     option_num = 10;
+% else
+%     option_num = 1;
+% end
+option_num = 1;
 
 sorted_idx = 0;
 option_new_cell = 0;
