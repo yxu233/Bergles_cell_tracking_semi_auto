@@ -1,4 +1,4 @@
-function [option_num, matrix_timeseries] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2, D, check_neighbor, neighbor_idx, matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx, x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size,cur_centroids, next_centroids, dist_thresh, ssim_val_thresh, cur_cell_idx, total_cells_to_correct, total_num_frames, cur_centroids_scaled, next_centroids_scaled, dist_label_idx_matrix)
+function [option_num, matrix_timeseries, term] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2, D, check_neighbor, neighbor_idx, matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx, x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size,cur_centroids, next_centroids, dist_thresh, ssim_val_thresh, cur_cell_idx, total_cells_to_correct, total_num_frames, cur_centroids_scaled, next_centroids_scaled, dist_label_idx_matrix)
 
 % Allows user to manually correct the counted the fully counted image:
 
@@ -139,6 +139,9 @@ while option_num>0 && term == 0
             %% If key == d, "delete" then delete current cell on current timeframe (i.e. not a real cell)
         elseif option_num == 'd'
             matrix_timeseries{check_neighbor, timeframe_idx} = [];
+            matrix_timeseries{check_neighbor, timeframe_idx + 1} = [];
+            cur_centroids(check_neighbor, :) = [];
+            
             term = 4;
             break;
             
@@ -161,13 +164,14 @@ while option_num>0 && term == 0
             %% If key == 3, add non-exisiting cell   ==> NOT YET WORKING
         elseif option_num ==3
             %plot_im(0);
-            cell_point=impoint;
+            cell_point=drawpoint;
             % Get XY position from placed dot
-            poss_sub =getPosition(cell_point);
+            %poss_sub =getPosition(cell_point);
+            poss_sub = cell_point.Position;
             
             % Get z-position from prompt
             prompt = {'Enter z-axis position:'};
-            dlgtitle = 'slice position';
+            dlgtitle = 'slice position'
             definput = {'10'};
             answer = inputdlg(prompt,dlgtitle, [1, 35], definput);
             
@@ -207,25 +211,19 @@ while option_num>0 && term == 0
             %% Plot how it looks now
             delete(cell_point);
             plot_im(0);
-            
-            %% Satisfied?
-            %prompt = {'New point looks okay? (Y/N):'};
-            %dlgtitle = 'Evaluate';
-            %definput = {'Y'};
-            %answer = inputdlg(prompt,dlgtitle, [1, 35], definput);
-            
-            %looks_okay = answer{1};
-            
-            %if looks_okay == 'Y'
-            % option_num = 1;
-            %else
-            %    disp('try picking again')
-            %end
-            
-            
+                        
             %% If key == h, then hide overlay for ease of view
         elseif option_num=='h'
             plot_im(8);
+            
+          
+        elseif option_num == 'backspace'
+                        
+            term = 10;
+            break;
+        elseif option_num == 'escape'
+            term = 99;
+            break;
             
         else
             waitfor(msgbox('Key did not match any command, please reselect'));
@@ -258,12 +256,7 @@ end
             crop_size = crop_size * scale_XYZ;
             z_size = z_size * scale_XYZ;
         end
-        
-        
-        %% get crops
-        close all;
-        [crop_frame_1, crop_frame_2, crop_truth_1, crop_truth_2, mip_1, mip_2, crop_blank_truth_1, crop_blank_truth_2] = crop_centroids(cur_centroids, next_centroids, frame_1, frame_2, truth_1, truth_2, check_neighbor, neighbor_idx, crop_size, z_size);
- 
+                
         %% Switched to plotting with crops relative to ORIGINAL timeframe
         crop_size = round(crop_size);
         z_size = round(z_size);
@@ -289,22 +282,12 @@ end
         %% Parse frame 2
         frame_2_centroid = next_centroids(neighbor_idx(check_neighbor), :);
         
-        %         %% Center the next frame:
-        %         y = round(frame_2_centroid(1)); x = round(frame_2_centroid(2)); z = round(frame_2_centroid(3));
-        %         im_size = size(frame_2);
-        %         height = im_size(1);  width = im_size(2); depth = im_size(3);
-        %         [crop_frame_2, x_min, x_max, y_min, y_max, z_min, z_max] = crop_around_centroid(frame_2, y, x, z, crop_size, z_size, height, width, depth);
-        %         crop_truth_2 = crop_around_centroid(truth_2, y, x, z, crop_size, z_size, height, width, depth);
-        
-        
         %% Do not center
         im_size = size(frame_2);
         height = im_size(1);  width = im_size(2); depth = im_size(3);
         [crop_frame_2, x_min, x_max, y_min, y_max, z_min, z_max] = crop_around_centroid(frame_2, y, x, z, crop_size, z_size, height, width, depth);
         crop_truth_2 = crop_around_centroid(truth_2, y, x, z, crop_size, z_size, height, width, depth);
-        
-        
-        
+                
         %% get a truth with ONLY the current cell of interest
         y_2 = round(frame_2_centroid(1)); x_2 = round(frame_2_centroid(2)); z_2 = round(frame_2_centroid(3));
         blank_truth = zeros(size(truth_2));
@@ -328,7 +311,6 @@ end
             end
         end
         crop_blank_truth_2_PREV = crop_around_centroid(blank_truth, y, x, z, crop_size, z_size, height, width, depth);
-        
         
         %% Connect the dots and make XY and XZ projections
         crop_blank_XY = max(crop_blank_truth_2_PREV, [], 3);
@@ -355,14 +337,10 @@ end
         crop_blank_XZ = imdilate(crop_blank_XZ, strel('disk', 1));
                 
         
-        
-        
         %% accuracy metrics
         dist = D(check_neighbor);
         ssim_val = ssim(crop_frame_1, crop_frame_2);
-        mae_val = meanAbsoluteError(crop_frame_1, crop_frame_2);
-        psnr_val = psnr(crop_frame_1, crop_frame_2);
-        
+
         crop_truth_1(crop_blank_truth_1 == 1) = 0;
         crop_truth_2(crop_blank_truth_2 == 1) = 0;
         
@@ -375,7 +353,6 @@ end
         end
         
         %f = figure('units','normalized','outerposition',[0 0 1 1])
-        f = figure();
         set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
         p = uipanel();
         
@@ -403,19 +380,15 @@ end
         im_frame = zeros(size(frame_1));
         im_frame_2 = zeros(size(frame_2));
         for cell_idx = 1:length(matrix_timeseries(:, 1))
-            
             % only add color to cells that are matched on the next frame
             if isempty(matrix_timeseries{cell_idx, timeframe_idx + 1})
                 continue;
             end
-            
-            
             % add the 2nd frame color at the same time
             cur_cell = matrix_timeseries{cell_idx, timeframe_idx + 1};
             voxels = cur_cell.voxelIdxList;
             im_frame_2(voxels) = cell_idx;
-            
-            
+           
             if ~isempty( matrix_timeseries{cell_idx, timeframe_idx})
                 cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
                 voxels = cur_cell.voxelIdxList;
@@ -423,32 +396,17 @@ end
             end
         end
         
+        %% MAKE IT A SINGLE COLOR
         labels_crop_truth_1 = crop_around_centroid(im_frame, y, x, z, crop_size, z_size, height, width, depth);
+        mip_center_1 = max(labels_crop_truth_1, [], 3);
         
-        unique_cells = unique(labels_crop_truth_1);
-        list_random_colors = rand([length(matrix_timeseries), 3]);
-        for color_idx = 1:length(unique_cells)
-            cell_idx = unique_cells(color_idx);
-            if cell_idx == 0; continue; end
-            crop_only_cur_color = labels_crop_truth_1;
-            crop_only_cur_color(crop_only_cur_color ~= cell_idx) = 0;
-            mip_center_1 = max(crop_only_cur_color, [], 3);
-            
-            %red_val = rand(1) * ones(size(mip_center_1));
-            cur_color = list_random_colors(cell_idx, :);
-            green_val = cur_color(2) * ones(size(mip_center_1));
-            blue_val = cur_color(3) * ones(size(mip_center_1));
-            
-            %color_mat = cat(3, zeros(size(mip_center_1)), green_val, blue_val);
-            
-            %% MAKE IT A SINGLE COLOR
-            color_mat = cat(3, ones(size(mip_center_1)),ones(size(mip_center_1)), zeros(size(mip_center_1)));
-            
-            hold on;
-            h = imshow(color_mat);
-            hold off;
-            set(h, 'AlphaData', mip_center_1)
-        end
+        color_mat = cat(3, ones(size(mip_center_1)),ones(size(mip_center_1)), zeros(size(mip_center_1)));
+        
+        hold on;
+        h = imshow(color_mat);
+        hold off;
+        set(h, 'AlphaData', mip_center_1)
+      
  
         %% add overlay of current cell
         if opt == 8
@@ -645,96 +603,7 @@ end
         title('LEFT frame: Scaled XZ project + tracking (crop +/- 30 px)')
         
 
-
-
-
-    
-        %% (3) Plot bottom RIGHT graph - plot max
-        if opt == 'adjust'
-            mip_2 = adapthisteq(mip_2);
-        end
-        ax = axes('parent', bottom_right);
-        imshow(mip_2);
-        colormap('gray'); axis off
-        %% Add overlay of tracked cells with diff colors
-        labels_crop_truth_2 = crop_around_centroid(im_frame_2, y, x, z, crop_size, z_size, height, width, depth);
-        
-        unique_cells = unique(labels_crop_truth_2);
-        for color_idx = 1:length(unique_cells)
-            cell_idx = unique_cells(color_idx);
-            if cell_idx == 0; continue; end
-            crop_only_cur_color = labels_crop_truth_2;
-            crop_only_cur_color(crop_only_cur_color ~= cell_idx) = 0;
-            mip_center_2 = max(crop_only_cur_color, [], 3);
-            
-            %red_val = rand(1) * ones(size(mip_center_2));
-            cur_color = list_random_colors(cell_idx, :);
-            green_val = cur_color(2) * ones(size(mip_center_2));
-            blue_val = cur_color(3) * ones(size(mip_center_2));
-            
-            
-            %color_mat = cat(3, zeros(size(mip_center_1)),green_val, blue_val);
-            %% MAKE IT A SINGLE COLOR
-            color_mat = cat(3, ones(size(mip_center_2)),ones(size(mip_center_2)), zeros(size(mip_center_2)));
-            
-            hold on;
-            h = imshow(color_mat);
-            hold off;
-            set(h, 'AlphaData', mip_center_2)
-        end
-        
-        
-        %% Add overlay of previous track
-        if opt == 8
-            disp('hide');
-        else
-            mip_center_1 = crop_blank_XY;
-            % CONNECT TO FORM LINE
-            mip_center_1 = imdilate(mip_center_1, strel('disk', 10));
-            mip_center_1 = bwskel(imbinarize(mip_center_1));
-            mip_center_1 = imdilate(mip_center_1, strel('disk', 1));
-            %figure; imshow(mip_center_1);
-            
-            blue = cat(3, zeros(size(mip_1)), zeros(size(mip_1)), ones(size(mip_1)));
-            hold on;
-            h = imshow(blue);
-            hold off;
-            set(h, 'AlphaData', mip_center_1)
-        end
-                
-        %% add overlay of where cell is on the ORIGINAL timeframe
-       if opt == 8
-            disp('hide');
-        else
-            mip_center_1 = max(crop_blank_truth_1, [], 3);
-            magenta = cat(3, zeros(size(mip_1)), ones(size(mip_1)), zeros(size(mip_1)));
-            hold on;
-            h = imshow(magenta);
-            hold off;
-            set(h, 'AlphaData', mip_center_1)
-        end
-        
-
-        
-        %% add overlay of current cell
-        if opt == 8
-            disp('hide');
-        else
-            mip_center_2 = max(crop_blank_truth_2, [], 3);
-            magenta = cat(3, ones(size(mip_2)), zeros(size(mip_2)), ones(size(mip_2)));
-            hold on;
-            h = imshow(magenta);
-            hold off;
-            set(h, 'AlphaData', mip_center_2)
-        end
-        
-        title(strcat('Correcting cell: ', {' '},num2str(cur_cell_idx), ' of total: ', {' '},num2str(total_cells_to_correct)))
-        text(-88, 0, strcat('Frame: ', {' '}, num2str(timeframe_idx + 1), ' of total: ', {' '},num2str(total_num_frames)))
-        
-        
-        
-        
-        %% (4) Add graph of vectors
+        %% (3) Add graph of vectors
         top_right_corner = uipanel('Parent',p, 'Position', [.85 0.65 .15 .3]);
         ax = axes('parent', top_right_corner);
         
@@ -774,24 +643,87 @@ end
             
         end
         
+
         %% CLEAR the plot if NOT an outlier!!!
         if isempty(outlier_vec_bool)
             top_right_corner = uipanel('Parent',p, 'Position', [.85 0.65 .15 .3]);
             ax = axes('parent', top_right_corner);
             axis off
             title('Insufficient cells or movement')
-            
         elseif ~isempty(outlier_vec_bool_95)
              title('movmt vectors 95th percentile');
-      
         else
-              title('movmt vectors 90th percentile');
-              
+              title('movmt vectors 90th percentile');  
+        end
+
+    
+        %% (4) Plot bottom RIGHT graph - plot max
+        if opt == 'adjust'
+            mip_2 = adapthisteq(mip_2);
+        end
+        ax = axes('parent', bottom_right);
+        imshow(mip_2);
+        colormap('gray'); axis off
+        %% Add overlay of tracked cells with diff colors
+        labels_crop_truth_2 = crop_around_centroid(im_frame_2, y, x, z, crop_size, z_size, height, width, depth);
+        
+        %% MAKE IT A SINGLE COLOR
+        mip_center_2 = max(labels_crop_truth_2, [], 3);
+        color_mat = cat(3, ones(size(mip_center_2)),ones(size(mip_center_2)), zeros(size(mip_center_2)));
+        
+        hold on;
+        h = imshow(color_mat);
+        hold off;
+        set(h, 'AlphaData', mip_center_2)
+        
+        
+        %% Add overlay of previous track
+        if opt == 8
+            disp('hide');
+        else
+            mip_center_1 = crop_blank_XY;
+            % CONNECT TO FORM LINE
+            mip_center_1 = imdilate(mip_center_1, strel('disk', 10));
+            mip_center_1 = bwskel(imbinarize(mip_center_1));
+            mip_center_1 = imdilate(mip_center_1, strel('disk', 1));
+            %figure; imshow(mip_center_1);
+            
+            blue = cat(3, zeros(size(mip_1)), zeros(size(mip_1)), ones(size(mip_1)));
+            hold on;
+            h = imshow(blue);
+            hold off;
+            set(h, 'AlphaData', mip_center_1)
+        end
+                
+        %% add overlay of where cell is on the ORIGINAL timeframe
+       if opt == 8
+            disp('hide');
+        else
+            mip_center_1 = max(crop_blank_truth_1, [], 3);
+            magenta = cat(3, zeros(size(mip_1)), ones(size(mip_1)), zeros(size(mip_1)));
+            hold on;
+            h = imshow(magenta);
+            hold off;
+            set(h, 'AlphaData', mip_center_1)
         end
         
+ 
+        %% add overlay of current cell
+        if opt == 8
+            disp('hide');
+        else
+            mip_center_2 = max(crop_blank_truth_2, [], 3);
+            magenta = cat(3, ones(size(mip_2)), zeros(size(mip_2)), ones(size(mip_2)));
+            hold on;
+            h = imshow(magenta);
+            hold off;
+            set(h, 'AlphaData', mip_center_2)
+        end
         
+        title(strcat('Correcting cell: ', {' '},num2str(cur_cell_idx), ' of total: ', {' '},num2str(total_cells_to_correct)))
+        text(-88, 0, strcat('Frame: ', {' '}, num2str(timeframe_idx + 1), ' of total: ', {' '},num2str(total_num_frames)))
         
-        
+
   
         % restore original crop size
         if opt == 'adjust'
@@ -807,11 +739,8 @@ end
         
         
         % pause allows usage of the scroll bar
-        if ssim_val > ssim_val_thresh && dist < dist_thresh
-            disp('skip pause')
-        else
-            pause
-        end
+        pause
+   
         
         
     end

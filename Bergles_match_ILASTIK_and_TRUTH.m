@@ -64,14 +64,10 @@ for fileNum = 1 : 3: numfids
     [truth] = load_3D_gray(filename_raw_truth);
     plot_max(truth);
     
-    
-    
-    %% TIGER - CHANGED "enhance", "Human_OL", and "cropping size" ==> all for Daryan's stuff
+
     cc = bwconncomp(ilastik);
     ilastik_regions_table = regionprops3(cc, gray, 'Volume','Centroid', 'VoxelIdxList', 'VoxelValues', 'MeanIntensity'); %%%***good way to get info about region!!!
 
-    %% Threshold by size or no???
-    
     cc = bwconncomp(truth);
     truth_table = regionprops3(cc, gray, 'Volume','Centroid', 'VoxelIdxList', 'VoxelValues', 'MeanIntensity'); %%%***good way to get info about region!!!
 
@@ -101,21 +97,25 @@ for fileNum = 1 : 3: numfids
     end
     plot_max(new_truth_im);
     
-    
+      %% TIGER - REMOVED - May 22nd 2020
     %% Also keep all ILASTIK things near bottom of volume
-    last_keep_slice = 100;
-    for bottom_idx = 1:length(ilastik_regions_table.VoxelIdxList)
-       if ilastik_regions_table.Centroid(bottom_idx, 3) > last_keep_slice
-           
-           ilastik_cell = ilastik_regions_table.VoxelIdxList{bottom_idx};
-           new_truth_im(ilastik_cell) = 1;
-   
-       end
-    end
-    plot_max(new_truth_im);
-
-    new_truth_im(new_truth_im > 0) = 255;
-    new_truth_im = uint8(new_truth_im);
+%     last_keep_slice = 100;
+%     for bottom_idx = 1:length(ilastik_regions_table.VoxelIdxList)
+%        if ilastik_regions_table.Centroid(bottom_idx, 3) > last_keep_slice
+%            
+%            ilastik_cell = ilastik_regions_table.VoxelIdxList{bottom_idx};
+%            new_truth_im(ilastik_cell) = 1;
+%    
+%        end
+%     end
+%     plot_max(new_truth_im);
+% 
+%     new_truth_im(new_truth_im > 0) = 255;
+%     new_truth_im = uint8(new_truth_im);
+    
+    
+    
+    
     %% normalize labels to be between 1 - 3
     %labels_norm = mod(labels, 15) 1;
     %labels_norm(labels == 0) = 0;

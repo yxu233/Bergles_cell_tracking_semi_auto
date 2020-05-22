@@ -5,7 +5,7 @@ function [idx_double_counted] = Bergles_manual_correct_double_count(frame_1, tru
 
 idx_double_counted = [];
 for frame_num = length(matrix_timeseries(1, :)):-1:2   % loops back to the 2nd to last frame
-    disp(strcat('checking frame ', {' '}, num2str(frame_num), {' '}, 'for duplicates'));
+    %disp(strcat('checking frame ', {' '}, num2str(frame_num), {' '}, 'for duplicates'));
     
     already_checked = [];
     for cell_num = length(matrix_timeseries(:, frame_num)):-1:1
