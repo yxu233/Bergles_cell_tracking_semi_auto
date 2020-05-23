@@ -1,4 +1,4 @@
-function [option_num, matrix_timeseries, term] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2, D, check_neighbor, neighbor_idx, matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx, x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size,cur_centroids, next_centroids, dist_thresh, ssim_val_thresh, cur_cell_idx, total_cells_to_correct, total_num_frames, cur_centroids_scaled, next_centroids_scaled, dist_label_idx_matrix, x_first, y_first, z_first)
+function [option_num, matrix_timeseries, term] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2, D, check_neighbor, neighbor_idx, matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx, x_min, x_max, y_min, y_max, z_min, z_max, crop_size, z_size,cur_centroids, next_centroids, dist_thresh, ssim_val_thresh, cur_cell_idx, total_cells_to_correct, total_num_frames, cur_centroids_scaled, next_centroids_scaled, dist_label_idx_matrix)
 
 % Allows user to manually correct the counted the fully counted image:
 
@@ -279,20 +279,12 @@ end
         mip_1 = max(crop_frame_1, [], 3);
         %subplot(1, 2, 1); imshow(mip_1);
         
-        %% Parse frame 2 and plot ONLY if it exists (b/c may have been deleted on return
+        %% Parse frame 2
         %frame_2_centroid = next_centroids(neighbor_idx(check_neighbor), :);
-       
         if ~isempty(matrix_timeseries{check_neighbor, timeframe_idx + 1})
             frame_2_centroid = matrix_timeseries{check_neighbor, timeframe_idx + 1}.centroid;
-            
-            y_2 = round(frame_2_centroid(1)); x_2 = round(frame_2_centroid(2)); z_2 = round(frame_2_centroid(3));
-            blank_truth = zeros(size(truth_2));
-            blank_truth(x_2, y_2, z_2) = 1;
-            
         else
-            blank_truth = zeros(size(truth_2));
-            blank_truth(x_first, y_first, z_first) = 1;
-        end
+            
         
         %% Do not center
         im_size = size(frame_2);
@@ -301,7 +293,9 @@ end
         crop_truth_2 = crop_around_centroid(truth_2, y, x, z, crop_size, z_size, height, width, depth);
                 
         %% get a truth with ONLY the current cell of interest
-
+        y_2 = round(frame_2_centroid(1)); x_2 = round(frame_2_centroid(2)); z_2 = round(frame_2_centroid(3));
+        blank_truth = zeros(size(truth_2));
+        blank_truth(x_2, y_2, z_2) = 1;
         %blank_truth = imdilate(blank_truth, strel('sphere', 3));
         crop_blank_truth_2 = crop_around_centroid(blank_truth, y, x, z, crop_size, z_size, height, width, depth);
         crop_blank_truth_2 = imdilate(crop_blank_truth_2, strel('sphere', 2));

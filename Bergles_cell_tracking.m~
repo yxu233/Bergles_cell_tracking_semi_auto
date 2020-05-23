@@ -330,9 +330,6 @@ for fileNum = 3 : 2: numfids
             %                 ,smaller_crop_size, smaller_z_size...
             %                 ,cur_centroids, crop_blank_truth_1, crop_blank_truth_2, next_centroids);
             %             pause()
-            
-            
-            
             %% if ssim_val very high AND distance small ==> save the cell
         elseif ssim_val > ssim_val_thresh && dist < dist_thresh
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
@@ -348,7 +345,7 @@ for fileNum = 3 : 2: numfids
             disp(strcat('Number of cells matched:' , num2str(num_matched)))
             
             %% Also more lenient if distance away is super small
-        elseif dist <= 12 && ssim_val >= 0.2
+        elseif dist <= 10 && ssim_val >= 0.2
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
             centroid = next_cell.centerDAPI;
@@ -366,7 +363,8 @@ for fileNum = 3 : 2: numfids
             idx_non_confident = [idx_non_confident, check_neighbor];
         end
         
-      
+        disp(strcat(num2str()))
+        
     end
     
     
