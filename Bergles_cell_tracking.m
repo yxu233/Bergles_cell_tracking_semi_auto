@@ -70,7 +70,7 @@
 
 %% Manual correction keys:
 % 1 == yes, is matched
-% 2 == no, not matched11
+% 2 == no, not matched
 % 3 == add new point in any arbitrary location
 
 % a == "add" different associated cell  *** deprecated, use "3" instead
