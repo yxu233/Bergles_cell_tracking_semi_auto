@@ -1,125 +1,100 @@
 %% Cell tracking
-%% Final notes:
-% 1) Best with good window + good registration (almost no correction
-% needed) ==> ~90 - 95% sensitivity and precision for matching Cody's segmentations
-% 2) with worse windows + blur ==> 85 - 90% sensitivity and precision
-% 3) Time to do analysis of 1024 x 1024 x 130 volume is about 1 hour, but
-% time increases quite a lot with number of lower layers you add to the
-% segmentation. Also, of course, depends on quality of images +
-% registration.
-% 4) Manual correction is mostly just spent correcting cells in the lower
-% 20 slices of the z-stack. This is the most time consuming part. In cases
-% where a lot of the lower cells die, the manual correction can be blazing
-% fast (like correct only 1 or 2 cells)
+%% Important functional notes about updates:
+% (1) There is now a failsafe after manual correction where you correct any
+% cells that are still merged to more than 1 cell. Things to note about
+% this stage:
+%           - the GUI is identical to the other stage
+%           - at the end, you will be asked if you want to repeat this
+%           checking. You can do so until there are 0 merged cells.
+%           - the number of cells to check may be higher than anticipated.
+%           This is because you have to check 2 cells per merge (i.e. the
+%           cell that merged incorrectly, and the cell that was correctly
+%           associated).
+% (2) One error that can now be fixed is when nearby cells are segmented
+% together and not separated by the CNN. We could try to fix this with
+% watershed as well, but I think it's easier to just do it in the GUI. TO
+% fix these errors, simply:
+%           - place a new dot using "3" on the right frame. This can even
+%           be inside the segmentation of the wrongly connected cells,
+%           because as long as you place a dot, you create a "new cell"
+%           that is now separate from the wrongly connected ones.
+%          
+% (3) *** remember that you can now check on your work by pressing
+% "backspace"!!! super helpful
 %
+% (4) I also added a hotkey "n" so you can add cells on the left frame now.
+% It will delete the position of the current cell on the left frame, and
+% you are free to choose a new position. This wasn't that useful in the
+% end...
 %
-% OVERALL: wayyy better than ILASTIK, and is essentially "fully-auto" for
-% the top 100 z-slices on good quality images. Almost 90% of manual
-% correction time is spent on correcting cells in lower layers.
+% (4) please use "3" to add new cells and not "a"
+%
+% (5) ***FYI, the reason some cells near the last few slices may not be
+% "detected" after the analysis is because I actually delete them. I do
+% this because I find that the rigid cut-off near the bottom is never that
+% satisfactory, as there are so many cells, and chances are high that one
+% frame will get cut-off higher than another, leading to a ton of
+% unassociated cells. I essentially just track cells down to a certain # of
+% frames. If you want to keep those deeper cells, then choose a lower value
+% in the first GUI that prompts for "last_slice". ***feel free to ask me
+% more if you're curious.
+%
+% (6) The distance thresholds are now automatically set for each dataset to
+% the 90th and 95th percentile for non-confident cell triaging.
+%
+% (7) There's also a plot of the vectors of each region in the manual
+% correction GUI now. I find that this helps sometimes to know how extreme
+% the movement is. I generally don't look at it all that much, but
+% sometimes if it's at a 90 deg angle, it might give you a hint to look
+% harder at the 2 cells directly ontop of each other.
 
 
-%% More updates:
-% (1) removed small crop size... but maybe shouldn't have??? ==> DONE
-% (2) added 2nd z project for left frame ==> DONE
-% (4) ***find vector of movement (average in a region)? as a metric ==>
-% DONE
-% (5) *** add depth of current slice ==> DONE
-% (6) add vector crop plot to help when manual correcting as well??? ==>
-% DONE
-% (7) move distance metric up as first thing to check ==> DONE
-% (8) make other metrics more lenient!!!  ==> DONE
-
-% (3) ***add drawLine function ==> DONE
-% (9) ***add check for matched cells ==> DONE
-
-
-% (10) add backspace button ==> DONE
-% (13) ***add way to decide if want to keep double checking connected ==>
-% DONE
-
-
-% (11) speed up the plotting???
-% (12) ***connected blobs are still double ==> CAN FIX THEM BY USING "2"
-% and then "backspace"!!!
-
-% *** missing cells on bottom ==> b/c I eliminated them
-% *** also, removed threshold of extremely far distances so now those are
-% also manually corrected (will see like 10 - 20 cells that have dist very
-% very far) ==> might be junk
-%% ***keep repeating the double counted until none
-%% *** use (3) to add cells
-
-
-
-
-%%
-% (2) Some cells touching need to be separated
-% (3) Are you using the "3" or "a" button to add?
-% showing trajectory?
-% (5) find average trajectory around cell
-
-%% (is cellular debris causing an issue???)
-
+%% Last things to do:
+% speed up the plotting because still a bit slow
 
 %% New additions: version 1.3
-% (1) Non-cell centered figures + green/red overlay?  ==> DONE ==> added extra dot
-% color for guidance
-% (2) Counter for # of cells left to check ==> DONE ***Note: isn't
-% accurate, b/c of 2nd round
+% (1) Non-cell centered figures + green/red overlay?  ==> DONE 
+% (2) Counter for # of cells left to check ==> DONE 
 % (3) Add timepoint # on top of images ==> DONE
 % (4) Change color scheme on top image stackes for data/seg ==> to
 % white/red or green/red
-% (5) Color code z-projection view to see what has already been tracked
-% (6) REMOVE FINAL NEW CELL CHECKERTPP
+% (5) REMOVE FINAL NEW CELL CHECKER
 
-
-%% New additions: version 1.2
-%(1) added ability to "add" cells - hotkey == 3
-%(2) now deletes anything solely on single frame
-%(3) also deletes anything in lower part of volume if it does not START
-%there (centroid)
-%(4) also added manual checkup for points at the end which are started as
-%"new" cells
-
-% ***how should we deal with super dim cells with no processes ever?
-% ***note: 10x vs. 20x!!!
-% ***things are fairly consistent now
-% * slightly worse on bad quality window ones (ILASTIK BAD) ==> picking out
-% some really really dim stuff...
-% * should this output be ablet to load back into the syglass?
+%% More updates:
+% (1) added vector analysis
+% (2) adjusted threshold for SSIM to be more inclusive
+% (3) distance thresholds now auto discovered (90th, 95th outliers)
+% (4) added XZ projections
+% (5) added depth indicator on bottom left (as well as cur cell and frame #)
+% (6) removed small crop size... but maybe shouldn't have??? ==> DONE
 
 %% Manual correction keys:
 % 1 == yes, is matched
 % 2 == no, not matched11
 % 3 == add new point in any arbitrary location
 
-% a == "add" different associated cell
+% a == "add" different associated cell  *** deprecated, use "3" instead
 % s == "scale" image to new dimensions (to zoom in/out)
 % d == "delete" current cell on current timeframe (b/c it's garbage and not a real cell
 % c == "clahe" enhances intensity with CLAHE
+% n == "new" cell on the LEFT frame (deletes old cell and prompts for new
+% user selected cell point
+% BACKSPACE == return to previous frame of correction
+% ESC == breaks the loop exits the GUI
 
-%% Notes:
-% low SSIM ==> mostly due to shifts in axial location/misalignmnet
-% careful that pressing keys sometimes writes onto actual program (so
-% delete those markings)
-
-% FIXED BERGLES CELL CROP!!!
-
-%% Things to fix:
-% (1) disallow ties? ==> would be much much faster...
-% (3) the sliding viewer has clipped off top when scaled
-% (4) Keep scaling at x 2 when it is on the hard one
-% (5) add way to double check cell bodies (that w
-% (6) add output folder
-% (7) eliminate cells on border?
-% (8) correct cell number for watershed display???
-% (9) Include directional scaling (to microns) for distance metrics
-
-% (10) double check everything in last frame that was not associated with
-% something in the previous frame
-
-% (11) eliminate everything that only exists on a single (or 2?) frames
-
+%% GUI notes:
+% (1) Top slice viewers
+% (2) Bottom max projections
+% - green is loc of cell on left frame
+% - magenta is loc of cell on right frame
+% - blue is trail of past locations
+% (3) Middle XZ max projections  ***note, is proj of +/- 30 px in X dim
+% - top is max proj of left frame
+% - bottom is max proj of right frame
+%
+% (4) Plot of vectors of movement for each cell between frames
+% large green line is the average vector, and the thickest vector is the
+% current cell of interest
 
 opengl hardware;
 close all;
