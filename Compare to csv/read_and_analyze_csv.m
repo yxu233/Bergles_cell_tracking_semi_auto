@@ -6,7 +6,7 @@ addpath('../cell_crop_func')
 %T = readtable('output_650.csv');
 %T = readtable('output_680.csv');
 
-T = readtable('a1901128-r670_syGlass_20x.csv');
+%T = readtable('a1901128-r670_syGlass_20x.csv');
 
 %T = readtable('MOBPF1_013018_cuprBZA_10x.tif - T=0_610_syGlass_10x.csv');
 
@@ -14,7 +14,7 @@ T = readtable('a1901128-r670_syGlass_20x.csv');
 
 %T = readtable('output.csv');
 
-T = readtable('syglassCheck.csv');
+%T = readtable('syglassCheck.csv');
 
 
 T = readtable('MOBPF_190627w_5_syglassCorrectedTracks.csv');

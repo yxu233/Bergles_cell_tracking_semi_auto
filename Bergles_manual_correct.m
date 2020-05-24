@@ -216,7 +216,64 @@ while option_num>0 && term == 0
         elseif option_num=='h'
             plot_im(8);
             
-          
+            
+            
+                  
+            %% If key == n, "delete" then delete current cell on current timeframe (i.e. not a real cell)
+        elseif option_num == 'n'
+            matrix_timeseries{check_neighbor, timeframe_idx} = [];
+            %matrix_timeseries{check_neighbor, timeframe_idx + 1} = [];
+            cur_centroids(check_neighbor, :) = [];
+            
+            %plot_im(0);
+            cell_point=drawpoint;
+            % Get XY position from placed dot
+            %poss_sub =getPosition(cell_point);
+            poss_sub = cell_point.Position;
+            
+            % Get z-position from prompt
+            prompt = {'Enter z-axis position:'};
+            dlgtitle = 'slice position'
+            definput = {'10'};
+            answer = inputdlg(prompt,dlgtitle, [1, 35], definput);
+            
+            coordinates = [round(poss_sub), str2num(answer{1})];
+            
+            % create blank volume with only selected point
+            blank_vol = zeros(size(crop_frame_2));
+            blank_vol(sub2ind(size(crop_frame_2),coordinates(2), coordinates(1), coordinates(3))) = 1;
+            
+            % dilate to make matching easier
+            blank_vol = imdilate(blank_vol, strel('sphere', 2));
+            
+            % insert point into larger volume
+            full_vol = zeros(size(truth_1));
+            full_vol(x_min:x_max, y_min:y_max, z_min:z_max) = blank_vol;
+            
+            % find index of point in relation to larger volume
+            linear_idx = find(full_vol);
+            
+            
+            %% Add dilated cell point into the matrix_timeseries!
+            %next_cell = next_timeseries(neighbor_idx(check_neighbor));
+            voxelIdxList = linear_idx;
+            [x, y, z]= ind2sub(size(full_vol), linear_idx);
+            centroid = [y(round(length(y)/2)), x(round(length(x)/2)), z(round(length(z)/2))];
+            cell_num = check_neighbor;
+            % create cell object
+            cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+            matrix_timeseries{check_neighbor, timeframe_idx} = cell_obj;
+            
+            
+            %% set point as this new one in the points array for plotting
+            %next_centroids(neighbor_idx(check_neighbor), :) = [y(round(length(y)/2)), x(round(length(x)/2)), z(round(length(z)/2))];
+            
+            option_new_cell = 2;
+            
+            %% Plot how it looks now
+            delete(cell_point);
+            plot_im(0);
+
         elseif option_num == 'backspace'
                         
             term = 10;
@@ -262,7 +319,11 @@ end
         z_size = round(z_size);
         
         %% Parse frame 1
-        frame_1_centroid = cur_centroids(check_neighbor, :);
+        if ~isempty(matrix_timeseries{check_neighbor, timeframe_idx })
+            frame_1_centroid = matrix_timeseries{check_neighbor, timeframe_idx}.centroid;
+        else
+            frame_1_centroid = cur_centroids(check_neighbor, :);
+        end
         % get frame 1 crop
         y = round(frame_1_centroid(1)); x = round(frame_1_centroid(2)); z = round(frame_1_centroid(3));
         im_size = size(frame_1);
@@ -327,8 +388,8 @@ end
         cc = bwconncomp(crop_blank_XY);
         centers = regionprops(cc, 'Centroid');
         for center_idx = 1:length(centers) - 1
-           cur_centers = centers(center_idx).Centroid;
-           next_centers = centers(center_idx + 1).Centroid;
+           cur_centers = round(centers(center_idx).Centroid);
+           next_centers = round(centers(center_idx + 1).Centroid);
            
            crop_blank_XY = func_DrawLine(crop_blank_XY, cur_centers(2), cur_centers(1), next_centers(2), next_centers(1), 1);
         end
@@ -339,8 +400,8 @@ end
         cc = bwconncomp(crop_blank_XZ);
         centers = regionprops(cc, 'Centroid');
         for center_idx = 1:length(centers) - 1
-            cur_centers = centers(center_idx).Centroid;
-            next_centers = centers(center_idx + 1).Centroid;
+             cur_centers = round(centers(center_idx).Centroid);
+             next_centers = round(centers(center_idx + 1).Centroid);
             
             crop_blank_XZ = func_DrawLine(crop_blank_XZ, cur_centers(2), cur_centers(1), next_centers(2), next_centers(1), 1);
         end
@@ -391,6 +452,9 @@ end
         im_frame_2 = zeros(size(frame_2));
         for cell_idx = 1:length(matrix_timeseries(:, 1))
             % only add color to cells that are matched on the next frame
+            if isempty( matrix_timeseries{cell_idx, timeframe_idx})
+                continue
+            end
             if isempty(matrix_timeseries{cell_idx, timeframe_idx + 1})
                 continue;
             end
@@ -399,11 +463,10 @@ end
             voxels = cur_cell.voxelIdxList;
             im_frame_2(voxels) = cell_idx;
            
-            if ~isempty( matrix_timeseries{cell_idx, timeframe_idx})
-                cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
-                voxels = cur_cell.voxelIdxList;
-                im_frame(voxels) = cell_idx;
-            end
+            
+            cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
+            voxels = cur_cell.voxelIdxList;
+            im_frame(voxels) = cell_idx;
         end
         
         %% MAKE IT A SINGLE COLOR
@@ -631,12 +694,12 @@ end
         if skip && length(cells_in_crop) > 5
             cell_of_interest =  cur_centroids_scaled(check_neighbor, :);
             neighbor_of_cell =  next_centroids_scaled(neighbor_idx(check_neighbor), :);
-            vector = cell_of_interest - neighbor_of_cell;
-            unit_v_check = vector/norm(vector);
+            vector = abs(cell_of_interest) - abs(neighbor_of_cell);
+            %unit_v_check = vector/norm(vector);
             if plot_bool
-                plot3([0, unit_v_check(1)], [0, unit_v_check(2)], [0, unit_v_check(3)], 'LineWidth', 10);
+                plot3([0, vector(1)], [0, vector(2)], [0, vector(3)], 'LineWidth', 10);
             end
-            dist_to_avg = abs(avg_vec) - abs(unit_v_check);
+            dist_to_avg = abs(avg_vec) - abs(vector);
             dist_to_avg = norm(dist_to_avg);
             
             % (4) check if it is an outlier to the 90th percentile:

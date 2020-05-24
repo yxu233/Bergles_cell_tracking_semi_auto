@@ -42,6 +42,13 @@
 % (12) ***connected blobs are still double ==> CAN FIX THEM BY USING "2"
 % and then "backspace"!!!
 
+% *** missing cells on bottom ==> b/c I eliminated them
+% *** also, removed threshold of extremely far distances so now those are
+% also manually corrected (will see like 10 - 20 cells that have dist very
+% very far) ==> might be junk
+%% ***keep repeating the double counted until none
+%% *** use (3) to add cells
+
 
 
 
@@ -148,7 +155,7 @@ matrix_timeseries = cell(10000, numfids/2);
 %% Input dialog values
 prompt = {'crop size (XY px): ', 'z_size (Z px): ', 'ssim_thresh (0 - 1): ', 'low_dist_thresh (0 - 20): ', 'upper_dist_thresh (30 - 100): ', 'min_siz (0 - 500): ', 'first_slice: ', 'last_slice: ', 'manual_correct? (Y/N): '};
 dlgtitle = 'Input';
-definput = {'200', '20', '0.30', '20', '30', '10', '1', '130', 'Y'};
+definput = {'200', '20', '0.25', '20', '30', '10', '1', '130', 'Y'};
 %definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
 %definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
 
@@ -262,7 +269,31 @@ for fileNum = 3 : 2: numfids
         end
     end
     
+    %% Find GLOBAL vectors
+    plot_bool = 1; 
+    if plot_bool
+        figure(); hold on;
+    end
+    [avg_vec, all_unit_v, all_dist_to_avg, cells_in_crop, all_dist_to_avg_RAW] = find_avg_vectors_GLOBAL(dist_label_idx_matrix, cur_centroids_scaled, next_centroids_scaled,  neighbor_idx, plot_bool);
+
+%     z_distance = abs(all_dist_to_avg_RAW(:, 3));
+%     outliers = find(isoutlier(z_distance, 'percentiles', [0, 90]));
+%     z_outlier_dist = mean(z_distance(outliers));
     
+    
+    
+    %% Adaptively find distance thresholds using outlier analysis
+    % (4) check if it is an outlier to the 90th percentile:
+    outliers = find(isoutlier(D, 'percentiles', [0, 85]));
+    dist_thresh = mean(D(outliers));
+    %dist_thresh = 10000;
+    
+    outliers = find(isoutlier(D, 'percentiles', [0, 95]));
+    upper_dist_thresh = mean(D(outliers));
+    
+    outliers = find(isoutlier(D, 'percentiles', [0, 10]));
+    lower_dist_thresh = mean(D(outliers));
+        
     %% (1) Do preliminary loop through to find VERY CONFIDENT neighbours
     %% add into the cell list with corresponding cell number
     % SSIM > 0.4, and distance very small < 10 pixels
@@ -278,6 +309,7 @@ for fileNum = 3 : 2: numfids
     figure(2);
     idx_non_confident = [];
     num_matched = 0;
+    num_far = 0;
     for check_neighbor = 1:length(neighbor_idx)
         close all;
         if isnan(D(check_neighbor))   % skip all the "nans"
@@ -304,12 +336,11 @@ for fileNum = 3 : 2: numfids
         if skip && length(cells_in_crop) > 5
             cell_of_interest =  cur_centroids_scaled(check_neighbor, :);
             neighbor_of_cell =  next_centroids_scaled(neighbor_idx(check_neighbor), :);
-            vector = cell_of_interest - neighbor_of_cell;
-            unit_v_check = vector/norm(vector);
+            vector = abs(cell_of_interest) - abs(neighbor_of_cell);
             if plot_bool
-                plot3([0, unit_v_check(1)], [0, unit_v_check(2)], [0, unit_v_check(3)], 'LineWidth', 10);
+                plot3([0, vector(1)], [0, vector(2)], [0, vector(3)], 'LineWidth', 10);
             end
-            dist_to_avg = abs(avg_vec) - abs(unit_v_check);
+            dist_to_avg = abs(avg_vec) - abs(vector);
             dist_to_avg = norm(dist_to_avg);
             
             % (4) check if it is an outlier to the 90th percentile:
@@ -318,23 +349,32 @@ for fileNum = 3 : 2: numfids
             outlier_vec_bool = find(ismember(outliers_idx, check_neighbor));
         end
         
+        
+        %% Check z_distance:
+%         frame_1_centroid = cur_centroids(check_neighbor, :);
+%         frame_2_centroid = next_centroids(neighbor_idx(check_neighbor), :);
+%         
+%         % get frame 1 crop
+%         y = round(frame_1_centroid(1)); x = round(frame_1_centroid(2)); z = round(frame_1_centroid(3));
+%         y_1 = round(frame_2_centroid(1)); x_2 = round(frame_2_centroid(2)); z_2 = round(frame_2_centroid(3));
+%         
+        
+        %z_dist_diff = abs(z - z_2);
+        
+
         %% If super far away, just discard the cell
-        if dist > upper_dist_thresh
-            continue
-        elseif ~isempty(outlier_vec_bool)
-            idx_non_confident = [idx_non_confident, check_neighbor];
-            %% Plot for  debug
-            %             plot_full_figure_debug(frame_1, frame_2, truth_1, truth_2, crop_frame_1, crop_frame_2...
-            %                 ,crop_truth_1, crop_truth_2,D, check_neighbor, neighbor_idx...
-            %                 ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
-            %                 ,smaller_crop_size, smaller_z_size...
-            %                 ,cur_centroids, crop_blank_truth_1, crop_blank_truth_2, next_centroids);
-            %             pause()
-            
-            
+         if dist > upper_dist_thresh
+%             num_far = num_far + 1
+%             disp(num_far)
+             continue
             
             %% if ssim_val very high AND distance small ==> save the cell
-        elseif ssim_val > ssim_val_thresh && dist < dist_thresh
+         elseif ssim_val >= ssim_val_thresh && dist <= dist_thresh
+            
+            if dist >= dist_thresh && z_dist_diff <= z_outlier_dist
+                disp('z_threshed okay');
+            end
+            
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
             centroid = next_cell.centerDAPI;
@@ -348,7 +388,7 @@ for fileNum = 3 : 2: numfids
             disp(strcat('Number of cells matched:' , num2str(num_matched)))
             
             %% Also more lenient if distance away is super small
-        elseif dist <= 12 && ssim_val >= 0.2
+        elseif dist <= lower_dist_thresh && ssim_val >= 0.1
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
             centroid = next_cell.centerDAPI;
@@ -366,11 +406,17 @@ for fileNum = 3 : 2: numfids
             idx_non_confident = [idx_non_confident, check_neighbor];
         end
         
-      
+        
     end
     
+    disp(strcat('upper_dist_thresh: ', {'  '}, num2str(upper_dist_thresh)));
+    disp(strcat('dist_thresh: ', {'  '}, num2str(dist_thresh)));
+    disp(strcat('lower_dist_thresh: ', {'  '}, num2str(lower_dist_thresh)));
+    % disp(strcat('z_outlier_dist: ', {'  '}, num2str(z_outlier_dist)));
     
     %% (2) Loop through NON-CONFIDENT ONES for comparison
+    %% cell #36 is blob
+    
     % first find index of all non-confident ones
     disp('please correct non-confident cells')
     total_num_frames = numfids/2;
@@ -401,59 +447,26 @@ for fileNum = 3 : 2: numfids
                 ,cur_centroids_scaled, next_centroids_scaled, dist_label_idx_matrix...
                 , x_first, y_first, z_first);
             clf;
-                       
-             %% add back button + full exit
-             if term == 10 && idx_nc -1 > 0
-                 idx_nc = idx_nc - 1;
-             elseif term == 10 && idx_nc -1 <= 0
-                 idx_nc = idx_nc;
-             elseif term == 99
-                 break;  %% FULL EXIT
-             else
-                 idx_nc = idx_nc + 1;
-             end
-                     
+            
+            %% add back button + full exit
+            if term == 10 && idx_nc -1 > 0
+                idx_nc = idx_nc - 1;
+            elseif term == 10 && idx_nc -1 <= 0
+                idx_nc = idx_nc;
+            elseif term == 99
+                break;  %% FULL EXIT
+            else
+                idx_nc = idx_nc + 1;
+            end
+            
         end
     end
-    
-    %% (3) Identify remaining unassociated cells and add them to the cell list with NEW numbering (at the end of the list)
-    disp('adding non-matched new cells')
-    for cell_idx = 1:length(next_timeseries)
-        original_cell = next_timeseries(cell_idx).objDAPI;
-        
-        matched = 0;
-        for sorted_idx = 1:length(matrix_timeseries)
-            if isempty(matrix_timeseries{sorted_idx, timeframe_idx + 1})
-                continue;
-            end
-            sorted_cell = matrix_timeseries{sorted_idx, timeframe_idx + 1};
-            sorted_cell = sorted_cell.voxelIdxList;
-            same = ismember(original_cell, sorted_cell);
-            
-            %% if matched
-            if ~isempty(find(same, 1))
-                
-                matched = 1;
-                break;
-            end
-        end
-        
-        %% save cell if NOT matched after sorting, then add as new cell to matrix_timeseries
-        if matched == 0
-            total_cells = total_cells + 1;
-            
-            next_cell = next_timeseries(cell_idx);
-            voxelIdxList = next_cell.objDAPI;
-            centroid = next_cell.centerDAPI;
-            cell_num = check_neighbor;
-            % create cell object
-            cell_obj = cell_class(voxelIdxList,centroid, cell_num);
-            matrix_timeseries{total_cells, timeframe_idx + 1} =  cell_obj;
-        end
-    end
+    close all;
     
     
-    %% (4) Clean double counted cells
+    
+    
+        %% (3) Clean double counted cells
     %% Find all cells that are double matched and correct them
     looks_okay = 'Y';
     while looks_okay == 'Y'
@@ -487,7 +500,7 @@ for fileNum = 3 : 2: numfids
                 next_timeseries(end).objDAPI =  next_matrix_time{idx}.voxelIdxList;
             else
                 array_centroid_indexes = [array_centroid_indexes; [nan, nan, nan]];
-                  next_timeseries(end + 1).Core =  1;
+                next_timeseries(end + 1).Core =  1;
             end
         end
         next_centroids = array_centroid_indexes;
@@ -521,7 +534,11 @@ for fileNum = 3 : 2: numfids
         %% organize list of cells into correct order
         tmp_idx_double_counted = find(idx_double_counted == timeframe_idx(:, 1) + 1);
         tmp_idx_double_counted = idx_double_counted(tmp_idx_double_counted, :);
-        tmp_idx_double_counted = unique(tmp_idx_double_counted(:, 2:3));
+        
+        uniq_idx = unique(tmp_idx_double_counted);
+        if ~isempty(uniq_idx)
+            tmp_idx_double_counted = unique(tmp_idx_double_counted(:, 2:3));
+        end
         
         if manual_correct_bool == 'Y'
             close all;
@@ -575,10 +592,10 @@ for fileNum = 3 : 2: numfids
                 else
                     idx_nc = idx_nc + 1;
                 end
-        
+                
             end
         end
-        
+        close all;
         
         %% Satisfied?
         prompt = {'Repeat check for double cells? (Y/N):'};
@@ -588,10 +605,47 @@ for fileNum = 3 : 2: numfids
         looks_okay = answer{1};
         
     end
-    
-    
-    
-    
+
+
+    %% (4) Identify remaining unassociated cells and add them to the cell list with NEW numbering (at the end of the list)
+    disp('adding non-matched new cells')
+    next_timeseries = all_s{timeframe_idx + 1};
+    for cell_idx = 1:length(next_timeseries)
+        original_cell = next_timeseries(cell_idx).objDAPI;
+        if isempty(original_cell)
+            continue;
+        end
+        matched = 0;
+        for sorted_idx = 1:length(matrix_timeseries)
+            if isempty(matrix_timeseries{sorted_idx, timeframe_idx + 1})
+                continue;
+            end
+            sorted_cell = matrix_timeseries{sorted_idx, timeframe_idx + 1};
+            sorted_cell = sorted_cell.voxelIdxList;
+            same = ismember(original_cell, sorted_cell);
+            
+            %% if matched
+            if ~isempty(find(same, 1))
+                
+                matched = 1;
+                break;
+            end
+        end
+        
+        %% save cell if NOT matched after sorting, then add as new cell to matrix_timeseries
+        if matched == 0
+            total_cells = total_cells + 1;
+            
+            next_cell = next_timeseries(cell_idx);
+            voxelIdxList = next_cell.objDAPI;
+            centroid = next_cell.centerDAPI;
+            cell_num = check_neighbor;
+            % create cell object
+            cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+            matrix_timeseries{total_cells, timeframe_idx + 1} =  cell_obj;
+        end
+    end
+   
     
     %% Nothing below the last 10 frames can be a new cell after the first frame has been tested
     del_num = 0;
@@ -681,10 +735,10 @@ for i = 1:length(matrix_timeseries(1, :))
     end
 end
 
-%% (C) check all NEW cells to ensure they are actually new (excluding the
-% first frame)
-% frame_num = 2;
-% for fileNum = 3 : 2: numfids
+%% (C) check all NEW cells to ensure they are actually new (excluding the first frame)
+%frame_num = 2;
+% frame_num  = timeframe_idx - 1;
+% for fileNum =numfids-2 : 2: numfids
 %     [all_s, frame_1, truth_1, og_size] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
 %     [matrix_timeseries] = Bergles_manual_correct_last_frame(frame_num, frame_1, truth_1, matrix_timeseries, crop_size, z_size);
 %     frame_num = frame_num + 1;
