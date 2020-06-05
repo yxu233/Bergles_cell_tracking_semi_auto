@@ -98,10 +98,10 @@ num_check = int(num_check[0])
 check = torch.load(s_path + checkpoint)
 unet = check['model_type']
 unet.load_state_dict(check['model_state_dict'])
+unet.to(device)
 unet.eval()
 #unet.training # check if mode set correctly
-unet.to(device)
-
+zzz
 print('parameters:', sum(param.numel() for param in unet.parameters()))
 
 # """ load mean and std """  
