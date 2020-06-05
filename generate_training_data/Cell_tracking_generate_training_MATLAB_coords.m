@@ -85,17 +85,18 @@ for fileNum = 1:length(natfnames_csv)
     % 336 / 349
     % 293 / 1514
     % 276 / 448
-    cells_to_check = [506, 460, 574, 724, 794, 336, 349, 293, 1514, 276, 448];
-    idx_cells = ismember(series, cells_to_check);
-    idx_cells = find(idx_cells);
+    %cells_to_check = [506, 460, 574, 724, 794, 336, 349, 293, 1514, 276, 448];
+    %idx_cells = ismember(series, cells_to_check);
+    %idx_cells = find(idx_cells);
     
-    frame = frame(idx_cells);
-    all_Z = all_Z(idx_cells);
-    all_X = all_X(idx_cells);
-    all_Y = all_Y(idx_cells);
-    series = series(idx_cells);
+%     frame = frame(idx_cells);
+%     all_Z = all_Z(idx_cells);
+%     all_X = all_X(idx_cells);
+%     all_Y = all_Y(idx_cells);
+%     series = series(idx_cells);
     
     
+    %% Continue
     together = [frame, all_X, all_Y, all_Z, series];
     [~,idx] = sort(together(:,1)); % sort just the first column
     sortedmat = together(idx,:);   % sort the whole matrix using the sort indices

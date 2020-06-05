@@ -74,6 +74,9 @@ s_path = './(10) Checkpoints_PYTORCH_HUGANIR_5x5_AdamW_batch_norm/'
 #s_path = './(18) Checkpoints_TITAN_NO_transforms_AdamW_batch_norm_SPATIAL/' 
 #s_path = './(16) Checkpoints_TITAN_YES_transforms_AdamW_SLOWER_switchable_BN/'
 
+s_path = './(19) Checkpoints_TITAN_NO_transforms_AdamW_batch_norm_CLEAN_DATA/'
+
+
 overlap_percent = 0.5
 input_size = 256
 depth = 64
@@ -102,7 +105,7 @@ unet.to(device)
 print('parameters:', sum(param.numel() for param in unet.parameters()))
 
 # """ load mean and std """  
-input_path = './normalize_pytorch/'
+input_path = './normalize_pytorch_CLEANED/'
 mean_arr = np.load(input_path + 'mean_VERIFIED.npy')
 std_arr = np.load(input_path + 'std_VERIFIED.npy')
 
@@ -192,7 +195,7 @@ for input_path in list_folder:
             #max_im = plot_max(input_im, ax=0)
             
             print('Starting inference on volume: ' + str(i) + ' of total: ' + str(len(examples)))
-            plot_max(input_im)
+            #plot_max(input_im)
             
             segmentation = UNet_inference_by_subparts_PYTORCH(unet, device, input_im, overlap_percent, quad_size=input_size, quad_depth=depth,
                                                       mean_arr=mean_arr, std_arr=std_arr, num_truth_class=num_truth_class,
@@ -214,32 +217,32 @@ for input_path in list_folder:
             
             
             """ Load in truth data for comparison!!! sens + precision """
-            truth_name = examples[i]['truth']
+            # truth_name = examples[i]['truth']
             
-            truth_im = open_image_sequence_to_3D(truth_name, width_max='default', height_max='default', depth='default')
-            truth_im[truth_im > 0] = 1                                   
+            # truth_im = open_image_sequence_to_3D(truth_name, width_max='default', height_max='default', depth='default')
+            # truth_im[truth_im > 0] = 1                                   
             
-            truth_im_cleaned = clean_edges(truth_im, extra_z=1, extra_xy=3, skip_top=1)
+            # truth_im_cleaned = clean_edges(truth_im, extra_z=1, extra_xy=3, skip_top=1)
                                             
-            TP, FN, FP, truth_im_cleaned, cleaned_seg = find_TP_FP_FN_from_seg(segmentation, truth_im_cleaned, size_limit=5)
+            # TP, FN, FP, truth_im_cleaned, cleaned_seg = find_TP_FP_FN_from_seg(segmentation, truth_im_cleaned, size_limit=5)
 
                  
-            plot_max(truth_im_cleaned)
-            plot_max(cleaned_seg)
+            # #plot_max(truth_im_cleaned)
+            # #plot_max(cleaned_seg)
             
 
-            if TP + FN == 0: TP;
-            else: sensitivity = TP/(TP + FN);     # PPV
+            # if TP + FN == 0: TP;
+            # else: sensitivity = TP/(TP + FN);     # PPV
                    
-            if TP + FP == 0: TP;
-            else: precision = TP/(TP + FP);     # precision
+            # if TP + FP == 0: TP;
+            # else: precision = TP/(TP + FP);     # precision
 
-            print(filename)
-            print(str(sensitivity))
-            print(str(precision))
+            # print(filename)
+            # print(str(sensitivity))
+            # print(str(precision))
             
-            truth_im_cleaned = np.asarray(truth_im_cleaned, np.uint8)
-            imsave(sav_dir + filename + '_' + str(int(i)) +'_truth_im_cleaned.tif', truth_im_cleaned)            
+            # truth_im_cleaned = np.asarray(truth_im_cleaned, np.uint8)
+            # imsave(sav_dir + filename + '_' + str(int(i)) +'_truth_im_cleaned.tif', truth_im_cleaned)            
             
             """ Compare with ilastik () if you want to """
             # ilastik_compare = 0
