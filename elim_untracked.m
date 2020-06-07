@@ -10,12 +10,13 @@ matrix_timeseries_cleaned = matrix_timeseries;
 disp('checking single cells')
 all_s = cell(0);
 timeframe_idx = 1;
+count = 0;
 for sorted_idx = 1:2:length(natfnames) - 2
     
     fileNum = sorted_idx;
-    [all_s, frame_1, truth_1] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
+    %[all_s, frame_1, truth_1] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
     
-    im_frame = zeros(size(frame_1));
+    %im_frame = zeros(size(frame_1));
     for cell_idx = 1:length(matrix_timeseries(:, 1))
         if isempty(matrix_timeseries{cell_idx, timeframe_idx})
             continue;
@@ -54,8 +55,10 @@ for sorted_idx = 1:2:length(natfnames) - 2
             
             close all;
             
-            im_frame(voxels) = 1;
+            %%%im_frame(voxels) = 1;
             disp('yep')
+            count = count + 1;
+            disp(num2str(count));
             
             matrix_timeseries_cleaned{cell_idx, timeframe_idx} = [];
         end
@@ -64,8 +67,8 @@ for sorted_idx = 1:2:length(natfnames) - 2
     end
     
     
-    filename_raw = natfnames{timeframe_idx * 2 - 1};
-    z_size = length(im_frame(1, 1, :));
+    %filename_raw = natfnames{timeframe_idx * 2 - 1};
+    %z_size = length(im_frame(1, 1, :));
     
     %im_frame = uint8(im_frame);
     %for k = 1:z_size
