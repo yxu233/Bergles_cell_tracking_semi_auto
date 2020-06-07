@@ -34,7 +34,7 @@ end
 all_dist_to_avg = [];
 all_dist_to_avg_RAW = [];
 for i = 1:length(all_v)
-    dist_to_avg = abs(avg_vec) - abs(all_v((i), :));
+    dist_to_avg = avg_vec - all_v((i), :);
     all_dist_to_avg = [all_dist_to_avg; norm(dist_to_avg)];
     all_dist_to_avg_RAW = [all_dist_to_avg_RAW; dist_to_avg];
 end

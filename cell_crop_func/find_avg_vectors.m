@@ -32,7 +32,7 @@ for idx_crop = 1:length(cells_in_crop)   % skip 0
     cur_center =  cur_centroids_scaled(check_cell_dist, :);
     neighbor_center =  next_centroids_scaled(neighbor_idx(check_cell_dist), :);
     
-    vector = abs(cur_center) - abs(neighbor_center);
+    vector = cur_center - neighbor_center;
     all_v = [all_v; vector];
     
     %unit_v = vector/norm(vector);
@@ -53,7 +53,7 @@ end
 
 all_dist_to_avg = [];
 for i = 1:length(all_v)
-    dist_to_avg = abs(avg_vec) - abs(all_v((i), :));
+    dist_to_avg = avg_vec - all_v((i), :);
     all_dist_to_avg = [all_dist_to_avg; norm(dist_to_avg)];
 end
 

@@ -9,9 +9,9 @@ num_non_empty =sum(~cellfun(@isempty,matrix_timeseries),2);
 matrix_timeseries_cleaned = matrix_timeseries;
 disp('checking single cells')
 all_s = cell(0);
-timeframe_idx = 1;
+timeframe_idx = 2;  %% Tiger added - June 6th - skip first timeframe
 count = 0;
-for sorted_idx = 1:2:length(natfnames) - 2
+for sorted_idx = 3:2:length(natfnames) - 2
     
     fileNum = sorted_idx;
     %[all_s, frame_1, truth_1] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);

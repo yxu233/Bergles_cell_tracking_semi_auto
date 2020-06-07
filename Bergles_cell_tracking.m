@@ -1,4 +1,12 @@
 %% Cell tracking
+%% new changes:
+% (1) don't eliminate cells on first frame ==> DONE?
+% (2) threshold better ==> DONE
+% (3) why still double counted???
+% (4) checkpoint?
+% (5) output for syglass ==> DONE
+
+
 %% Important functional notes about updates:
 % (1) There is now a failsafe after manual correction where you correct any
 % cells that are still merged to more than 1 cell. Things to note about
@@ -18,7 +26,7 @@
 %           be inside the segmentation of the wrongly connected cells,
 %           because as long as you place a dot, you create a "new cell"
 %           that is now separate from the wrongly connected ones.
-%          
+%
 % (3) *** remember that you can now check on your work by pressing
 % "backspace"!!! super helpful
 %
@@ -53,8 +61,8 @@
 % speed up the plotting because still a bit slow
 
 %% New additions: version 1.3
-% (1) Non-cell centered figures + green/red overlay?  ==> DONE 
-% (2) Counter for # of cells left to check ==> DONE 
+% (1) Non-cell centered figures + green/red overlay?  ==> DONE
+% (2) Counter for # of cells left to check ==> DONE
 % (3) Add timepoint # on top of images ==> DONE
 % (4) Change color scheme on top image stackes for data/seg ==> to
 % white/red or green/red
@@ -130,9 +138,12 @@ matrix_timeseries = cell(10000, numfids/2);
 %% Input dialog values
 prompt = {'crop size (XY px): ', 'z_size (Z px): ', 'ssim_thresh (0 - 1): ', 'low_dist_thresh (0 - 20): ', 'upper_dist_thresh (30 - 100): ', 'min_siz (0 - 500): ', 'first_slice: ', 'last_slice: ', 'manual_correct? (Y/N): '};
 dlgtitle = 'Input';
-definput = {'200', '20', '0.25', '20', '30', '10', '1', '130', 'Y'};
+definput = {'200', '20', '0.20', '20', '25', '10', '1', '135', 'N'};
 %definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
 %definput = {'200', '20', '0.30', '15', '25', '50', '5', '120', 'Y'};
+
+
+lower_dist_thresh = 15;
 
 %% Switched to dist_thresh == 20 from 15 for scaled!!! and upper dist thresh from 20 to 30
 
@@ -164,7 +175,8 @@ for cell_idx = 1:length(all_s{timeframe_idx})
     centroid = cur_s(cell_idx).centerDAPI;
     cell_num = cell_idx;
     % create cell object
-    cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+    confidence_color = 1;
+    cell_obj = cell_class(voxelIdxList,centroid, cell_num, confidence_color);
     matrix_timeseries{cell_idx} = cell_obj;
 end
 
@@ -238,37 +250,27 @@ for fileNum = 3 : 2: numfids
     % (1) First create a matrix with all cells given idx corresponding
     % to knn analysis so can find them in a crop
     dist_label_idx_matrix = zeros(size(frame_1));
+    
     for dist_idx = 1:length(cur_timeseries)
-        if ~isempty(cur_timeseries{dist_idx})
+        if ~isempty(cur_timeseries{dist_idx}) 
             dist_label_idx_matrix(cur_timeseries{dist_idx}.voxelIdxList) = dist_idx;
         end
     end
+
+%     dist_label_idx_matrix_close = zeros(size(frame_1));
+%     close_idx = find(D < 10);
+%      for id = 1:length(close_idx)
+%             dist_label_idx_matrix_close(cur_timeseries{close_idx(id)}.voxelIdxList) = close_idx(id);
+%     end   
     
     %% Find GLOBAL vectors
-    plot_bool = 1; 
+    plot_bool = 1;
     if plot_bool
         figure(); hold on;
     end
     [avg_vec, all_unit_v, all_dist_to_avg, cells_in_crop, all_dist_to_avg_RAW] = find_avg_vectors_GLOBAL(dist_label_idx_matrix, cur_centroids_scaled, next_centroids_scaled,  neighbor_idx, plot_bool);
 
-%     z_distance = abs(all_dist_to_avg_RAW(:, 3));
-%     outliers = find(isoutlier(z_distance, 'percentiles', [0, 90]));
-%     z_outlier_dist = mean(z_distance(outliers));
     
-    
-    
-    %% Adaptively find distance thresholds using outlier analysis
-    % (4) check if it is an outlier to the 90th percentile:
-    outliers = find(isoutlier(D, 'percentiles', [0, 85]));
-    dist_thresh = mean(D(outliers));
-    %dist_thresh = 10000;
-    
-    outliers = find(isoutlier(D, 'percentiles', [0, 95]));
-    upper_dist_thresh = mean(D(outliers));
-    
-    outliers = find(isoutlier(D, 'percentiles', [0, 10]));
-    lower_dist_thresh = mean(D(outliers));
-        
     %% (1) Do preliminary loop through to find VERY CONFIDENT neighbours
     %% add into the cell list with corresponding cell number
     % SSIM > 0.4, and distance very small < 10 pixels
@@ -285,6 +287,7 @@ for fileNum = 3 : 2: numfids
     idx_non_confident = [];
     num_matched = 0;
     num_far = 0;
+    num_farthest = 0;
     for check_neighbor = 1:length(neighbor_idx)
         close all;
         if isnan(D(check_neighbor))   % skip all the "nans"
@@ -311,51 +314,62 @@ for fileNum = 3 : 2: numfids
         if skip && length(cells_in_crop) > 5
             cell_of_interest =  cur_centroids_scaled(check_neighbor, :);
             neighbor_of_cell =  next_centroids_scaled(neighbor_idx(check_neighbor), :);
-            vector = abs(cell_of_interest) - abs(neighbor_of_cell);
+            vector = cell_of_interest - neighbor_of_cell;
             if plot_bool
                 plot3([0, vector(1)], [0, vector(2)], [0, vector(3)], 'LineWidth', 10);
             end
-            dist_to_avg = abs(avg_vec) - abs(vector);
+            dist_to_avg = avg_vec - vector;
             dist_to_avg = norm(dist_to_avg);
             
             % (4) check if it is an outlier to the 90th percentile:
             outliers = find(isoutlier(all_dist_to_avg, 'percentiles', [0, 90]));
             outliers_idx = cells_in_crop(outliers);
             outlier_vec_bool = find(ismember(outliers_idx, check_neighbor));
+            
+            %% Tiger added new: because in cuprizone many neighbors are badly associated, so need to set some extra checks
+            if dist_to_avg > 20
+                outlier_vec_bool = check_neighbor;
+            end
+            
         end
         
-        
-        %% Check z_distance:
-%         frame_1_centroid = cur_centroids(check_neighbor, :);
-%         frame_2_centroid = next_centroids(neighbor_idx(check_neighbor), :);
-%         
-%         % get frame 1 crop
-%         y = round(frame_1_centroid(1)); x = round(frame_1_centroid(2)); z = round(frame_1_centroid(3));
-%         y_1 = round(frame_2_centroid(1)); x_2 = round(frame_2_centroid(2)); z_2 = round(frame_2_centroid(3));
-%         
-        
-        %z_dist_diff = abs(z - z_2);
-        
-
-        %% If super far away, just discard the cell
-         if dist > upper_dist_thresh
-%             num_far = num_far + 1
-%             disp(num_far)
-             continue
+        %% (1) If far away AND is going wrong direction, then just discard the cell
+        far_upper_thresh = 35;
+        if dist > upper_dist_thresh && ~isempty(outlier_vec_bool)
+            num_far = num_far + 1;
+            disp('kinda far')
+            continue
+            
+        %% (2) but if super super far away, then discard it
+        elseif dist > far_upper_thresh
+            num_farthest = num_far + 1;
+            disp('super far')
+            continue            
+            
+        elseif ~isempty(outlier_vec_bool)
+            idx_non_confident = [idx_non_confident, check_neighbor];
+            %% Plot for  debug
+            %             plot_full_figure_debug(frame_1, frame_2, truth_1, truth_2, crop_frame_1, crop_frame_2...
+            %                 ,crop_truth_1, crop_truth_2,D, check_neighbor, neighbor_idx...
+            %                 ,matrix_timeseries, cur_timeseries, next_timeseries, timeframe_idx...
+            %                 ,smaller_crop_size, smaller_z_size...
+            %                 ,cur_centroids, crop_blank_truth_1, crop_blank_truth_2, next_centroids);
+            %             pause()
             
             %% if ssim_val very high AND distance small ==> save the cell
-         elseif ssim_val >= ssim_val_thresh && dist <= dist_thresh
+        elseif ssim_val >= ssim_val_thresh && dist <= dist_thresh
             
-            if dist >= dist_thresh && z_dist_diff <= z_outlier_dist
-                disp('z_threshed okay');
-            end
+            %             if dist >= dist_thresh && z_dist_diff <= z_outlier_dist
+            %                 disp('z_threshed okay');
+            %             end
             
             next_cell = next_timeseries(neighbor_idx(check_neighbor));
             voxelIdxList = next_cell.objDAPI;
             centroid = next_cell.centerDAPI;
             cell_num = check_neighbor;
             % create cell object
-            cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+            confidence_color = 1;
+            cell_obj = cell_class(voxelIdxList,centroid, cell_num, confidence_color);
             matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
             %pause
             
@@ -369,7 +383,8 @@ for fileNum = 3 : 2: numfids
             centroid = next_cell.centerDAPI;
             cell_num = check_neighbor;
             % create cell object
-            cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+            confidence_color = 1;
+            cell_obj = cell_class(voxelIdxList,centroid, cell_num, confidence_color);
             matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
             
             num_matched = num_matched + 1;
@@ -394,14 +409,16 @@ for fileNum = 3 : 2: numfids
     
     % first find index of all non-confident ones
     disp('please correct non-confident cells')
+    disp(num2str(length(idx_non_confident)));
     total_num_frames = numfids/2;
-    if manual_correct_bool == 'Y'
-        close all;
-        figure(3);
-        idx_nc = 1;
-        while idx_nc <= length(idx_non_confident)
-            check_neighbor = idx_non_confident(idx_nc);
-            
+    
+    close all;
+    figure(3);
+    idx_nc = 1;
+    while idx_nc <= length(idx_non_confident)
+        check_neighbor = idx_non_confident(idx_nc);
+        
+        if manual_correct_bool == 'Y'
             %% Get x_min, x_max ect... for crop box limits
             frame_2_centroid = next_centroids(neighbor_idx(check_neighbor), :);
             y_first = round(frame_2_centroid(1)); x_first = round(frame_2_centroid(2)); z_first = round(frame_2_centroid(3));
@@ -434,14 +451,29 @@ for fileNum = 3 : 2: numfids
                 idx_nc = idx_nc + 1;
             end
             
+            %% otherwise, give a marker as "non-confident"
+        else
+            %% add cell as non-confident
+            next_cell = next_timeseries(neighbor_idx(check_neighbor));
+            voxelIdxList = next_cell.objDAPI;
+            centroid = next_cell.centerDAPI;
+            cell_num = check_neighbor;
+            % create cell object
+            confidence_color = 2; %% NOT CONFIDENT
+            cell_obj = cell_class(voxelIdxList,centroid, cell_num, confidence_color);
+            matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
+            
+            idx_nc = idx_nc + 1;
         end
+        
     end
+    
     close all;
     
     
     
     
-        %% (3) Clean double counted cells
+    %% (3) Clean double counted cells
     %% Find all cells that are double matched and correct them
     looks_okay = 'Y';
     while looks_okay == 'Y'
@@ -507,7 +539,7 @@ for fileNum = 3 : 2: numfids
         total_num_frames = 1;
         
         %% organize list of cells into correct order
-        tmp_idx_double_counted = find(idx_double_counted == timeframe_idx(:, 1) + 1);
+        tmp_idx_double_counted = find(idx_double_counted(:, 1) == timeframe_idx(:, 1) + 1);
         tmp_idx_double_counted = idx_double_counted(tmp_idx_double_counted, :);
         
         uniq_idx = unique(tmp_idx_double_counted);
@@ -515,33 +547,35 @@ for fileNum = 3 : 2: numfids
             tmp_idx_double_counted = unique(tmp_idx_double_counted(:, 2:3));
         end
         
-        if manual_correct_bool == 'Y'
-            close all;
-            figure(3);
-            idx_nc = 1;
-            while idx_nc <= length(tmp_idx_double_counted)
-                
-                check_neighbor = tmp_idx_double_counted(idx_nc);
-                %% Get x_min, x_max ect... for crop box limits
-                frame_2_centroid = next_centroids(tmp_idx_double_counted(idx_nc), :);
-                
-                y_first = round(frame_2_centroid(1)); x_first = round(frame_2_centroid(2)); z_first = round(frame_2_centroid(3));
-                im_size = size(frame_2);
-                height = im_size(1);  width = im_size(2); depth = im_size(3);
-                [crop_frame_2, x_min, x_max, y_min, y_max, z_min, z_max] = crop_around_centroid(frame_2, y_first, x_first, z_first, crop_size, z_size, height, width, depth);
-                
-                
-                %% add cell first so can be more adaptive later
-                next_cell = next_timeseries(neighbor_idx(check_neighbor));
-                voxelIdxList = next_cell.objDAPI;
-                centroid = next_cell.centerDAPI;
-                cell_num = check_neighbor;
-                % create cell object
-                cell_obj = cell_class(voxelIdxList,centroid, cell_num);
-                matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
-                
-                
-                %% manual correction
+        
+        close all;
+        figure(3);
+        idx_nc = 1;
+        while idx_nc <= length(tmp_idx_double_counted)
+            
+            check_neighbor = tmp_idx_double_counted(idx_nc);
+            %% Get x_min, x_max ect... for crop box limits
+            frame_2_centroid = next_centroids(tmp_idx_double_counted(idx_nc), :);
+            
+            y_first = round(frame_2_centroid(1)); x_first = round(frame_2_centroid(2)); z_first = round(frame_2_centroid(3));
+            im_size = size(frame_2);
+            height = im_size(1);  width = im_size(2); depth = im_size(3);
+            [crop_frame_2, x_min, x_max, y_min, y_max, z_min, z_max] = crop_around_centroid(frame_2, y_first, x_first, z_first, crop_size, z_size, height, width, depth);
+            
+            
+            %% add cell first so can be more adaptive later
+            next_cell = next_timeseries(neighbor_idx(check_neighbor));
+            voxelIdxList = next_cell.objDAPI;
+            centroid = next_cell.centerDAPI;
+            cell_num = check_neighbor;
+            % create cell object
+            confidence_color = 3; %% DOUBLE COUNTED
+            cell_obj = cell_class(voxelIdxList,centroid, cell_num, confidence_color);
+            matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
+            
+            
+            %% manual correction
+            if manual_correct_bool == 'Y'
                 cur_cell_idx = idx_nc;
                 total_cells_to_correct = length(tmp_idx_double_counted);
                 [option_num, matrix_timeseries, term] = Bergles_manual_correct(frame_1, frame_2, truth_1, truth_2, crop_frame_2...
@@ -568,20 +602,27 @@ for fileNum = 3 : 2: numfids
                     idx_nc = idx_nc + 1;
                 end
                 
+            else
+                 idx_nc = idx_nc + 1;
             end
+            
         end
         close all;
         
         %% Satisfied?
-        prompt = {'Repeat check for double cells? (Y/N):'};
-        dlgtitle = 'Repeat?';
-        definput = {'N'};
-        answer = inputdlg(prompt,dlgtitle, [1, 35], definput);
-        looks_okay = answer{1};
+        if manual_correct_bool == 'Y'
+            prompt = {'Repeat check for double cells? (Y/N):'};
+            dlgtitle = 'Repeat?';
+            definput = {'N'};
+            answer = inputdlg(prompt,dlgtitle, [1, 35], definput);
+            looks_okay = answer{1};
+        else
+            looks_okay = 'N';
+        end
         
     end
-
-
+    
+    
     %% (4) Identify remaining unassociated cells and add them to the cell list with NEW numbering (at the end of the list)
     disp('adding non-matched new cells')
     next_timeseries = all_s{timeframe_idx + 1};
@@ -616,11 +657,12 @@ for fileNum = 3 : 2: numfids
             centroid = next_cell.centerDAPI;
             cell_num = check_neighbor;
             % create cell object
-            cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+            confidence_color = 1;
+            cell_obj = cell_class(voxelIdxList,centroid, cell_num, confidence_color);
             matrix_timeseries{total_cells, timeframe_idx + 1} =  cell_obj;
         end
     end
-   
+    
     
     %% Nothing below the last 10 frames can be a new cell after the first frame has been tested
     del_num = 0;
@@ -639,6 +681,7 @@ for fileNum = 3 : 2: numfids
                 disp(num2str(del_num));
             end
         end
+        
     end
     
     %% (optional) Double check all the cells in the current timeframe that were NOT associated with stuff
@@ -662,6 +705,9 @@ save('matrix_timeseries_raw', 'matrix_timeseries_raw');
 %% parse the structs to get same output file as what Cody has (raw output)
 % subtract 1 from timeframe idx AND from cell_idx to match Cody's output!
 csv_matrix = [];
+headers = {};
+fid = fopen( 'output_raw.csv', 'w' );
+fprintf( fid, '%s,%s,%s,%s,%s,%s\n', 'SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z' );
 for cell_idx = 1:length(matrix_timeseries(:, 1))
     for timeframe = 1:length(matrix_timeseries(1, :))
         if isempty(matrix_timeseries{cell_idx, timeframe})
@@ -670,6 +716,17 @@ for cell_idx = 1:length(matrix_timeseries(:, 1))
         
         cur_cell = matrix_timeseries{cell_idx, timeframe};
         
+        confidence_color = cur_cell.confidence_color;
+        color = [];
+        if confidence_color == 1
+            color = 'Green';
+        elseif confidence_color == 2
+            color = 'Red';
+        elseif confidence_color == 3
+            color = 'Yellow';
+        end
+           
+        
         volume = length(cur_cell.voxelIdxList);
         centroid = cur_cell.centroid;
         
@@ -677,11 +734,10 @@ for cell_idx = 1:length(matrix_timeseries(:, 1))
         altogether = [cell_idx - 1, timeframe - 1, centroid, volume];
         
         csv_matrix = [csv_matrix; altogether];
-        
+        fprintf( fid, '%d,%s,%d,%d,%d,%d\n', cell_idx - 1, color, timeframe - 1,centroid(1), centroid(2), centroid(3));
     end
 end
-writematrix(csv_matrix, 'output_raw.csv')
-
+fclose( fid );
 
 %% Additional post-processing of edges and errors
 % (A) Eliminate everything that only exists on a single frame
@@ -736,6 +792,10 @@ end
 %% parse the structs to get same output file as what Cody has!
 % subtract 1 from timeframe idx AND from cell_idx to match Cody's output!
 csv_matrix = [];
+
+headers = {};
+fid = fopen( 'output.csv', 'w' );
+fprintf( fid, '%s,%s,%s,%s,%s,%s\n', 'SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z' );
 for cell_idx = 1:length(matrix_timeseries(:, 1))
     for timeframe = 1:length(matrix_timeseries(1, :))
         if isempty(matrix_timeseries{cell_idx, timeframe})
@@ -744,6 +804,17 @@ for cell_idx = 1:length(matrix_timeseries(:, 1))
         
         cur_cell = matrix_timeseries{cell_idx, timeframe};
         
+        confidence_color = cur_cell.confidence_color;
+        color = [];
+        if confidence_color == 1
+            color = 'Green';
+        elseif confidence_color == 2
+            color = 'Red';
+        elseif confidence_color == 3
+            color = 'Yellow';
+        end
+           
+        
         volume = length(cur_cell.voxelIdxList);
         centroid = cur_cell.centroid;
         
@@ -751,50 +822,101 @@ for cell_idx = 1:length(matrix_timeseries(:, 1))
         altogether = [cell_idx - 1, timeframe - 1, centroid, volume];
         
         csv_matrix = [csv_matrix; altogether];
-        
+        fprintf( fid, '%d,%s,%d,%d,%d,%d\n', cell_idx - 1, color, timeframe - 1,centroid(1), centroid(2), centroid(3));
     end
 end
-writematrix(csv_matrix, 'output.csv')
+fclose( fid );
+
+
 
 %% also save matrix_timeseries
 save('matrix_timeseries', 'matrix_timeseries');
 
 %% Recreate the output DAPI for each frame with cell number for each (create rainbow image)
-list_random_colors = randi([1, 20], [1, length(matrix_timeseries)]);
-for timeframe_idx = 1:length(matrix_timeseries(1, :))
-    im_frame = zeros(og_size);
-    for cell_idx = 1:length(matrix_timeseries(:, 1))
-        
-        if isempty(matrix_timeseries{cell_idx, timeframe_idx})
-            continue;
-        end
-        
-        %         if timeframe_idx + 1 < length(matrix_timeseries) && ~isempty(matrix_timeseries{cell_idx, timeframe_idx + 1})
-        %            continue;
-        %         end
-        
-        %% Skip everything that IS persisting (so leaving all the NEW cells)
-        %         if timeframe_idx > 1 && ~isempty(matrix_timeseries{cell_idx, timeframe_idx - 1})
-        %            continue;
-        %         end
-        
-        cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
-        
-        voxels = cur_cell.voxelIdxList;
-        
-        im_frame(voxels) = list_random_colors(cell_idx);
-    end
-    
-    % save one frame
-    filename_raw = natfnames{timeframe_idx * 2 - 1};
-    z_size = length(im_frame(1, 1, :));
-    
-    im_frame = uint8(im_frame);
-    for k = 1:z_size
-        input = im_frame(:, :, k);
-        imwrite(input, strcat(filename_raw,'_CORR_SEMI_AUTO.tif') , 'writemode', 'append', 'Compression','none')
-    end
-end
+% list_random_colors = randi([1, 20], [1, length(matrix_timeseries)]);
+% for timeframe_idx = 1:length(matrix_timeseries(1, :))
+%     im_frame = zeros(og_size);
+%     for cell_idx = 1:length(matrix_timeseries(:, 1))
+%         
+%         if isempty(matrix_timeseries{cell_idx, timeframe_idx})
+%             continue;
+%         end
+%         
+%         %         if timeframe_idx + 1 < length(matrix_timeseries) && ~isempty(matrix_timeseries{cell_idx, timeframe_idx + 1})
+%         %            continue;
+%         %         end
+%         
+%         %% Skip everything that IS persisting (so leaving all the NEW cells)
+%                 if timeframe_idx > 1 && ~isempty(matrix_timeseries{cell_idx, timeframe_idx - 1})
+%                    continue;
+%                 end
+%         
+%         cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
+%         
+%         voxels = cur_cell.voxelIdxList;
+%         
+%         im_frame(voxels) = list_random_colors(cell_idx);
+%     end
+%     
+%     % save one frame
+%     filename_raw = natfnames{timeframe_idx * 2 - 1};
+%     z_size = length(im_frame(1, 1, :));
+%     
+%     im_frame = uint8(im_frame);
+%     for k = 1:z_size
+%         input = im_frame(:, :, k);
+%         imwrite(input, strcat(filename_raw,'_CORR_SEMI_AUTO.tif') , 'writemode', 'append', 'Compression','none')
+%     end
+% end
+
+
+
+%% Plot out cells that are confident vs. non-confident
+
+% num_merged = 0;
+% num_nc = 0;
+% for timeframe_idx = 1:length(matrix_timeseries(1, :))
+%     im_frame = zeros(og_size);
+%     for cell_idx = 1:length(matrix_timeseries(:, 1))
+%         
+%         if isempty(matrix_timeseries{cell_idx, timeframe_idx})
+%             continue;
+%         end
+%         
+%         %         if timeframe_idx + 1 < length(matrix_timeseries) && ~isempty(matrix_timeseries{cell_idx, timeframe_idx + 1})
+%         %            continue;
+%         %         end
+%         
+%         %% Skip everything that IS persisting (so leaving all the NEW cells)
+%         %         if timeframe_idx > 1 && ~isempty(matrix_timeseries{cell_idx, timeframe_idx - 1})
+%         %            continue;
+%         %         end
+%         
+%         cur_cell = matrix_timeseries{cell_idx, timeframe_idx};
+%         
+%         voxels = cur_cell.voxelIdxList;
+%         confidence_color = cur_cell.confidence_color;
+% 
+%         im_frame(voxels) = confidence_color;
+%         
+%         if confidence_color == 3
+%             num_merged = num_merged + 1;
+%         elseif confidence_color == 2
+%             num_nc = num_nc + 1;
+%         end
+%             
+%     end
+%     
+%     % save one frame
+%     filename_raw = natfnames{timeframe_idx * 2 - 1};
+%     z_size = length(im_frame(1, 1, :));
+%     
+%     im_frame = uint8(im_frame);
+%     for k = 1:z_size
+%         input = im_frame(:, :, k);
+%         imwrite(input, strcat(filename_raw,'_CONF.tif') , 'writemode', 'append', 'Compression','none')
+%     end
+% end
 
 
 

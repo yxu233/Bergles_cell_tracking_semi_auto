@@ -41,7 +41,8 @@ while option_num>0 && term == 0
                 centroid = next_cell.centerDAPI;
                 cell_num = check_neighbor;
                 % create cell object
-                cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+                confidence_color = 1;
+                cell_obj = cell_class(voxelIdxList,centroid, cell_num, confidence_color);
                 matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
                 
                 %% add newly selected cell from option "a" below
@@ -52,7 +53,8 @@ while option_num>0 && term == 0
                 centroid = next_cell.centerDAPI;
                 cell_num = check_neighbor;
                 % create cell object
-                cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+                confidence_color = 1;
+                cell_obj = cell_class(voxelIdxList,centroid, cell_num, confidence_color);
                 matrix_timeseries{check_neighbor, timeframe_idx + 1} =  cell_obj;
                 
                 sorted_idx = 0;
@@ -199,7 +201,8 @@ while option_num>0 && term == 0
             centroid = [y(round(length(y)/2)), x(round(length(x)/2)), z(round(length(z)/2))];
             cell_num = check_neighbor;
             % create cell object
-            cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+            confidence_color = 1;
+            cell_obj = cell_class(voxelIdxList,centroid, cell_num, confidence_color);
             matrix_timeseries{check_neighbor, timeframe_idx + 1} = cell_obj;
             
             
@@ -261,7 +264,8 @@ while option_num>0 && term == 0
             centroid = [y(round(length(y)/2)), x(round(length(x)/2)), z(round(length(z)/2))];
             cell_num = check_neighbor;
             % create cell object
-            cell_obj = cell_class(voxelIdxList,centroid, cell_num);
+            confidence_color = 1;
+            cell_obj = cell_class(voxelIdxList,centroid, cell_num, confidence_color);
             matrix_timeseries{check_neighbor, timeframe_idx} = cell_obj;
             
             
@@ -699,7 +703,7 @@ end
             if plot_bool
                 plot3([0, vector(1)], [0, vector(2)], [0, vector(3)], 'LineWidth', 10);
             end
-            dist_to_avg = abs(avg_vec) - abs(vector);
+            dist_to_avg = avg_vec - vector;
             dist_to_avg = norm(dist_to_avg);
             
             % (4) check if it is an outlier to the 90th percentile:
@@ -713,6 +717,13 @@ end
             outliers_idx = cells_in_crop(outliers);
             
             outlier_vec_bool_95 = find(ismember(outliers_idx, check_neighbor));
+            
+            
+            %% Tiger added new: because in cuprizone many neighbors are badly associated, so need to set some extra checks
+            if dist_to_avg > 20
+                outlier_vec_bool = check_neighbor;
+            end
+            
             
         end
         
