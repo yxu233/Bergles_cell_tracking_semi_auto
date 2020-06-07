@@ -704,40 +704,40 @@ save('matrix_timeseries_raw', 'matrix_timeseries_raw');
 
 %% parse the structs to get same output file as what Cody has (raw output)
 % subtract 1 from timeframe idx AND from cell_idx to match Cody's output!
-csv_matrix = [];
-headers = {};
-fid = fopen( 'output_raw.csv', 'w' );
-fprintf( fid, '%s,%s,%s,%s,%s,%s\n', 'SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z' );
-for cell_idx = 1:length(matrix_timeseries(:, 1))
-    for timeframe = 1:length(matrix_timeseries(1, :))
-        if isempty(matrix_timeseries{cell_idx, timeframe})
-            continue;
-        end
-        
-        cur_cell = matrix_timeseries{cell_idx, timeframe};
-        
-        confidence_color = cur_cell.confidence_color;
-        color = [];
-        if confidence_color == 1
-            color = 'Green';
-        elseif confidence_color == 2
-            color = 'Red';
-        elseif confidence_color == 3
-            color = 'Yellow';
-        end
-           
-        
-        volume = length(cur_cell.voxelIdxList);
-        centroid = cur_cell.centroid;
-        
-        %% Subtract 1 from timeframe index and cell index to match Cody's output!
-        altogether = [cell_idx - 1, timeframe - 1, centroid, volume];
-        
-        csv_matrix = [csv_matrix; altogether];
-        fprintf( fid, '%d,%s,%d,%d,%d,%d\n', cell_idx - 1, color, timeframe - 1,centroid(1), centroid(2), centroid(3));
-    end
-end
-fclose( fid );
+% csv_matrix = [];
+% headers = {};
+% fid = fopen( 'output_raw.csv', 'w' );
+% fprintf( fid, '%s,%s,%s,%s,%s,%s\n', 'SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z' );
+% for cell_idx = 1:length(matrix_timeseries(:, 1))
+%     for timeframe = 1:length(matrix_timeseries(1, :))
+%         if isempty(matrix_timeseries{cell_idx, timeframe})
+%             continue;
+%         end
+%         
+%         cur_cell = matrix_timeseries{cell_idx, timeframe};
+%         
+%         confidence_color = cur_cell.confidence_color;
+%         color = [];
+%         if confidence_color == 1
+%             color = 'Green';
+%         elseif confidence_color == 2
+%             color = 'Red';
+%         elseif confidence_color == 3
+%             color = 'Yellow';
+%         end
+%            
+%         
+%         volume = length(cur_cell.voxelIdxList);
+%         centroid = cur_cell.centroid;
+%         
+%         %% Subtract 1 from timeframe index and cell index to match Cody's output!
+%         altogether = [cell_idx - 1, timeframe - 1, centroid, volume];
+%         
+%         csv_matrix = [csv_matrix; altogether];
+%         fprintf( fid, '%d,%s,%d,%d,%d,%d\n', cell_idx - 1, color, timeframe - 1,centroid(1), centroid(2), centroid(3));
+%     end
+% end
+% fclose( fid );
 
 %% Additional post-processing of edges and errors
 % (A) Eliminate everything that only exists on a single frame
@@ -789,14 +789,11 @@ end
 %     end
 % end
 
-%% parse the structs to get same output file as what Cody has!
-% subtract 1 from timeframe idx AND from cell_idx to match Cody's output!
-csv_matrix = [];
 
-headers = {};
-fid = fopen( 'output.csv', 'w' );
-fprintf( fid, '%s,%s,%s,%s,%s,%s\n', 'SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z' );
+%% find out which rows have a weird color
+all_colors = cell(0);
 for cell_idx = 1:length(matrix_timeseries(:, 1))
+    inner_color = [];
     for timeframe = 1:length(matrix_timeseries(1, :))
         if isempty(matrix_timeseries{cell_idx, timeframe})
             continue;
@@ -805,12 +802,47 @@ for cell_idx = 1:length(matrix_timeseries(:, 1))
         cur_cell = matrix_timeseries{cell_idx, timeframe};
         
         confidence_color = cur_cell.confidence_color;
-        color = [];
-        if confidence_color == 1
-            color = 'Green';
-        elseif confidence_color == 2
-            color = 'Red';
+        if confidence_color == 1 && ( ~strcmp(inner_color, 'Red') || ~strcmp(inner_color, 'Yellow'))
+            inner_color = 'Green';
+        elseif confidence_color == 2 && ( ~strcmp(inner_color, 'Yellow')) 
+            inner_color = 'Red';
         elseif confidence_color == 3
+            inner_color = 'Yellow';
+            break;
+        end
+    end
+    all_colors{end + 1} = inner_color;
+end
+all_colors = all_colors';
+
+
+%% parse the structs to get same output file as what Cody has!
+% subtract 1 from timeframe idx AND from cell_idx to match Cody's output!
+csv_matrix = [];
+
+headers = {};
+fid = fopen( 'output.csv', 'w' );
+fprintf( fid, '%s,%s,%s,%s,%s,%s\n', 'SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z' );
+
+num_green = 0;
+num_red = 0;
+num_yellow = 0;
+for cell_idx = 1:length(matrix_timeseries(:, 1))
+    confidence_color = [];
+    for timeframe = 1:length(matrix_timeseries(1, :))
+        if isempty(matrix_timeseries{cell_idx, timeframe})
+            continue;
+        end
+        
+        cur_cell = matrix_timeseries{cell_idx, timeframe};
+        
+        confidence_color = all_colors{cell_idx};
+        color = [];
+        if strcmp(confidence_color, 'Green')
+            color = 'Green';
+        elseif strcmp(confidence_color, 'Red')
+            color = 'Red';
+        elseif strcmp(confidence_color, 'Yellow')
             color = 'Yellow';
         end
            
@@ -824,6 +856,16 @@ for cell_idx = 1:length(matrix_timeseries(:, 1))
         csv_matrix = [csv_matrix; altogether];
         fprintf( fid, '%d,%s,%d,%d,%d,%d\n', cell_idx - 1, color, timeframe - 1,centroid(1), centroid(2), centroid(3));
     end
+    
+    if strcmp(confidence_color, 'Green')
+        num_green  = num_green + 1;
+    elseif strcmp(confidence_color, 'Red')
+        num_red  = num_red + 1;
+    elseif strcmp(confidence_color, 'Yellow')
+        num_yellow  = num_yellow + 1;
+    end
+    
+    
 end
 fclose( fid );
 
