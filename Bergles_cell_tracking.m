@@ -540,6 +540,37 @@ for fileNum = 3 : 2: numfids
         
         %% organize list of cells into correct order
         tmp_idx_double_counted = find(idx_double_counted(:, 1) == timeframe_idx(:, 1) + 1);
+        
+        
+        
+        
+        
+        %% Compare metrics for merged cells and pick best one
+        for merge_idx = 1:length(tmp_idx_double_counted)
+            
+            % (1) find every other cell that has same merge issue
+            
+        end
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         tmp_idx_double_counted = idx_double_counted(tmp_idx_double_counted, :);
         
         uniq_idx = unique(tmp_idx_double_counted);

@@ -40,9 +40,3 @@ for cell_num = 1:length(matrix_timeseries(:, frame_num))
     
 end
 
-
-
-
-%% ***blue dot super dim but useful
-%% ***take out the secondary cleaning on cycling
-%% ***speed it up bruh
