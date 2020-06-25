@@ -210,6 +210,10 @@ for fileNum = 3 : 2: numfids
     % get next frame
     [all_s, frame_2, truth_2, og_size] = load_data_into_struct(foldername, natfnames, fileNum, all_s, thresh_size, first_slice, last_slice);
     
+    
+    [D, registered] = imregdemons(frame_1, frame_2, [50, 25, 10]);
+    
+    
     %% Loop through struct to find nearest neighbors
     % first frame is always taken from "matrix_timeseries" ==> which has
     % been cleaned and sorted
