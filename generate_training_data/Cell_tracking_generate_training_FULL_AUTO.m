@@ -55,60 +55,23 @@ for fileNum = 1:length(natfnames)
     im_z_size = im_size(3);
     
     
+    %% LOAD ENTIRE SERIES OF RAW AND SINGLE IMAGES
+    
+    
     %% Load csv as well
     filename_raw_csv = natfnames_csv{fileNum};
     syGlass10x = readtable(filename_raw_csv);
     
-    % 680 == 1024, 1024, 185 ==> 10x ==> MOBPF_190105w_1_cuprBZA_10x_T=
-    % 650 == 1052, 1036, 191 ==> 10x ==> MOBPF_190106w_5_cuprBZA_10x.tif - T=
-    % also + 10 to X, - 5 to Y
-    
-    % 670 == 512, 512, 203 ==> 20x ==> MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T=
-    
     %% START
-    
-    %im_y_size = 1024
-    %im_x_size = 1024
-    %im_z_size = 185
     save_name = filename_raw;
     save_name = split(save_name, '0.tif');
     save_name = save_name{1};
-    
-    % save_name = 'MOBPF_190106w_5_cuprBZA_10x.tif - T='
-    %
-    % im_y_size = 512
-    % im_x_size = 512
-    % im_z_size = 203
-    % save_name = 'MOBPF_190112w_8_cuprBZA_10x_cropped1quad.tif - T='
-    
     
     frame = syGlass10x.FRAME;
     all_Z = syGlass10x.Z;
     all_X = syGlass10x.Y;
     all_Y = syGlass10x.X;
-    
-    % frame = a1901128r670syGlass20x.FRAME;
-    % all_Z = a1901128r670syGlass20x.Z;
-    % all_Y = a1901128r670syGlass20x.Y;
-    % all_X = a1901128r670syGlass20x.X;
-    
-    %x_um = 859.18 % in um for 10x resolution
-    % x_um = max(all_X) + 25 - min(all_X);
-    % x_scale = im_x_size ./ x_um;
-    %
-    % y_um = max(all_Y) + 25 - min(all_Y);
-    % y_scale = im_y_size ./ y_um;
-    
-    %x_scale = 1.1918 %in um for 10x resolution 680
-    %y_scale = 1.1918 %in um for 10x resolution
-    
-    %x_scale = 1.2044 %in um for 10x resolution 650
-    %y_scale = 1.2044 %in um for 10x resolution
-    
-    %x_scale = 1.2044 %in um for 20x resolution 650
-    %y_scale = 1.2044 %in um for 20x resolution
-    
-    
+
     %% Scale x and y
     all_X = all_X * x_scale;
     all_Y = all_Y * y_scale;
@@ -116,25 +79,14 @@ for fileNum = 1:length(natfnames)
     %% Normalize to first val 0 indexing
     middle_val = im_x_size ./ 2;
     all_X = round(all_X + middle_val);
-    %all_X = round(all_X + middle_val + 1);
-    %all_X = round(all_X + middle_val + 10);
     
     middle_val = im_y_size ./ 2;
     all_Y = round(all_Y + middle_val);
-    %all_Y = round(all_Y + middle_val - 5);
-    
-    
 
-    
-    %% Scale Z
-    %z_um = max(all_Z) - min(all_Z);   % in um
-    %z_um = 290 - min(all_Z);   % in um
-    %z_scale = im_z_size ./ z_um;
-        
+    %% Scale Z     
     all_Z = all_Z * z_scale;
     middle_val = im_z_size ./ 2;
     all_Z = round(all_Z + middle_val);
-    %all_Z = round(all_Z + middle_val + 5);
     
     together = [frame, all_X, all_Y, all_Z];
     [~,idx] = sort(together(:,1)); % sort just the first column
@@ -142,7 +94,7 @@ for fileNum = 1:length(natfnames)
     
     cur_idx = 0;
     im_size = [im_x_size, im_y_size, im_z_size];
-    blank_im = zeros(im_size);
+    %blank_im = zeros(im_size);
     for i = 1:length(sortedmat)
         
         if cur_idx == sortedmat(i)
@@ -168,25 +120,27 @@ for fileNum = 1:length(natfnames)
             end
             
             lin_ind = sub2ind(size(blank_im), x, y, z);
-            blank_im(lin_ind) = 1;
+            
+            %% CROP
+            
+            %blank_im(lin_ind) = 1;
             
         else
             cur_idx = cur_idx + 1;
-            %figure(); volshow(blank_im);
-            blank_im = imdilate(blank_im, strel('sphere', 4));
-            % save image as well
-            for k = 1:length(blank_im(1, 1, :))
-                im_2D = blank_im(:, :, k);
-                im_2D = im2uint8(im_2D);
-                
-                %figure(888); imshow(im_2D);
-                filename_save = save_name;
-                imwrite(im_2D, strcat(filename_save, num2str(cur_idx - 1),'_truth.tif') , 'writemode', 'append', 'Compression','none')
-            end
-            
-            % then create new blank
-            blank_im = zeros(im_size);
-            %break;
+%             blank_im = imdilate(blank_im, strel('sphere', 4));
+%             % save image as well
+%             for k = 1:length(blank_im(1, 1, :))
+%                 im_2D = blank_im(:, :, k);
+%                 im_2D = im2uint8(im_2D);
+%                 
+%                 %figure(888); imshow(im_2D);
+%                 filename_save = save_name;
+%                 imwrite(im_2D, strcat(filename_save, num2str(cur_idx - 1),'_truth.tif') , 'writemode', 'append', 'Compression','none')
+%             end
+%             
+%             % then create new blank
+%             blank_im = zeros(im_size);
+%             %break;
         end
         
         
@@ -195,20 +149,20 @@ for fileNum = 1:length(natfnames)
     
     %% Print out the last frame
     cur_idx = cur_idx + 1;
-    blank_im = imdilate(blank_im, strel('sphere', 4));
-    % save image as well
-    for k = 1:length(blank_im(1, 1, :))
-        im_2D = blank_im(:, :, k);
-        im_2D = im2uint8(im_2D);
-        
-        %figure(888); imshow(im_2D);
-        filename_save = save_name;
-        imwrite(im_2D, strcat(filename_save, num2str(cur_idx - 1),'_truth.tif') , 'writemode', 'append', 'Compression','none')
-    end
-    
-    % then create new blank
-    blank_im = zeros(im_size);
-    
+%     blank_im = imdilate(blank_im, strel('sphere', 4));
+%     % save image as well
+%     for k = 1:length(blank_im(1, 1, :))
+%         im_2D = blank_im(:, :, k);
+%         im_2D = im2uint8(im_2D);
+%         
+%         %figure(888); imshow(im_2D);
+%         filename_save = save_name;
+%         imwrite(im_2D, strcat(filename_save, num2str(cur_idx - 1),'_truth.tif') , 'writemode', 'append', 'Compression','none')
+%     end
+%     
+%     % then create new blank
+%     blank_im = zeros(im_size);
+%     
     
     
 end

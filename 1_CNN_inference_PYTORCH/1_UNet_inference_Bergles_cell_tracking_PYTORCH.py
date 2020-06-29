@@ -213,8 +213,8 @@ for input_path in list_folder:
             imsave(sav_dir + filename + '_' + str(int(i)) +'_segmentation.tif', segmentation)
             segmentation[segmentation > 0] = 1
             
-            input_im = np.asarray(input_im, np.uint8)
-            imsave(sav_dir + filename + '_' + str(int(i)) +'_input_im.tif', input_im)
+            # input_im = np.asarray(input_im, np.uint8)
+            # imsave(sav_dir + filename + '_' + str(int(i)) +'_input_im.tif', input_im)
             
             
             """ Load in truth data for comparison!!! sens + precision """
