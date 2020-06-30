@@ -203,7 +203,7 @@ for input_path in list_folder:
                                                       skip_top=1)
            
             segmentation[segmentation > 0] = 255
-            plot_max(segmentation)
+            #plot_max(segmentation)
             filename = input_name.split('/')[-1]
             filename = filename.split('.')[0:-1]
             filename = '.'.join(filename)

@@ -51,7 +51,7 @@ box_y_max - box_y_min;
 box_z_max - box_z_min;
 
 
-crop = input_im(box_x_min:box_x_max, box_y_min:box_y_max, box_z_min:box_z_max);
+crop = input_im(box_x_min + 1:box_x_max, box_y_min + 1:box_y_max, box_z_min + 1:box_z_max);
 end
 
 
