@@ -24,11 +24,46 @@ import scipy.io as sio
 #from UNet import *
 
 import glob, os
-
+from skimage import measure
 #from off_shoot_functions import *
 
 
 from PIL import ImageSequence
+
+""" uses an intensity map (that indicates where overalp occured), identifies segments that overlapped """
+def find_overlap_objs(im1, im2):
+    
+   bw = im2
+   bw[bw > 0] = 1
+   
+   intensity_map = im1 + im2
+   
+   
+   labelled = measure.label(bw)
+   cc_coloc = measure.regionprops(labelled, intensity_image=intensity_map)
+
+   only_coloc = np.zeros(np.shape(intensity_map))
+   
+   TP = 0; FP = 0;
+   for end_point in cc_coloc:
+        max_val = end_point['max_intensity']
+        coords = end_point['coords']
+        if max_val > 1:   # if match, then true positive
+            print('matched') 
+            only_coloc[coords[:,0], coords[:,1], coords[:,2] ] = 1
+            TP = TP + 1
+        else:  # is false positive
+            FP = FP + 1
+
+   # if more than one matches the center, the rest have to be added to the false positives as well!
+   difference = TP - 1
+   FP = FP + difference
+    
+
+        
+   return only_coloc, TP, FP
+
+
 def open_image_sequence_to_3D(input_name, width_max='default', height_max='default', depth='default'):
     input_im = [];
     tmp = Image.open(input_name)

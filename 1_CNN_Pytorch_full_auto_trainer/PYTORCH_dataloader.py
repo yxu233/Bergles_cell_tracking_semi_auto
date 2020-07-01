@@ -113,7 +113,7 @@ def transfer_to_GPU(X, Y, device, mean, std, transforms = 0):
      inputs = (inputs - mean)/std
                 
      """ Expand dims """
-     inputs = inputs.unsqueeze(1)   
+     #inputs = inputs.unsqueeze(1)   
 
      return inputs, labels
 
@@ -192,10 +192,12 @@ class Dataset_tiffs(data.Dataset):
         """
         temp = np.zeros((4, ) + np.shape(image))
         temp[0,...] = image
-        cur_full_seg[seed > 0] = 255
+        cur_full_seg[cur_full_seg > 0] = 10   # set these to just be of value 10
+        cur_full_seg[seed > 0] = 50
         temp[1,...] = cur_full_seg
         
         temp[2,...] = next_input
+        next_full_seg[next_full_seg > 0] = 10  # set these to just be of value 10
         temp[3,...] = next_full_seg
                              
         return temp

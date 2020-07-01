@@ -120,13 +120,13 @@ if __name__ == '__main__':
         """ Get metrics per epoch"""
         train_loss_per_epoch = []; train_jacc_per_epoch = []
         val_loss_per_eval = []; val_jacc_per_eval = []
-        plot_sens = []; plot_sens_val = [];
+        plot_sens = []; plot_sens_val = []; plot_acc = []
         plot_prec = []; plot_prec_val = [];
         lr_plot = [];
         iterations = 0;
         
         """ Start network """           
-        unet = UNet_online(in_channels=1, n_classes=2, depth=5, wf=3, padding= int((5 - 1)/2), 
+        unet = UNet_online(in_channels=4, n_classes=2, depth=5, wf=3, padding= int((5 - 1)/2), 
                            batch_norm=True, batch_norm_switchable=False, up_mode='upconv')
         unet.train()
         unet.to(device)
@@ -199,6 +199,7 @@ if __name__ == '__main__':
         plot_sens_val = check['plot_sens_val']
         plot_prec = check['plot_prec']
         plot_prec_val = check['plot_prec_val']
+        plot_acc = check['plot_acc']
      
         lr_plot = check['lr_plot']
         
@@ -295,6 +296,7 @@ if __name__ == '__main__':
                 # in_max = plot_max(np_inputs, plot=0)
                 # lb_max = plot_max(np_labels, plot=0)
                 
+                
                 # imsave(s_path + str(iterations) + '_max_input.tif', in_max)
                 # imsave(s_path + str(iterations) + '_max_label.tif', lb_max)                
                 
@@ -312,6 +314,7 @@ if __name__ == '__main__':
                 
                 """ forward + backward + optimize """
                 output_train = unet(inputs)
+                
                 loss = loss_function(output_train, labels)
                 if torch.is_tensor(spatial_weight):
                      spatial_tensor = torch.tensor(spatial_weight, dtype = torch.float, device=device, requires_grad=False)          
@@ -350,6 +353,8 @@ if __name__ == '__main__':
          loss_val = 0; jacc_val = 0
          precision_val = 0; sensitivity_val = 0; val_idx = 0;
          iter_cur_epoch = 0;
+         
+         total_FPs = 0; total_TPs = 0; total_FNs = 0; total_TNs = 0;
          if cur_epoch % validate_every_num_epochs == 0:
              
               with torch.set_grad_enabled(False):  # saves GPU RAM
@@ -383,36 +388,67 @@ if __name__ == '__main__':
                         output_val = output_val.cpu().data.numpy()            
                         output_val = np.moveaxis(output_val, 1, -1)
                         
-                        """ Calculate sensitivity + precision as other metrics ==> only ever on ONE IMAGE of a batch"""
+                        """ Calculate # of TP, FP, FN, TN for every image in the batch"""
                         batch_y_val = batch_y_val.cpu().data.numpy() 
-                        seg_val = np.argmax(output_val[0], axis=-1)  
-                        TP, FN, FP = find_TP_FP_FN_from_im(seg_val, batch_y_val[0])
-                                       
-                        if TP + FN == 0: TP;
-                        else: sensitivity = TP/(TP + FN); sensitivity_val += sensitivity;    # PPV
-                                       
-                        if TP + FP == 0: TP;
-                        else: precision = TP/(TP + FP);  precision_val += precision    # precision             
-              
+                        labels_val = labels_val.cpu().data.numpy()
+                        for b_idx in range(len(batch_y_val)):
+                            
+                            # get image from current batch
+                            seg_val = np.argmax(output_val[b_idx], axis=-1)  
+                            cur_label = labels_val[b_idx]
+                            
+                            
+                            ### (1) If is TN or FN, the seg_val is blank
+                            if not np.count_nonzero(cur_label):
+                                
+                                ### It is a true negative if the seg_val is ALSO blank
+                                if not np.count_nonzero(seg_val):
+                                   total_TNs += 1
+                                else:   
+                                   ### otherwise, calculate number of FN's
+                                   seg_val[seg_val > 0] = 1
+                                   labelled = measure.label(seg_val)
+                                   cc_coloc = measure.regionprops(labelled)
+                                   
+                                   total_FNs += len(cc_coloc)
+
+                            
+                            else:
+                                ### (2) otherwise, test for TP and FP
+                                only_coloc, TP, FP = find_overlap_objs(cur_label, seg_val)
+                            
+                                total_TPs += TP
+                                total_FPs += FP
+                                
+                    
                         val_idx = val_idx + batch_size
                         print('Validation: ' + str(val_idx) + ' of total: ' + str(validation_size))
                 
                         iter_cur_epoch += 1
                 
-              
-                           
+              accuracy = (total_TPs + total_TNs)/(total_TPs + total_TNs + total_FPs + total_FNs)
+              sensitivity = total_TPs/(total_TPs + total_FNs);
+              precision = total_TPs/(total_TPs + total_FPs);     
+                
               val_loss_per_eval.append(loss_val/iter_cur_epoch)
               val_jacc_per_eval.append(jacc_val/iter_cur_epoch)    
                    
-              plot_prec.append(precision_val/iter_cur_epoch)
-              plot_sens.append(sensitivity_val/iter_cur_epoch)
+              plot_prec.append(precision)
+              plot_sens.append(sensitivity)
+              
+              plot_acc.append(accuracy)
                    
                   
               """ Add to scheduler to do LR decay """
               scheduler.step()
                   
          if cur_epoch % plot_every_num_epochs == 0:       
+             
+            
               """ Plot sens + precision + jaccard + loss """
+              plot_metric_fun(plot_acc, plot_acc, class_name='', metric_name='accuracy', plot_num=29)
+              plt.figure(29); plt.savefig(s_path + 'Accuracy.png')
+
               plot_metric_fun(plot_sens, plot_sens_val, class_name='', metric_name='sensitivity', plot_num=30)
               plt.figure(30); plt.savefig(s_path + 'Sensitivity.png')
                     
@@ -451,7 +487,8 @@ if __name__ == '__main__':
               batch_y = batch_y.cpu().data.numpy() 
               batch_x_val = batch_x_val.cpu().data.numpy()
               
-              plot_trainer_3D_PYTORCH(seg_train, seg_val, batch_x[0], batch_x_val[0], batch_y[0], batch_y_val[0],
+              
+              plot_trainer_3D_PYTORCH_cell_track_AUTO(seg_train, seg_val, batch_x[0, 0:2, ...], batch_x_val[0, 0:2, ...], batch_y[0], batch_y_val[0],
                                        s_path, iterations, plot_depth=plot_depth)
                                              
               
@@ -487,6 +524,8 @@ if __name__ == '__main__':
                 'plot_sens_val': plot_sens_val,
                 'plot_prec': plot_prec,
                 'plot_prec_val': plot_prec_val,
+                
+                'plot_acc': plot_acc,
                 
                 'lr_plot': lr_plot,
                 
