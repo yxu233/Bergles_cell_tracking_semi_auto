@@ -2,6 +2,11 @@
 opengl hardware;
 close all;
 
+addpath('../IO_func/')
+addpath('../cell_crop_func/')
+
+
+
 cur_dir = pwd;
 addpath(strcat(cur_dir))  % adds path to functions
 cd(cur_dir);
