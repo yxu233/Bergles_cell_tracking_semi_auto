@@ -91,7 +91,7 @@ if __name__ == '__main__':
     s_path = './(1) Checkpoints_full_auto_no_spatialW/'
     
     
-    input_path = '/media/user/storage/Data/(2) cell tracking project/a_training_data_GENERATE_FULL_AUTO/Training cell track full auto/MOBPF1_013018_cuprBZA_10x  - T=0_single_channel/'
+    input_path = '/media/user/storage/Data/(2) cell tracking project/a_training_data_GENERATE_FULL_AUTO/Training_cell_track_full_auto_COMPLETED/'
 
     resume = 0
     """ TO LOAD OLD CHECKPOINT """
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     std_arr = np.load('./normalize_pytorch_CLEANED/std_VERIFIED.npy')       
 
 
-    num_workers = 0;
+    num_workers = 2;
     
     
     save_every_num_epochs = 1;
@@ -146,7 +146,7 @@ if __name__ == '__main__':
         
         """ Prints out all variables in current graph """
         # Required to initialize all
-        batch_size = 2;       
+        batch_size = 8;       
         test_size = 0.1
         """ Load training data """
         print('loading data')   
