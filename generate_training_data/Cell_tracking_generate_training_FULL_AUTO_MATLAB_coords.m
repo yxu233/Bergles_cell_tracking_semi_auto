@@ -5,7 +5,6 @@ close all;
 addpath('../IO_func/')
 addpath('../cell_crop_func/')
 
-
 cur_dir = pwd;
 addpath(strcat(cur_dir))  % adds path to functions
 cd(cur_dir);
@@ -147,21 +146,21 @@ for fileNum = 1:length(natfnames)
     all_X = syGlass10x.Y;
     all_Y = syGlass10x.X;
     
-    %% Scale x and y
-    all_X = all_X * x_scale;
-    all_Y = all_Y * y_scale;
-    
-    %% Normalize to first val 0 indexing
-    middle_val = im_x_size ./ 2;
-    all_X = round(all_X + middle_val);
-    
-    middle_val = im_y_size ./ 2;
-    all_Y = round(all_Y + middle_val);
-    
-    %% Scale Z
-    all_Z = all_Z * z_scale;
-    middle_val = im_z_size ./ 2;
-    all_Z = round(all_Z + middle_val);
+%     %% Scale x and y
+%     all_X = all_X * x_scale;
+%     all_Y = all_Y * y_scale;
+%     
+%     %% Normalize to first val 0 indexing
+%     middle_val = im_x_size ./ 2;
+%     all_X = round(all_X + middle_val);
+%     
+%     middle_val = im_y_size ./ 2;
+%     all_Y = round(all_Y + middle_val);
+%     
+%     %% Scale Z
+%     all_Z = all_Z * z_scale;
+%     middle_val = im_z_size ./ 2;
+%     all_Z = round(all_Z + middle_val);
     
     %% Tiger - add row of index
     indices = 1:length(frame);
@@ -185,25 +184,9 @@ for fileNum = 1:length(natfnames)
         
         elseif cur_idx == cur_frame
             % plot
-            x = sortedmat(i, 2);
-            if x > im_x_size
-                x = im_x_size
-            elseif x <= 0
-                x = 1;
-            end
-            
-            y = sortedmat(i, 3);
-            if y > im_y_size
-                y = im_y_size
-            elseif y <= 0
-                y = 1;
-            end
-            z = sortedmat(i, 4);
-            if z > im_z_size
-                z = im_z_size
-            elseif z <= 0
-                z = 1;
-            end
+            x = round(sortedmat(i, 2));
+            y = round(sortedmat(i, 3));
+            z = round(sortedmat(i, 4));
             
             lin_ind = sub2ind(size(im), x, y, z);
             
@@ -216,25 +199,9 @@ for fileNum = 1:length(natfnames)
             
            
             % plot
-            x_next = sortedmat(j, 2);
-            if x_next > im_x_size
-                x_next = im_x_size
-            elseif x_next <= 0
-                x_next = 1;
-            end
-            
-            y_next = sortedmat(j, 3);
-            if y_next > im_y_size
-                y_next = im_y_size
-            elseif y_next <= 0
-                y_next = 1;
-            end
-            z_next = sortedmat(j, 4);
-            if z_next > im_z_size
-                z_next = im_z_size
-            elseif z_next <= 0
-                z_next = 1;
-            end
+            x_next = round(sortedmat(j, 2));
+            y_next = round(sortedmat(j, 3));
+            z_next = round(sortedmat(j, 4));
             
             lin_ind_next = sub2ind(size(im), x_next, y_next, z_next);
             

@@ -52,34 +52,14 @@ torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.enabled = True  # new thing? what do? must be True
 
 """ Define GPU to use """
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
-
-""" Import network """
-#unet = UNet_online()
-
 """  Network Begins: """
-#s_path = './Checkpoints_for_GITHUB/'
-#s_path = './(4) Checkpoints_PYTORCH_5x5_256x64_no_CONVTRANSP_matched_no_DILATION_COMPLEX/'
+s_path = './(1) Checkpoints_full_auto_no_spatialW/'
 
-
-
-#s_path = './(12) Checkpoints_TITAN_5x5_256x64_NO_transforms_AdamW_spatial/'
-
-
-s_path = './(10) Checkpoints_PYTORCH_HUGANIR_5x5_AdamW_batch_norm/'
-
-
-#s_path = './(18) Checkpoints_TITAN_NO_transforms_AdamW_batch_norm_SPATIAL/' 
-#s_path = './(16) Checkpoints_TITAN_YES_transforms_AdamW_SLOWER_switchable_BN/'
-
-s_path = './(19) Checkpoints_TITAN_NO_transforms_AdamW_batch_norm_CLEAN_DATA/'
-
-
-overlap_percent = 0.5
-input_size = 256
-depth = 64
+input_size = 160
+depth = 32
 num_truth_class = 2
 
 """ TO LOAD OLD CHECKPOINT """
@@ -135,7 +115,7 @@ while(another_folder == 'y'):
 """ Loop through all the folders and do the analysis!!!"""
 for input_path in list_folder:
     foldername = input_path.split('/')[-2]
-    sav_dir = input_path + '/' + foldername + '_output_PYTORCH'
+    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO'
 
     """ For testing ILASTIK images """
     images = glob.glob(os.path.join(input_path,'*.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
@@ -143,23 +123,6 @@ for input_path in list_folder:
     examples = [dict(input=i,truth=i.replace('.tif','_truth.tif'), ilastik=i.replace('.tif','_single_Object Predictions_.tiff')) for i in images]
 
 
-    # images = glob.glob(os.path.join(input_path,'*_single_channel.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
-    # images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    # examples = [dict(input=i,truth=i.replace('_single_channel.tif','_truth.tif'), ilastik=i.replace('_single_channel.tif','_single_Object Predictions_.tiff')) for i in images]
-
-
-    # images = glob.glob(os.path.join(input_path,'*_RAW_REGISTERED.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
-    # images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    # examples = [dict(input=i,truth=i.replace('_RAW_REGISTERED.tif','_TRUTH_REGISTERED.tif'), ilastik=i.replace('_RAW_REGISTERED.tif','_single_Object Predictions_.tiff')) for i in images]
-
-
-    # images = glob.glob(os.path.join(input_path,'*_RAW_REGISTERED_substack_1_110.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
-    # images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    # examples = [dict(input=i,truth=i.replace('_RAW_REGISTERED_substack_1_110.tif','_TRUTH_REGISTERED_substack_1_11_m_ilastik.tif'), ilastik=i.replace('_RAW_REGISTERED.tif','_single_Object Predictions_.tiff')) for i in images]
-
-     
-
-     
     try:
         # Create target Directory
         os.mkdir(sav_dir)
@@ -182,8 +145,7 @@ for input_path in list_folder:
     all_PPV = [];
     input_im_stack = [];
     for i in range(len(examples)):
-         
-    
+
         
          """ TRY INFERENCE WITH PATCH-BASED analysis from TORCHIO """
          with torch.set_grad_enabled(False):  # saves GPU RAM            
@@ -192,15 +154,18 @@ for input_path in list_folder:
    
             """ Analyze each block with offset in all directions """
             
-            # Display the image
-            #max_im = plot_max(input_im, ax=0)
+            print('Starting inference on volume: ' + str(i) + ' of total: ' + str(len(examples))) 
+            # segmentation = UNet_inference_by_subparts_PYTORCH(unet, device, input_im, overlap_percent, quad_size=input_size, quad_depth=depth,
+            #                                           mean_arr=mean_arr, std_arr=std_arr, num_truth_class=num_truth_class,
+            #                                           skip_top=1)
             
-            print('Starting inference on volume: ' + str(i) + ' of total: ' + str(len(examples)))
-            #plot_max(input_im)
             
-            segmentation = UNet_inference_by_subparts_PYTORCH(unet, device, input_im, overlap_percent, quad_size=input_size, quad_depth=depth,
-                                                      mean_arr=mean_arr, std_arr=std_arr, num_truth_class=num_truth_class,
-                                                      skip_top=1)
+            
+            
+            
+            
+            
+            
            
             segmentation[segmentation > 0] = 255
             #plot_max(segmentation)
