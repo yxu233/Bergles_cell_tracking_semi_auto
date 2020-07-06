@@ -62,6 +62,8 @@ print(device)
 """  Network Begins: """
 s_path = './(1) Checkpoints_full_auto_no_spatialW/'
 
+s_path = './(2) Checkpoints_full_auto_spatialW/'
+
 crop_size = 160
 z_size = 32
 num_truth_class = 2
@@ -222,7 +224,11 @@ for input_path in list_folder:
     scale = 0
     
     if truth:
-         truth_name = 'MOBPF_190627w_5_syglassCorrectedTracks.csv'
+         truth_name = 'MOBPF_190627w_5_syglassCorrectedTracks.csv'     #### full auto from the past: truth_name = 'MOBPF_190626w_4_10x_output_PYTORCH_output_FULLY_AUTO.csv'
+                                                                          ### TP: 3412, FP: 7, FN: 41, TN: 4 ==> total mistakes 115 + 145/135 out of total 1379 cells
+         
+         
+         
          #truth_name = 'MOBPF_190626w_4_syGlassEdited_20200607.csv'   # cuprizone
          #truth_name = 'a1901128-r670_syGlass_20x.csv'
          
@@ -562,6 +568,8 @@ for input_path in list_folder:
     itera = 0
     if truth:
          all_lengths = []
+         truth_lengths = []
+         output_lengths = []
          for cell_num in np.unique(truth_output_df.SERIES):
                track_length_SEG =  len(np.where(truth_output_df.SERIES == cell_num)[0])
                track_length_TRUTH = len(np.where(truth_array.SERIES == cell_num)[0])
@@ -572,6 +580,9 @@ for input_path in list_folder:
 
 
                all_lengths.append(track_length_TRUTH - track_length_SEG)
+               
+               truth_lengths.append(track_length_TRUTH)
+               output_lengths.append(track_length_SEG)
                
                if track_length_TRUTH - track_length_SEG > 0 or track_length_TRUTH - track_length_SEG < 0:
                     #print(truth_array.FRAME[truth_array.SERIES == cell_num])
@@ -588,9 +599,26 @@ for input_path in list_folder:
                     
 
     plt.figure(); plt.plot(all_lengths)
-    len(np.where(np.asarray(all_lengths) > 0)[0])
-    len(np.where(np.asarray(all_lengths) < 0)[0])
+    print(len(np.where(np.asarray(all_lengths) > 0)[0]))
+    print(len(np.where(np.asarray(all_lengths) < 0)[0]))
     #truth_output_df = truth_output_df.sort_values(by=['SERIES'])
+    
+    
+    
+    
+    fig, ax = plt.subplots()
+    y_pos = np.arange(len(all_lengths))
+    ax.barh(y_pos, truth_lengths)
+    ax.barh(y_pos, output_lengths)
+    
+    
+    
+    
+    
+    
+    """ Parse the old array: """
+    
+    
     
     
     
@@ -598,7 +626,7 @@ for input_path in list_folder:
          
          (1) doubles assign
          
-         
+         (2) ***blobs
          
          
          
