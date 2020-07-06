@@ -125,14 +125,14 @@ for input_path in list_folder:
     sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO'
 
     """ For testing ILASTIK images """
-    #images = glob.glob(os.path.join(input_path,'*_single_channel.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
-    #images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    #examples = [dict(input=i,seg=i.replace('_single_channel.tif','_single_channel_segmentation.tif'), truth=i.replace('.tif','_single_Object Predictions_.tiff')) for i in images]
-
-
-    images = glob.glob(os.path.join(input_path,'*_input_im.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
+    images = glob.glob(os.path.join(input_path,'*_single_channel.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
     images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    examples = [dict(input=i,seg=i.replace('_input_im.tif','_segmentation.tif'), truth=i.replace('.tif','_single_Object Predictions_.tiff')) for i in images]
+    examples = [dict(input=i,seg=i.replace('_single_channel.tif','_single_channel_segmentation.tif'), truth=i.replace('.tif','_single_Object Predictions_.tiff')) for i in images]
+
+
+    #images = glob.glob(os.path.join(input_path,'*_input_im.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
+    #images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
+    #examples = [dict(input=i,seg=i.replace('_input_im.tif','_segmentation.tif'), truth=i.replace('.tif','_single_Object Predictions_.tiff')) for i in images]
 
 
 
@@ -181,7 +181,37 @@ for input_path in list_folder:
     cur_seg = np.moveaxis(cur_seg, 0, -1)
      
     #height_tmp, width_tmp, depth_tmp = input_im.shape
+    """ loop through each cell in cur_seg and find match in next_seg
      
+          ***keep track of double matched cells
+          ***append to dataframe
+    """
+    cur_seg[cur_seg > 0] = 1
+    labelled = measure.label(cur_seg)
+    cur_cc = measure.regionprops(labelled)
+    
+    
+    tracked_cells_df = pd.DataFrame(columns = {'SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z', 'coords', 'visited'})     
+    
+    
+    ### add the cells from the first frame into "tracked_cells" matrix
+    for cell in cur_cc:
+         if not np.isnan(np.max(tracked_cells_df.SERIES)):
+              series = np.max(tracked_cells_df.SERIES) + 1
+         else:
+                   series = 1
+         centroid = cell['centroid']
+  
+         """ SKIP IF HAVE TO MOVE THE CROPPING BOX IN THE BOTTOM Z-dimension """
+         if int(centroid[2]) + z_size/2 >= lowest_z_depth:
+               continue
+          
+        
+         coords = cell['coords']
+         row = {'SERIES': series, 'COLOR': 'BLANK', 'FRAME': 0, 'X': int(centroid[0]), 'Y':int(centroid[1]), 'Z': int(centroid[2]), 'coords':coords, 'visited': 0}
+         tracked_cells_df = tracked_cells_df.append(row, ignore_index=True)
+          
+    
     
     ### HACK: ??? #####################################################################################################################################
     """ WHICH WAY IS CORRECT??? """
@@ -189,15 +219,20 @@ for input_path in list_folder:
     
     """ Get truth from .csv as well """
     truth = 1
-    scale = 1
+    scale = 0
     
     if truth:
-         #truth_name = 'MOBPF_190627w_5_syglassCorrectedTracks.csv'
-         truth_name = 'MOBPF_190626w_4_syGlassEdited_20200607.csv'   # cuprizone
+         truth_name = 'MOBPF_190627w_5_syglassCorrectedTracks.csv'
+         #truth_name = 'MOBPF_190626w_4_syGlassEdited_20200607.csv'   # cuprizone
          #truth_name = 'a1901128-r670_syGlass_20x.csv'
          
          
-         truth_name = '680_syGlass_10x.csv'
+         #truth_name = '680_syGlass_10x.csv'    #### TP: 2084, TN: 440, FN: 45, FP: 21, all cells == 711, mistakes 119 (~65 is by 1)  + 51 negatives (over-tracked - doubles???)
+                                                 ### no clearing of singles at end + no clearing of doubly counted
+                                                 
+                                                 
+                                                 ### 135 mistakes > 0 if use np.unique at the end (i.e. ignoring doubles)
+                                                 
          
          
          truth_cur_im, truth_array  = gen_truth_from_csv(frame_num=0, input_path=input_path, filename=truth_name, 
@@ -206,10 +241,21 @@ for input_path in list_folder:
          
          truth_output_df = pd.DataFrame(columns = {'SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z'})
          
+         
+         """ Add the very first timeframe of cells """
+         # for cell_idx in np.where(truth_array.FRAME == 0)[0]:
+         #      x = truth_array.X[cell_idx]
+         #      y = truth_array.Y[cell_idx]
+         #      z = truth_array.Z[cell_idx]
+              
+         #      if cur_seg[int(x), int(y), int(z)] > 0:
+         #                      row  = truth_array.iloc[cell_idx]
+         #                      truth_output_df = truth_output_df.append(row)                                 
+         
      
-    TN = 0; TP = 0; FN = 0; FP = 0; doubles = 0; extras = 0; skipped = 0; blobs = 0;
+    TN = 0; TP = 0; FN = 0; FP = 0; doubles = 0; extras = 0; skipped = 0; blobs = 0; not_registered = 0; double_linked = 0; seg_error = 0;
     for i in range(1, len(examples)):
-
+         print('Starting inference on volume: ' + str(i) + ' of total: ' + str(len(examples)))
        
          with torch.set_grad_enabled(False):  # saves GPU RAM            
 
@@ -232,28 +278,23 @@ for input_path in list_folder:
                               input_im=input_im, lowest_z_depth=lowest_z_depth, height_tmp=height_tmp, width_tmp=width_tmp, depth_tmp=depth_total, scale=scale)
                      
 
-
-
-            """ loop through each cell in cur_seg and find match in next_seg
-            
-                 ***keep track of double matched cells
-                 ***append to dataframe
-            """
-            cur_seg[cur_seg > 0] = 1
-            labelled = measure.label(cur_seg)
-            cur_cc = measure.regionprops(labelled)
-            
-            
             iterator = 0;
-            for cell in cur_cc:
+            
+            for cell_idx in np.where(tracked_cells_df.visited == 0)[0]: 
                  
-                 x, y, z = cell['centroid']
-                 x = int(x); y = int(y); z = int(z);
-                 coords = cell['coords']
+                 cell = tracked_cells_df.iloc[cell_idx]
+                 
+                 ### go to unvisited cells
+                 x = cell.X; y = cell.Y; z = cell.Z;
+                 coords = cell.coords                 
+                 series = cell.SERIES
+                 
+                 ### SO DON'T VISIT AGAIN
+                 tracked_cells_df.visited[cell_idx] = 1
                  
                  
                  """ DONT TEST IF TOO SMALL """
-                 if len(coords) < 20:
+                 if len(coords) < 10:
                       continue;
                  
                  
@@ -281,11 +322,7 @@ for input_path in list_folder:
                  # im_arr[im_arr < 0] = 0
                  # #sitk.WriteImage(elastixImageFilter.GetResultImage())
                  # crop_next_input = im_arr;
-                 
-                 
-                 
-                 
-                 
+
                  crop_seed, box_x_min, box_x_max, box_y_min, box_y_max, box_z_min, box_z_max = crop_around_centroid_with_pads(blank_im, y, x, z, crop_size/2, z_size, height_tmp, width_tmp, depth_tmp)                                                      
                  crop_im, box_x_min, box_x_max, box_y_min, box_y_max, box_z_min, box_z_max = crop_around_centroid_with_pads(input_im, y, x, z, crop_size/2, z_size, height_tmp, width_tmp, depth_tmp)                                                      
                  crop_cur_seg[crop_cur_seg > 0] = 10
@@ -305,17 +342,13 @@ for input_path in list_folder:
                  batch_x = np.moveaxis(batch_x, -1, 1)
                  batch_x = np.expand_dims(batch_x, axis=0)
                  
-                 
+                 ### NORMALIZE
                  batch_x = normalize(batch_x, mean_arr, std_arr)
-               
-               
-                 #batch_y = np.zeros([1, num_truth_class, quad_depth, quad_size, quad_size])
-
-           
+                 
+                 
                  """ Convert to Tensor """
                  inputs_val = torch.tensor(batch_x, dtype = torch.float, device=device, requires_grad=False)
-                 #labels_val = torch.tensor(batch_y, dtype = torch.long, device=device, requires_grad=False)
-     
+
                  # forward pass to check validation
                  output_val = unet(inputs_val)
 
@@ -326,38 +359,46 @@ for input_path in list_folder:
                  seg_train = np.moveaxis(seg_train, 0, -1)
                  
                  iterator += 1
-                 
-                 """ Find coords of identified cell and scale back up, then add to df_matrix
-                 
-                      also create an actual image matrix to keep track as you go?
-                      
-                      
-                      ***KEEP TRACK OF DOUBLES
-                      
-                      
-                      Testing cell: 1427 of total: 1473
-                                TPs = 530; FPs = 61; TNs = 460; FNs = 107
-                      
-                         
-                      
-                      Testing cell: 1427 of total: 1473
-                         TPs = 542; FPs = 84; TNs = 422; FNs = 84
-                         
-                         
-                         355
-                 """
-                       
-                 
-                    
+
+
                  """ ***IF MORE THAN ONE OBJECT IS IN FINAL SEGMENTATION, choose the best matched one!!!"""
                  label = measure.label(seg_train)
                  cc_seg_train = measure.regionprops(label)
                  if len(cc_seg_train) > 1:
                       doubles += 1
-                                 
-                    
+
                  
-                    
+                 """ Find coords of identified cell and scale back up, later find which ones in next_seg have NOT been already identified
+                 """
+                 if len(cc_seg_train) > 0:
+                      next_coords = cc_seg_train[0].coords
+                      next_coords = scale_coords_of_crop_to_full(next_coords, box_x_min , box_y_min, box_z_min)
+                      
+                      next_centroid = np.asarray(cc_seg_train[0].centroid)
+                      next_centroid[0] = np.int(next_centroid[0] + box_x_min)   # SCALING the ep_center
+                      next_centroid[1] = np.int(next_centroid[1] + box_y_min)
+                      next_centroid[2] = np.int(next_centroid[2] + box_z_min)
+                     
+                      #next_seg[int(next_centroid[0]), int(next_centroid[1]), int(next_centroid[2])]                 
+                      
+                      ### add to matrix 
+                      row = {'SERIES': series, 'COLOR': 'GREEN', 'FRAME': i, 'X': int(next_centroid[0]), 'Y':int(next_centroid[1]), 'Z': int(next_centroid[2]), 'coords':next_coords, 'visited': 0}
+                      tracked_cells_df = tracked_cells_df.append(row, ignore_index=True)
+                                     
+                      
+                         
+                      """ FIND DOUBLES EARLY TO CORRECT AS YOU GO """
+                      if np.any(next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] == 250): ### if this place has already been visited in the past
+                           print('double_linked')
+                           double_linked += 1
+                           
+                           
+                           ### pick the ideal one ==> confidence??? distance??? and then set track color to 'YELLOW'
+                           
+                      
+                      next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 250;   ### set current one to be value 2 so in future will know has already been identified
+                      
+       
                  
 
                  """ Check if TP, TN, FP, FN """
@@ -366,27 +407,23 @@ for input_path in list_folder:
                       crop_truth_next, box_x_min, box_x_max, box_y_min, box_y_max, box_z_min, box_z_max = crop_around_centroid_with_pads(truth_next_im, y, x, z, crop_size/2, z_size, height_tmp, width_tmp, depth_tmp)                                                      
      
                       """ DEBUG """
-                      # plot_max(crop_cur_seg, ax=-1)
-                      # plot_max(crop_im, ax=-1)
-                      # plot_max(crop_next_input, ax=-1)
-                      # plot_max(crop_next_seg, ax=-1)
-                      # plot_max(seg_train, ax=-1) 
-                      # plot_max(crop_truth_cur, ax=-1)
-                      # plot_max(crop_truth_next, ax=-1)
-                      # plt.pause(0.0005)
-                      # plt.pause(0.0005)                      
+                        # plot_max(crop_cur_seg, ax=-1)
+                        # plot_max(crop_im, ax=-1)
+                        # plot_max(crop_next_input, ax=-1)
+                        # plot_max(crop_next_seg, ax=-1)
+                        # plot_max(seg_train, ax=-1) 
+                        # plot_max(crop_truth_cur, ax=-1)
+                        # plot_max(crop_truth_next, ax=-1)
+                        # plt.pause(0.0005)
+                        # plt.pause(0.0005)                      
                       print('TPs = ' + str(TP) + '; FPs = ' + str(FP) + '; TNs = ' + str(TN) + '; FNs = ' + str(FN) + '; extras = ' + str(extras))
                       
-
-
                       seg_train = dilate_by_ball_to_binary(seg_train, radius = 3)  ### DILATE A BIT
                       crop_next_seg = dilate_by_ball_to_binary(crop_next_seg, radius = 3)  ### DILATE A BIT
                       crop_seed = dilate_by_ball_to_binary(crop_seed, radius = 3)
                       
                       
                       """ REMOVE EVERYTHING IN CROP_NEXT_SEG THAT DOES NOT MATCH WITH SOMETHING CODY PUT UP, to prevent FPs  of unknown checking"""
-                      
-                      
                       # if nothing in the second frame
                       value_cur_frame = np.unique(crop_truth_cur[crop_seed > 0])
                       value_cur_frame = np.delete(value_cur_frame, np.where(value_cur_frame == 0)[0][0])  # DELETE zero
@@ -395,19 +432,19 @@ for input_path in list_folder:
                       
                       ### skip if no match on cur frame in truth
                       if len(value_cur_frame) == 0:
+                           not_registered += 1;
+                           print('not_registered')
                            continue
                       
                       
                       
-                      if not np.any(value_cur_frame == values_next_frame):   ### if it does NOT exist on next frame               
-                      
-                      
+                      if not np.any(np.in1d(value_cur_frame, values_next_frame)):   ### if it does NOT exist on next frame               
                            ### BUT IF EXISTS IN GENERAL ON 2nd frame, just not in the segmentation, then skip ==> is segmentation missed error
                            values_next_frame_all = np.unique(crop_truth_next[crop_truth_next > 0])
-                           if np.any(value_cur_frame == values_next_frame_all):
+                           if np.any(np.in1d(value_cur_frame, values_next_frame_all)):
+                                seg_error += 1;
+                                print('seg_error')
                                 continue; # SKIP
-                           
-                      
                            
                            ### count blobs:
                            if len(value_cur_frame) > 1:
@@ -426,10 +463,14 @@ for input_path in list_folder:
                            
                            ### (1) if seg_train is empty ==> then is a FALSE NEGATIVE
                            if np.count_nonzero(seg_train) == 0:
-                                print('depth_cur: ' + str(np.where(crop_truth_cur == value_cur_frame)[-1][0])) 
-                                print('depth_next: ' + str(np.where(crop_truth_next == value_cur_frame)[-1][0]))
+                                print('depth_cur: ' + str(np.where(crop_truth_cur == np.max(value_cur_frame))[-1][0])) 
+                                print('depth_next: ' + str(np.where(crop_truth_next == np.max(value_cur_frame))[-1][0]))
                                 FN += 1
                                 
+                                """ Missing a lot of little tiny ones that are dim
+                                          *** maybe at the end add these back in??? by just finding nearest unassociated ones???
+                                
+                                """
                            else:
                                 
                               ### (2) find out if seg_train has identified point with same index as previous frame
@@ -438,21 +479,20 @@ for input_path in list_folder:
                               values_next_frame = np.delete(values_next_frame, np.where(values_next_frame == 0)[0][0])  # delete zeros
                            
                                 
-                              if np.any(value_cur_frame == values_next_frame):     
+                              if np.any(np.in1d(value_cur_frame, values_next_frame)):
                                      TP += 1
                                      values_next_frame = np.delete(values_next_frame, np.where(values_next_frame == values_next_frame)[0][0])
                                 
                                 
-                                
-                                
-                              """ 
-                                   Add indices to a truth array using 
-                                
-                                   
-                                     truth_array[np.where(truth_array.SERIES == value_cur_frame) : + 1]
-                              """
-                              row  = truth_array[(truth_array["SERIES"] == np.max(value_cur_frame)) & (truth_array["FRAME"] == 0)]
-                              truth_output_df = truth_output_df.append(row)                       
+                              
+                              """ if this is first time here, then also add the ones from initial index """
+                              if i == 1:
+                                   row  = truth_array[(truth_array["SERIES"] == np.max(value_cur_frame)) & (truth_array["FRAME"] == 0)]
+                                   truth_output_df = truth_output_df.append(row)                                      
+                              row  = truth_array[(truth_array["SERIES"] == np.max(value_cur_frame)) & (truth_array["FRAME"] == i)]
+                              truth_output_df = truth_output_df.append(row) 
+                              
+                              
                                 
                               # but if have more false positives
                               if len(values_next_frame) > 0:
@@ -464,37 +504,107 @@ for input_path in list_folder:
                       plt.close('all')  
                       
                                     
-                 print('Testing cell: ' + str(iterator) + ' of total: ' + str(len(cur_cc))) 
+                 print('Testing cell: ' + str(iterator) + ' of total: ' + str(len(np.where(tracked_cells_df.visited == 0)[0]))) 
 
-            print('Starting inference on volume: ' + str(i) + ' of total: ' + str(len(examples))) 
+
+
+            """ associate remaining cells that are "new" cells and add them to list to check as well as the TRUTH tracker """
+            bw_next_seg = np.copy(next_seg)
+            bw_next_seg[bw_next_seg > 0] = 1
             
-            
-            
-            
+            labelled = measure.label(bw_next_seg)
+            next_cc = measure.regionprops(labelled)
+              
+              
+            ### add the cells from the first frame into "tracked_cells" matrix
+            num_new = 0; num_new_truth = 0
+            for cell in next_cc:
+               coords = cell['coords']
+               
+               
+               if not np.any(next_seg[coords[:, 0], coords[:, 1], coords[:, 2]] == 250):   ### 250 means already has been visited
+                    #print(np.unique(truth_next_im[coords[:, 1], coords[:, 1], coords[:, 2]]))
+                    #print(coords)
+                    series = np.max(tracked_cells_df.SERIES) + 1
+     
+                    centroid = cell['centroid']
+             
+                    """ SKIP IF HAVE TO MOVE THE CROPPING BOX IN THE BOTTOM Z-dimension """
+                    if int(centroid[2]) + z_size/2 >= lowest_z_depth:
+                          continue
+                     
+                    
+                    row = {'SERIES': series, 'COLOR': 'BLANK', 'FRAME': i, 'X': int(centroid[0]), 'Y':int(centroid[1]), 'Z': int(centroid[2]), 'coords':coords, 'visited': 0}
+                    tracked_cells_df = tracked_cells_df.append(row, ignore_index=True)
+                    
+                    
+                    
+                    """ Add to TRUTH as well """
+                    value_next_frame = np.max(truth_next_im[coords[:, 0], coords[:, 1], coords[:, 2]])
+                    if value_next_frame > 0:
+                         row  = truth_array[(truth_array["SERIES"] == np.max(value_next_frame)) & (truth_array["FRAME"] == i)]
+                         truth_output_df = truth_output_df.append(row) 
+                         print('value_next_frame')
+                         num_new_truth += 1
+                         
+                    num_new += 1
+                         
+                    
             
             """ Set next frame to be current frame """
             input_im = next_input
             cur_seg = next_seg
+            cur_seg[cur_seg > 0] = 0
             truth_cur_im = truth_next_im
             
             
-    """ Compare dataframes to see of the tracked cells, how well they were tracked """     
+    """ Compare dataframes to see of the tracked cells, how well they were tracked """    
+    itera = 0
     if truth:
          all_lengths = []
          for cell_num in np.unique(truth_output_df.SERIES):
                track_length_SEG =  len(np.where(truth_output_df.SERIES == cell_num)[0])
-                
                track_length_TRUTH = len(np.where(truth_array.SERIES == cell_num)[0])
 
 
-               all_lengths.append(track_length_TRUTH - track_length_SEG - 1)
+               # track_length_TRUTH  = len(np.unique(truth_array.FRAME[truth_array.SERIES == cell_num]))
+               # track_length_SEG = len(np.unique(truth_output_df.FRAME[truth_output_df.SERIES == cell_num]))         
+
+
+               all_lengths.append(track_length_TRUTH - track_length_SEG)
+               
+               if track_length_TRUTH - track_length_SEG > 0 or track_length_TRUTH - track_length_SEG < 0:
+                    #print(truth_array.FRAME[truth_array.SERIES == cell_num])
+                    print("truth is: " + str(np.asarray(truth_array.FRAME[truth_array.SERIES == cell_num])))
+                    print("output is: " + str(np.asarray(truth_output_df.FRAME[truth_output_df.SERIES == cell_num])))
+                    
+                    
+                    # if itera == 5:
+                    #      zzz
+
+                    
+                    itera += 1
+                    
+                    
 
     plt.figure(); plt.plot(all_lengths)
     len(np.where(np.asarray(all_lengths) > 0)[0])
-
+    len(np.where(np.asarray(all_lengths) < 0)[0])
     #truth_output_df = truth_output_df.sort_values(by=['SERIES'])
     
     
-    ### overall 130 overtracked by 1 or 2 frames out of 1080
-    ### no negatives??? nothing was undertracked???
+    
+    """ Things to fix still:
+         
+         (1) doubles assign
+         
+         
+         
+         
+         
+         """
+    
+    
+    
+    
     
