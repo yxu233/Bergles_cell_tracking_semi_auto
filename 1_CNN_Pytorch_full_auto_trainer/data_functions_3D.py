@@ -29,6 +29,63 @@ from skimage import measure
 
 
 from PIL import ImageSequence
+import pandas as pd
+
+
+
+
+""" Given coords of shape x, y, z in a cropped image, scales back to size in full size image """
+def scale_coords_of_crop_to_full(coords, box_x_min, box_y_min, box_z_min):
+        coords[:, 0] = np.round(coords[:, 0]) + box_x_min   # SCALING the ep_center
+        coords[:, 1] = np.round(coords[:, 1]) + box_y_min
+        coords[:, 2] = np.round(coords[:, 2]) + box_z_min
+        scaled = coords
+        return scaled  
+   
+     
+   
+""" generate truth from csv """
+def gen_truth_from_csv(frame_num, input_path, filename, input_im, lowest_z_depth, height_tmp, width_tmp, depth_tmp, scale=0):
+    truth_array = pd.read_csv(input_path + filename, sep=',')
+    #truth_array = truth_array.sort_values(by=['FRAME'])
+    
+    
+    """ SCALE EVERYTHING IF NEEDED """
+    if scale:
+         im_x_size = width_tmp
+         im_y_size = height_tmp
+         im_z_size = depth_tmp
+         
+         x_scale = 1/0.8302662
+         y_scale = 1/0.8302662
+         z_scale = 1/3
+         truth_array.X = truth_array.X * x_scale;
+         truth_array.Y = truth_array.Y * y_scale;
+         # Normalize to first val 0 indexing
+         middle_val = im_x_size / 2;
+         truth_array.X = round(truth_array.X + middle_val);
+         middle_val = im_y_size / 2;
+         truth_array.Y = round(truth_array.Y + middle_val);
+         
+         #%% Scale Z
+         truth_array.Z = truth_array.Z * z_scale;
+         middle_val = im_z_size / 2;
+         truth_array.Z = round(truth_array.Z + middle_val);
+         
+         #%% Tiger - add row of index
+         #indices = 1:length(frame);    
+    
+    
+    
+    truth_im = np.zeros(np.shape(input_im))
+    
+    for idx_truth in np.where(truth_array.FRAME == frame_num)[0]:
+         
+         if truth_array.Z[idx_truth] < lowest_z_depth and truth_array.Y[idx_truth] < height_tmp and truth_array.X[idx_truth] < width_tmp:
+              truth_im[int(truth_array.Y[idx_truth]), int(truth_array.X[idx_truth]), int(truth_array.Z[idx_truth])] = truth_array.SERIES[idx_truth] 
+    
+    return truth_im, truth_array
+
 
 """ uses an intensity map (that indicates where overalp occured), identifies segments that overlapped """
 def find_overlap_objs(im1, im2):
