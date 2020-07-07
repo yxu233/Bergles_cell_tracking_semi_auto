@@ -235,6 +235,12 @@ for input_path in list_folder:
          
          
          truth_name = 'MOBPF_190626w_4_syGlassEdited_20200607.csv'   # cuprizone
+         
+         
+                   ### total 1387 , TP == 1926, FP == 64, FN == 173, TN == 1010
+                        ### mistracked == 130
+         
+         
          #truth_name = 'a1901128-r670_syGlass_20x.csv'
          
          
