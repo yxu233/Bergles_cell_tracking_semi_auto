@@ -62,7 +62,7 @@ print(device)
 """  Network Begins: """
 s_path = './(1) Checkpoints_full_auto_no_spatialW/'
 
-#s_path = './(2) Checkpoints_full_auto_spatialW/'
+s_path = './(2) Checkpoints_full_auto_spatialW/'
 
 crop_size = 160
 z_size = 32
@@ -127,9 +127,9 @@ for input_path in list_folder:
     sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO'
 
     """ For testing ILASTIK images """
-    # images = glob.glob(os.path.join(input_path,'*_single_channel.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
-    # images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    # examples = [dict(input=i,seg=i.replace('_single_channel.tif','_single_channel_segmentation.tif'), truth=i.replace('.tif','_single_Object Predictions_.tiff')) for i in images]
+    #images = glob.glob(os.path.join(input_path,'*_single_channel.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
+    #images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
+    #examples = [dict(input=i,seg=i.replace('_single_channel.tif','_single_channel_segmentation.tif'), truth=i.replace('.tif','_single_Object Predictions_.tiff')) for i in images]
 
 
     images = glob.glob(os.path.join(input_path,'*_input_im.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
@@ -230,17 +230,25 @@ for input_path in list_folder:
                                                                           
                                                                           ### with list excluision 63 bad ==> of 1307 
                                                                           
+                                                                          
+                                                                          
+                                                                          ### with Spatial weight:
+                                                                              # TPs == 3386, FPs == 7, TNs == 3, FNs == 21, mistakes == 62  (or 126 + 27/129)
+                                                                              # ==> total 1375 cells
+                                                                          
+                                                                          
                                                                            
                                                                           
          
          
          truth_name = 'MOBPF_190626w_4_syGlassEdited_20200607.csv'   # cuprizone
          
-         
+
                    ### total 1387 , TP == 1926, FP == 64, FN == 173, TN == 1010
                         ### mistracked == 130
          
          
+
          #truth_name = 'a1901128-r670_syGlass_20x.csv'
          
          

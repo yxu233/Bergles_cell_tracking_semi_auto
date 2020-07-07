@@ -89,6 +89,7 @@ if __name__ == '__main__':
     
     """" Input paths """    
     s_path = './(1) Checkpoints_full_auto_no_spatialW/'
+    s_path = './(2) Checkpoints_full_auto_spatialW/'
     
     
     input_path = '/media/user/storage/Data/(2) cell tracking project/a_training_data_GENERATE_FULL_AUTO/Training_cell_track_full_auto_COMPLETED/'
@@ -146,7 +147,7 @@ if __name__ == '__main__':
         
         """ Prints out all variables in current graph """
         # Required to initialize all
-        batch_size = 8;       
+        batch_size = 4;       
         test_size = 0.1
         """ Load training data """
         print('loading data')   
@@ -155,7 +156,7 @@ if __name__ == '__main__':
         #transforms = initialize_transforms_simple(p=0.5)
         transforms = 0
         
-        sp_weight_bool = 0
+        sp_weight_bool = 1
         
     else:             
         """ Find last checkpoint """       
@@ -275,16 +276,25 @@ if __name__ == '__main__':
          jacc_train = 0   
                   
          for param_group in optimizer.param_groups:
+              param_group['lr'] = 1e-6   # manually sets learning rate
               cur_lr = param_group['lr']
               lr_plot.append(cur_lr)
-
+              print('Current learning rate is: ' + str(cur_lr))
+              
+              
          iter_cur_epoch = 0;          
          for batch_x, batch_y, spatial_weight in training_generator:
                 if iterations == 1:
                     start = time.perf_counter()
                 if iterations == 50:
                     stop = time.perf_counter(); diff = stop - start; print(diff)
-
+                    
+                    
+                # PRINT OUT THE SHAPE OF THE INPUT
+                if iter_cur_epoch == 0:
+                    print('input size is' + str(batch_x.shape))
+                    
+                    
                 """ Plot for debug """    
                 # np_inputs = np.asarray(batch_x.numpy()[0], dtype=np.uint8)
                 # np_labels = np.asarray(batch_y.numpy()[0], dtype=np.uint8)
@@ -342,7 +352,10 @@ if __name__ == '__main__':
    
                 iterations = iterations + 1       
                 iter_cur_epoch += 1
-                print('Trained: %d' %(iterations))
+              
+                if iterations % 100 == 0:
+                    print('Trained: %d' %(iterations))
+
                
                 
     
@@ -399,18 +412,19 @@ if __name__ == '__main__':
                             
                             
                             ### (1) If is TN or FN, the seg_val is blank
-                            if not np.count_nonzero(cur_label):
+                            if not np.count_nonzero(seg_val):
                                 
                                 ### It is a true negative if the seg_val is ALSO blank
-                                if not np.count_nonzero(seg_val):
+                                if not np.count_nonzero(cur_label):
                                    total_TNs += 1
+                                   
                                 else:   
                                    ### otherwise, calculate number of FN's
-                                   seg_val[seg_val > 0] = 1
-                                   labelled = measure.label(seg_val)
-                                   cc_coloc = measure.regionprops(labelled)
+                                   # seg_val[seg_val > 0] = 1
+                                   # labelled = measure.label(seg_val)
+                                   # cc_coloc = measure.regionprops(labelled)
                                    
-                                   total_FNs += len(cc_coloc)
+                                   total_FNs += 1
 
                             
                             else:
@@ -420,7 +434,7 @@ if __name__ == '__main__':
                                 total_TPs += TP
                                 total_FPs += FP
                                 
-                    
+                        #zzz
                         val_idx = val_idx + batch_size
                         print('Validation: ' + str(val_idx) + ' of total: ' + str(validation_size))
                 
