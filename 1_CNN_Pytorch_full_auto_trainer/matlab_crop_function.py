@@ -135,7 +135,7 @@ def crop_around_centroid_with_pads(input_im, y, x, z, crop_size, z_size, height,
      crop_pad = np.pad(crop, ((overshoot_neg_x, overshoot_x), (overshoot_neg_y, overshoot_y), (overshoot_neg_z, overshoot_z)))
      crop = crop_pad
      
-     return crop, box_x_min, box_x_max, box_y_min, box_y_max, box_z_min, box_z_max    
+     return crop, box_x_min - overshoot_neg_x, box_x_max, box_y_min - overshoot_neg_y, box_y_max, box_z_min - overshoot_neg_z, box_z_max    
      
      
      
