@@ -62,7 +62,7 @@ print(device)
 """  Network Begins: """
 s_path = './(1) Checkpoints_full_auto_no_spatialW/'
 
-s_path = './(2) Checkpoints_full_auto_spatialW/'
+#s_path = './(2) Checkpoints_full_auto_spatialW/'
 
 crop_size = 160
 z_size = 32
@@ -245,7 +245,14 @@ for input_path in list_folder:
          
 
                    ### total 1387 , TP == 1926, FP == 64, FN == 173, TN == 1010
-                        ### mistracked == 130
+                        ### mistracked == 130  and 162 or 157 + 56
+                        
+                        
+                   ### with spatial Weighting, TP == 1956, FP == 96, FN == 117, TN == 982
+                       ### mistracked 130  out of 1394
+                   
+                   
+                        
          
          
 
@@ -257,6 +264,20 @@ for input_path in list_folder:
                                                  
                                                  
                                                  ### 135 mistakes > 0 if use np.unique at the end (i.e. ignoring doubles)
+                                                 
+                                                 
+                                                 
+                                              ### SPATIAL WEIGHT 
+                                              ### TP: 2076, TN: 414, FP: 37, FN: 32
+                                                  # 52 mistakes of 637
+                                              
+                                                  # or 48 + 5/   or 124 + 5/129
+                                              
+                                              
+                                              
+                                                 
+                                                 
+                                                 
                                                  
          
          
@@ -418,8 +439,10 @@ for input_path in list_folder:
                                      all_ratios.append(ratio)
                                      #print('in')
                          
-                      best_coords = cc_seg_train[all_ratios.index(max(all_ratios))]['coords']
-                      best[best_coords[:, 0], best_coords[:, 1], best_coords[:, 2]] = 1
+                            
+                      if len(all_ratios) > 0:
+                          best_coords = cc_seg_train[all_ratios.index(max(all_ratios))]['coords']
+                          best[best_coords[:, 0], best_coords[:, 1], best_coords[:, 2]] = 1
                       seg_train = best
                       label = measure.label(seg_train)
                       cc_seg_train = measure.regionprops(label)                      
@@ -676,11 +699,29 @@ for input_path in list_folder:
                     track_length_TRUTH  = len(np.unique(truth_array.FRAME[truth_array.SERIES == cell_num]))
                     track_length_SEG = len(np.unique(truth_output_df.FRAME[truth_output_df.SERIES == cell_num]))         
      
+        
+     
+                    """ remove anything that's only tracked for length of 1 timeframe """
+                    
+                    """ excluding if that timeframe is the very first one """
+                    
+                    
+                    #print(truth_output_df.FRAME[truth_output_df.SERIES == cell_num] )
+                    
+                    
+                    if len(np.where(np.asarray(track_length_SEG) == 1)[0]) and not np.any(truth_output_df.FRAME[truth_output_df.SERIES == cell_num] == 0):
+                       continue;
+
      
                     all_lengths.append(track_length_TRUTH - track_length_SEG)
                     
                     truth_lengths.append(track_length_TRUTH)
                     output_lengths.append(track_length_SEG)
+                    
+                    
+
+                        
+                       
                     
                     if track_length_TRUTH - track_length_SEG > 0 or track_length_TRUTH - track_length_SEG < 0:
                          #print(truth_array.FRAME[truth_array.SERIES == cell_num])

@@ -73,7 +73,7 @@ from PYTORCH_dataloader import *
 
 from sklearn.model_selection import train_test_split
 
-
+from unet_nested import *
 import kornia
 
 
@@ -91,6 +91,8 @@ if __name__ == '__main__':
     s_path = './(1) Checkpoints_full_auto_no_spatialW/'
     s_path = './(2) Checkpoints_full_auto_spatialW/'
     
+    
+    s_path = './(3) Checkpoints_full_auto_no_spatialW_nested_unet/'
     
     input_path = '/media/user/storage/Data/(2) cell tracking project/a_training_data_GENERATE_FULL_AUTO/Training_cell_track_full_auto_COMPLETED/'
 
@@ -113,6 +115,8 @@ if __name__ == '__main__':
     plot_every_num_epochs = 1;
     validate_every_num_epochs = 1;  
     
+    deep_supervision = False;
+    
     
     if not onlyfiles_check:   
         """ Get metrics per batch """
@@ -127,8 +131,21 @@ if __name__ == '__main__':
         iterations = 0;
         
         """ Start network """           
-        unet = UNet_online(in_channels=4, n_classes=2, depth=5, wf=3, padding= int((5 - 1)/2), 
-                           batch_norm=True, batch_norm_switchable=False, up_mode='upconv')
+        # unet = UNet_online(in_channels=4, n_classes=2, depth=5, wf=3, padding= int((5 - 1)/2), 
+        #                    batch_norm=True, batch_norm_switchable=False, up_mode='upconv')
+
+
+        kernel_size = 5
+        pad = int((kernel_size - 1)/2)
+        #unet = UNet(in_channel=1,out_channel=2, kernel_size=kernel_size, pad=pad)
+        
+        #kernel_size = 5
+        #unet = UNet_online(in_channels=2, n_classes=2, depth=5, wf=3, kernel_size = kernel_size, padding= int((kernel_size - 1)/2), 
+        #                    batch_norm=True, batch_norm_switchable=False, up_mode='upsample')
+
+
+        unet = NestedUNet(num_classes=2, input_channels=4, deep_supervision=deep_supervision, padding=pad, batch_norm_switchable=False)
+
         unet.train()
         unet.to(device)
         print('parameters:', sum(param.numel() for param in unet.parameters()))  
@@ -156,7 +173,7 @@ if __name__ == '__main__':
         #transforms = initialize_transforms_simple(p=0.5)
         transforms = 0
         
-        sp_weight_bool = 1
+        sp_weight_bool = 0
         
     else:             
         """ Find last checkpoint """       
@@ -276,7 +293,7 @@ if __name__ == '__main__':
          jacc_train = 0   
                   
          for param_group in optimizer.param_groups:
-              param_group['lr'] = 1e-6   # manually sets learning rate
+              #param_group['lr'] = 1e-6   # manually sets learning rate
               cur_lr = param_group['lr']
               lr_plot.append(cur_lr)
               print('Current learning rate is: ' + str(cur_lr))
