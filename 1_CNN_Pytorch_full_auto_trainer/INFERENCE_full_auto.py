@@ -680,6 +680,28 @@ for input_path in list_folder:
             truth_cur_im = truth_next_im
             
             
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
     """ Compare dataframes to see of the tracked cells, how well they were tracked """    
     itera = 0
     if truth:
@@ -692,23 +714,19 @@ for input_path in list_folder:
                
                ### EXCLUDE SEG_ERRORS
                if not np.any( np.in1d(list_exclude, cell_num)):
-                    #track_length_SEG =  len(np.where(truth_output_df.SERIES == cell_num)[0])
+               #if not np.any( np.in1d(list_exclude, cell_num)) and np.any( np.in1d(all_cell_nums, cell_num)):
+                   #track_length_SEG =  len(np.where(truth_output_df.SERIES == cell_num)[0])
                     #track_length_TRUTH = len(np.where(truth_array.SERIES == cell_num)[0])
      
      
                     track_length_TRUTH  = len(np.unique(truth_array.FRAME[truth_array.SERIES == cell_num]))
                     track_length_SEG = len(np.unique(truth_output_df.FRAME[truth_output_df.SERIES == cell_num]))         
      
-        
      
                     """ remove anything that's only tracked for length of 1 timeframe """
-                    
                     """ excluding if that timeframe is the very first one """
                     
-                    
                     #print(truth_output_df.FRAME[truth_output_df.SERIES == cell_num] )
-                    
-                    
                     if len(np.where(np.asarray(track_length_SEG) == 1)[0]) and not np.any(truth_output_df.FRAME[truth_output_df.SERIES == cell_num] == 0):
                        continue;
 
@@ -719,19 +737,10 @@ for input_path in list_folder:
                     output_lengths.append(track_length_SEG)
                     
                     
-
-                        
-                       
-                    
                     if track_length_TRUTH - track_length_SEG > 0 or track_length_TRUTH - track_length_SEG < 0:
                          #print(truth_array.FRAME[truth_array.SERIES == cell_num])
                          print("truth is: " + str(np.asarray(truth_array.FRAME[truth_array.SERIES == cell_num])))
                          print("output is: " + str(np.asarray(truth_output_df.FRAME[truth_output_df.SERIES == cell_num])))
-                         
-                         
-                         # if itera == 5:
-                         #      zzz
-     
                          
                          itera += 1
                     
@@ -741,9 +750,7 @@ for input_path in list_folder:
     print(len(np.where(np.asarray(all_lengths) > 0)[0]))
     print(len(np.where(np.asarray(all_lengths) < 0)[0]))
     #truth_output_df = truth_output_df.sort_values(by=['SERIES'])
-    
-    
-    
+
     
     fig, ax = plt.subplots()
     y_pos = np.arange(len(all_lengths))
@@ -753,13 +760,152 @@ for input_path in list_folder:
     
     
     
+    """ Pre-save everything """
+    tracked_cells_df = tracked_cells_df.sort_values(by=['SERIES', 'FRAME'])
+    tracked_cells_df.to_csv(sav_dir + 'tracked_cells_df.csv', index=False)
     
+    #test_read = pd.read_csv(sav_dir + 'tracked_cells_df.csv', sep=',')
+    
+    if truth:
+         truth_array.to_csv(sav_dir + 'truth_array.csv', index=False)
+
+         truth_output_df = truth_output_df.sort_values(by=['SERIES'])
+         truth_output_df.to_csv(sav_dir + 'truth_output_df.csv', index=False)
+         truth_output_df = pd.read_csv(sav_dir + 'truth_output_df.csv', sep=',')
     
     """ Parse the old array: """
+
+    
+    ### (1) unsure that all of 'RED' or 'YELLOW' are indicated as such
+    
+    
+    ### (2) set all "BLANK" to be what their row is supposed to be
+    
+    
+    
+    ### (3) remove everything only on a single frame, except for very first frame
     
     
     
     
+    """  Save images in output """
+    #truth_output_df = truth_output_df.drop_duplicates()
+    for frame_num in range(len(examples)):
+         
+         output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im)
+         
+         input_name = examples[frame_num]['input']            
+         next_input = open_image_sequence_to_3D(input_name, width_max='default', height_max='default', depth='default')
+         next_input = next_input[0:lowest_z_depth, ...]
+         next_input = np.moveaxis(next_input, 0, -1)
+      
+         if truth:
+              seg_truth_compare = gen_im_frame_from_TRUTH_array(truth_output_df, frame_num, input_im, lowest_z_depth, height_tmp, width_tmp, depth_tmp, scale=0)
+              truth_im = gen_im_frame_from_TRUTH_array(truth_array, frame_num, input_im, lowest_z_depth, height_tmp, width_tmp, depth_tmp, scale=0)
+              
+         
+    """ Load old .csv and plot it??? """
+    #MATLAB_name = 'MOBPF_190627w_5_output_FULL_AUTO.csv'
+    MATLAB_name = 'MOBPF_190626w_4_10x_output_PYTORCH_output_FULLY_AUTO.csv'
+    
+    
+    MATLAB_auto_array = pd.read_csv(input_path + MATLAB_name, sep=',')
+    
+    
+    all_cells_MATLAB = np.unique(MATLAB_auto_array.SERIES)
+    all_cells_TRUTH = np.unique(truth_array.SERIES)
+
+
+    all_lengths = []
+    truth_lengths = []    
+    MATLAB_lengths = []
+    
+    
+    all_cell_nums = []
+    for i in range(len(examples)):
+         print('Starting inference on volume: ' + str(i) + ' of total: ' + str(len(examples)))
+       
+         seg_name = examples[i]['seg']  
+         seg = open_image_sequence_to_3D(seg_name, width_max='default', height_max='default', depth='default')
+         seg = seg[0:lowest_z_depth, ...]
+         seg = np.moveaxis(seg, 0, -1)       
+         
+         
+    
+         truth_next_im, truth_array  = gen_truth_from_csv(frame_num=i, input_path=input_path, filename=truth_name, 
+                                   input_im=input_im, lowest_z_depth=lowest_z_depth, height_tmp=height_tmp, width_tmp=width_tmp, depth_tmp=depth_total, scale=scale)
+                          
+         
+         MATLAB_next_im, MATLAB_auto_array  = gen_truth_from_csv(frame_num=i, input_path=input_path, filename=MATLAB_name, 
+                                   input_im=input_im, lowest_z_depth=lowest_z_depth, height_tmp=height_tmp, width_tmp=width_tmp,
+                                   depth_tmp=depth_total, scale=0, swap=1)
+         
+         
+         """ region props on seg ==> then loop through each individual cell to find out which numbers are matched
+         
+              then delete those numbers from the "all_cells_MATLAB" and "all_cells_TRUTH" matrices
+              
+              while finding out the lengths
+         """
+         label_seg = measure.label(seg)
+         cc_seg = measure.regionprops(label_seg)
+         
+         for cell in cc_seg:
+              coords = cell['coords']
+              
+              
+              if np.any(truth_next_im[coords[:, 0], coords[:, 1], coords[:, 2]] > 0) and np.any(MATLAB_next_im[coords[:, 0], coords[:, 1], coords[:, 2]] > 0):
+                   
+                   num_truth = np.unique(truth_next_im[coords[:, 0], coords[:, 1], coords[:, 2]])
+                   if len(np.intersect1d(all_cells_TRUTH, num_truth)) > 0:
+                        num_new_truth = np.max(np.intersect1d(all_cells_TRUTH, num_truth)) ### only keep cells that haven't been tracked before                   
+                        track_length_TRUTH = len(truth_array[truth_array.SERIES == num_new_truth])
+                        all_cells_TRUTH = all_cells_TRUTH[all_cells_TRUTH != num_new_truth]   # remove this cell so cant be retracked
+                        
+                        
+                        
+                   
+                   
+                   
+                   """ get cell from MATLAB """
+                   num_MATLAB = np.unique(MATLAB_next_im[coords[:, 0], coords[:, 1], coords[:, 2]])   
+                   if len(np.intersect1d(all_cells_MATLAB, num_MATLAB)) > 0:
+                        num_new_MATLAB = np.max(np.intersect1d(all_cells_MATLAB, num_MATLAB)) ### only keep cells that haven't been tracked before
+                        track_length_MATLAB = len(truth_array[MATLAB_auto_array.SERIES == num_new_MATLAB])
+                        all_cells_MATLAB = all_cells_MATLAB[all_cells_MATLAB != num_new_MATLAB]   # remove this cell so cant be retracked
+                        
+                   
+                   if len(np.intersect1d(all_cells_TRUTH, num_truth)) > 0 and len(np.intersect1d(all_cells_MATLAB, num_MATLAB)) > 0:
+                   
+                        all_lengths.append(track_length_TRUTH - track_length_MATLAB)
+                        truth_lengths.append(track_length_TRUTH)
+                        MATLAB_lengths.append(track_length_MATLAB)   
+                        
+                        all_cell_nums.append(num_new_truth)
+                   
+                   
+    plt.figure(); plt.plot(all_lengths)
+    print(len(np.where(np.asarray(all_lengths) > 0)[0]))
+    print(len(np.where(np.asarray(all_lengths) < 0)[0]))         
+                                   
+    
+     
+    
+     
+    
+     
+    
+     
+    """ **** SEE ONLY THE CELLS THAT WERE TRACKED IN MATLAB, TRUTH, and CNN!!! """
+     
+    
+     
+    
+     
+    
+     
+    
+     
     
     """ Things to fix still:
          
@@ -768,7 +914,7 @@ for input_path in list_folder:
          (2) ***blobs
          
          
-         
+         does using del [] on double tracked cells do anything bad???
          """
     
     
