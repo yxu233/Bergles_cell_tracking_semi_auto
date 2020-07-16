@@ -44,11 +44,21 @@ def scale_coords_of_crop_to_full(coords, box_x_min, box_y_min, box_z_min):
    
 
 """ Get an image from a dataframe """
-def gen_im_frame_from_array(tracked_cells_df, frame_num, input_im):
+def gen_im_frame_from_array(tracked_cells_df, frame_num, input_im, color=0):
     truth_im = np.zeros(np.shape(input_im))
     
     for idx_truth in np.where(tracked_cells_df.FRAME == frame_num)[0]:
-        truth_im[tracked_cells_df.coords[idx_truth][:, 0], tracked_cells_df.coords[idx_truth][:, 1], tracked_cells_df.coords[idx_truth][:, 2]] = tracked_cells_df.SERIES[idx_truth] 
+        if not color:
+            truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = tracked_cells_df.iloc[idx_truth].SERIES 
+        else:
+            rgb = tracked_cells_df.iloc[idx_truth].COLOR
+            if rgb == 'GREEN':
+                truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = 1
+            elif rgb == 'RED':
+                truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = 2
+            elif rgb == 'YELLOW':
+                truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = 3
+
     
     return truth_im
      
@@ -85,7 +95,7 @@ def gen_im_frame_from_TRUTH_array(truth_array, frame_num, input_im, lowest_z_dep
     for idx_truth in np.where(truth_array.FRAME == frame_num)[0]:
          if idx_truth == 0:
               continue
-         if truth_array.Z[idx_truth] < lowest_z_depth and truth_array.Y[idx_truth] < height_tmp and truth_array.X[idx_truth] < width_tmp:
+         if truth_array.iloc[idx_truth].Z < lowest_z_depth and truth_array.iloc[idx_truth].Y < height_tmp and truth_array.iloc[idx_truth].X < width_tmp:
               truth_im[int(truth_array.iloc[idx_truth].Y), int(truth_array.iloc[idx_truth].X), int(truth_array.iloc[idx_truth].Z)] = truth_array.iloc[idx_truth].SERIES
               
               
@@ -134,8 +144,8 @@ def gen_truth_from_csv(frame_num, input_path, filename, input_im, lowest_z_depth
     for idx_truth in np.where(truth_array.FRAME == frame_num)[0]:
          
          if swap:
-              if truth_array.Z[idx_truth] < lowest_z_depth and truth_array.Y[idx_truth] < height_tmp and truth_array.X[idx_truth] < width_tmp:
-                   truth_im[int(truth_array.Y[idx_truth]), int(truth_array.X[idx_truth]), int(truth_array.Z[idx_truth])] = truth_array.SERIES[idx_truth] 
+              if truth_array.iloc[idx_truth].Z < lowest_z_depth and truth_array.iloc[idx_truth].Y < height_tmp and truth_array.iloc[idx_truth].X < width_tmp:
+                   truth_im[int(truth_array.iloc[idx_truth].Y), int(truth_array.iloc[idx_truth].X), int(truth_array.iloc[idx_truth].Z)] = truth_array.iloc[idx_truth].SERIES 
 
          # else:   ### for MATLAB full auto output
          #       if truth_array.Z[idx_truth] < lowest_z_depth and truth_array.X[idx_truth] < height_tmp and truth_array.Y[idx_truth] < width_tmp:

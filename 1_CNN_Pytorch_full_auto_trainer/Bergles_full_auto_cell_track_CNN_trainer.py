@@ -287,6 +287,7 @@ if __name__ == '__main__':
 
 
     """ Start training """
+    starter = 0
     for cur_epoch in range(len(train_loss_per_epoch), 10000):   
          unet.train        
          loss_train = 0
@@ -301,9 +302,10 @@ if __name__ == '__main__':
               
          iter_cur_epoch = 0;          
          for batch_x, batch_y, spatial_weight in training_generator:
-                if iterations == 1:
+                starter += 1
+                if starter == 1:
                     start = time.perf_counter()
-                if iterations == 50:
+                if starter == 50:
                     stop = time.perf_counter(); diff = stop - start; print(diff)
                     
                     

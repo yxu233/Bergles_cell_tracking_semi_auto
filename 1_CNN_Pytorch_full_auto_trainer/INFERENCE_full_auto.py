@@ -241,7 +241,7 @@ for input_path in list_folder:
                                                                           
          
          
-         truth_name = 'MOBPF_190626w_4_syGlassEdited_20200607.csv'   # cuprizone
+         #truth_name = 'MOBPF_190626w_4_syGlassEdited_20200607.csv'   # cuprizone
          
 
                    ### total 1387 , TP == 1926, FP == 64, FN == 173, TN == 1010
@@ -259,7 +259,7 @@ for input_path in list_folder:
          #truth_name = 'a1901128-r670_syGlass_20x.csv'
          
          
-         #truth_name = '680_syGlass_10x.csv'    #### TP: 2084, TN: 440, FN: 45, FP: 21, all cells == 711, mistakes 119 (~65 is by 1)  + 51 negatives (over-tracked - doubles???)
+         truth_name = '680_syGlass_10x.csv'    #### TP: 2084, TN: 440, FN: 45, FP: 21, all cells == 711, mistakes 119 (~65 is by 1)  + 51 negatives (over-tracked - doubles???)
                                                  ### no clearing of singles at end + no clearing of doubly counted
                                                  
                                                  
@@ -506,12 +506,12 @@ for input_path in list_folder:
                             
                            """ drop everything else that is not close and set their series to be RED, set the closest to be YELLO """
                            keep_series = dup_series[closest]
-                           tracked_cells_df.COLOR[np.where((tracked_cells_df["SERIES"] == keep_series))[0]] = 'YELLOW'
+                           tracked_cells_df.COLOR[tracked_cells_df["SERIES"] == keep_series] = 'YELLOW'
                             
                             
                            dup_series = np.delete(dup_series, np.where(np.asarray(dup_series) == keep_series)[0])
                            for dup in dup_series:
-                                 tracked_cells_df.COLOR[np.where((tracked_cells_df["SERIES"] == dup))[0]] = 'RED'
+                                 tracked_cells_df.COLOR[tracked_cells_df["SERIES"] == dup] = 'RED'
                                  
                                  ### also delete the 2nd occurence of it
                                  tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[np.where(((tracked_cells_df["SERIES"] == dup) & (tracked_cells_df["FRAME"] == i)))[0]])
@@ -682,20 +682,115 @@ for input_path in list_folder:
             
             
             
+    """ Parse the old array: """
+    print('duplicates: ' + str(np.where(tracked_cells_df.duplicated(subset=['X', 'Y', 'Z',  'FRAME']))))    ### *** REAL DUPLICATES
+    tracked_cells_df.iloc[np.where(tracked_cells_df.duplicated(subset=['X', 'Y', 'Z',  'FRAME'], keep=False))[0]]
+    
+    print('double_linked throughout analysis: ' + str(double_linked))
+    #print('num_blobs: ' + str(num_blobs))
+    
+    
+    #print('duplicates: ' + str(np.where(tracked_cells_df.duplicated(subset=['X', 'Y', 'Z',  'SERIES']))))   ### cell in same location across frames
+    #tracked_cells_df.iloc[np.where(tracked_cells_df.duplicated(subset=['X', 'Y', 'Z',  'SERIES'], keep=False))[0]]
+
+    
+    ### (1) unsure that all of 'RED' or 'YELLOW' are indicated as such
+    ### ***should be fine, just turn all "BLANK" into "GREEN"  
+    tracked_cells_df.COLOR[tracked_cells_df['COLOR'] == 'BLANK'] = 'GREEN'
+    
+    num_YELLOW = 0; num_RED = 0 
+    for cell_num in np.unique(tracked_cells_df.SERIES):
+       
+        color_arr = np.asarray(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].COLOR)
+        
+        if np.any(color_arr == 'RED'):
+            tracked_cells_df.COLOR[np.where(tracked_cells_df.SERIES == cell_num)[0]] = 'RED'
+            num_RED += 1
             
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+        elif np.any(color_arr == 'YELLOW'):
+            tracked_cells_df.COLOR[np.where(tracked_cells_df.SERIES == cell_num)[0]] = 'YELLOW'
+            num_YELLOW += 1
+        
+    
+    
+    """ Pre-save everything """
+    tracked_cells_df = tracked_cells_df.sort_values(by=['SERIES', 'FRAME'])
+    tracked_cells_df.to_csv(sav_dir + 'tracked_cells_df_RAW.csv', index=False)
+    #tracked_cells_df = pd.read_csv(sav_dir + 'tracked_cells_df_RAW.csv', sep=',')
+    
+    
+    ### (2) remove everything only on a single frame, except for very first frame
+    singles = []
+    for cell_num in np.unique(tracked_cells_df.SERIES):
+          
+               track_length_SEG = len(np.unique(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME))         
+
+
+               """ remove anything that's only tracked for length of 1 timeframe """
+               """ excluding if that timeframe is the very first one OR the very last one"""
+               
+               #print(truth_output_df.FRAME[truth_output_df.SERIES == cell_num] )
+               if len(np.where(np.asarray(track_length_SEG) == 1)[0]) and not np.any(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME == 0) and not np.any(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME == np.max(tracked_cells_df.FRAME)):
+                   singles.append(cell_num)
+                   tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[np.where(tracked_cells_df.SERIES == cell_num)])
+                   continue;
+                        
+
+   
+
+    
+    if truth:
+         truth_array.to_csv(sav_dir + 'truth_array.csv', index=False)
+         truth_output_df = truth_output_df.sort_values(by=['SERIES'])
+         truth_output_df.to_csv(sav_dir + 'truth_output_df.csv', index=False)
+         truth_output_df = pd.read_csv(sav_dir + 'truth_output_df.csv', sep=',')
+
+    
+    
+    """  Save images in output """
+    input_name = examples[0]['input']
+    filename = input_name.split('/')[-1]
+    filename = filename.split('.')[0:-1]
+    filename = '.'.join(filename)
+    
+    for frame_num in range(len(examples)):
+         
+         output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im)
+         im = convert_matrix_to_multipage_tiff(output_frame)
+         imsave(sav_dir + filename + '_' + str(frame_num) + '_output.tif', im)
+         
+         
+         output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, color=1)
+         im = convert_matrix_to_multipage_tiff(output_frame)
+         imsave(sav_dir + filename + '_' + str(frame_num) + '_output_COLOR.tif', im)
+
+
+         """ Also save image with different colors for RED/YELLOW and GREEN"""
+         
+         # input_name = examples[frame_num]['input']            
+         # next_input = open_image_sequence_to_3D(input_name, width_max='default', height_max='default', depth='default')
+         # next_input = next_input[0:lowest_z_depth, ...]
+         # next_input = np.moveaxis(next_input, 0, -1)
+      
+         # if truth:
+         #      seg_truth_compare = gen_im_frame_from_TRUTH_array(truth_output_df, frame_num, input_im, lowest_z_depth, height_tmp, width_tmp, depth_tmp, scale=0)
+         #      truth_im = gen_im_frame_from_TRUTH_array(truth_array, frame_num, input_im, lowest_z_depth, height_tmp, width_tmp, depth_tmp, scale=0)
+              
+              
+              
+
+                
+     ### (3) drop other columns
+    tracked_cells_df = tracked_cells_df.drop(columns=['visited', 'coords'])
+    
+    
+    ### and reorder columns
+    cols =  ['SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z']
+    tracked_cells_df = tracked_cells_df[cols]
+
+    ### (4) save cleaned
+                        
+    tracked_cells_df.to_csv(sav_dir + 'tracked_cells_df_clean.csv', index=False)               
             
             
             
@@ -719,16 +814,16 @@ for input_path in list_folder:
                     #track_length_TRUTH = len(np.where(truth_array.SERIES == cell_num)[0])
      
      
-                    track_length_TRUTH  = len(np.unique(truth_array.FRAME[truth_array.SERIES == cell_num]))
-                    track_length_SEG = len(np.unique(truth_output_df.FRAME[truth_output_df.SERIES == cell_num]))         
+                    track_length_TRUTH  = len(np.unique(truth_array.iloc[np.where(truth_array.SERIES == cell_num)].FRAME))
+                    track_length_SEG = len(np.unique(truth_output_df.iloc[np.where(truth_output_df.SERIES == cell_num)].FRAME))         
      
      
                     """ remove anything that's only tracked for length of 1 timeframe """
                     """ excluding if that timeframe is the very first one """
                     
                     #print(truth_output_df.FRAME[truth_output_df.SERIES == cell_num] )
-                    if len(np.where(np.asarray(track_length_SEG) == 1)[0]) and not np.any(truth_output_df.FRAME[truth_output_df.SERIES == cell_num] == 0):
-                       continue;
+                    if len(np.where(np.asarray(track_length_SEG) == 1)[0]) and not np.any(truth_output_df.iloc[np.where(truth_output_df.SERIES == cell_num)].FRAME == 0) and not np.any(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME == np.max(tracked_cells_df.FRAME)):
+                        continue;
 
      
                     all_lengths.append(track_length_TRUTH - track_length_SEG)
@@ -739,14 +834,19 @@ for input_path in list_folder:
                     
                     if track_length_TRUTH - track_length_SEG > 0 or track_length_TRUTH - track_length_SEG < 0:
                          #print(truth_array.FRAME[truth_array.SERIES == cell_num])
-                         print("truth is: " + str(np.asarray(truth_array.FRAME[truth_array.SERIES == cell_num])))
-                         print("output is: " + str(np.asarray(truth_output_df.FRAME[truth_output_df.SERIES == cell_num])))
+                         #print("truth is: " + str(np.asarray(truth_array.iloc[np.where(truth_array.SERIES == cell_num)].FRAME)))
+                         #print("output is: " + str(np.asarray(truth_output_df.iloc[np.where(truth_output_df.SERIES == cell_num)].FRAME)))
                          
                          itera += 1
+                         
+                         #if len(np.asarray(truth_output_df.iloc[np.where(truth_output_df.SERIES == cell_num)].FRAME)) == 0:
+                         #           zzz
                     
                     
 
+                    
     plt.figure(); plt.plot(all_lengths)
+    print(len(all_lengths))
     print(len(np.where(np.asarray(all_lengths) > 0)[0]))
     print(len(np.where(np.asarray(all_lengths) < 0)[0]))
     #truth_output_df = truth_output_df.sort_values(by=['SERIES'])
@@ -759,54 +859,11 @@ for input_path in list_folder:
     
     
     
-    
-    """ Pre-save everything """
-    tracked_cells_df = tracked_cells_df.sort_values(by=['SERIES', 'FRAME'])
-    tracked_cells_df.to_csv(sav_dir + 'tracked_cells_df.csv', index=False)
-    
-    #test_read = pd.read_csv(sav_dir + 'tracked_cells_df.csv', sep=',')
-    
-    if truth:
-         truth_array.to_csv(sav_dir + 'truth_array.csv', index=False)
 
-         truth_output_df = truth_output_df.sort_values(by=['SERIES'])
-         truth_output_df.to_csv(sav_dir + 'truth_output_df.csv', index=False)
-         truth_output_df = pd.read_csv(sav_dir + 'truth_output_df.csv', sep=',')
-    
-    """ Parse the old array: """
-
-    
-    ### (1) unsure that all of 'RED' or 'YELLOW' are indicated as such
-    
-    
-    ### (2) set all "BLANK" to be what their row is supposed to be
-    
-    
-    
-    ### (3) remove everything only on a single frame, except for very first frame
-    
-    
-    
-    
-    """  Save images in output """
-    #truth_output_df = truth_output_df.drop_duplicates()
-    for frame_num in range(len(examples)):
-         
-         output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im)
-         
-         input_name = examples[frame_num]['input']            
-         next_input = open_image_sequence_to_3D(input_name, width_max='default', height_max='default', depth='default')
-         next_input = next_input[0:lowest_z_depth, ...]
-         next_input = np.moveaxis(next_input, 0, -1)
-      
-         if truth:
-              seg_truth_compare = gen_im_frame_from_TRUTH_array(truth_output_df, frame_num, input_im, lowest_z_depth, height_tmp, width_tmp, depth_tmp, scale=0)
-              truth_im = gen_im_frame_from_TRUTH_array(truth_array, frame_num, input_im, lowest_z_depth, height_tmp, width_tmp, depth_tmp, scale=0)
-              
-         
     """ Load old .csv and plot it??? """
     #MATLAB_name = 'MOBPF_190627w_5_output_FULL_AUTO.csv'
-    MATLAB_name = 'MOBPF_190626w_4_10x_output_PYTORCH_output_FULLY_AUTO.csv'
+    #MATLAB_name = 'MOBPF_190626w_4_10x_output_PYTORCH_output_FULLY_AUTO.csv'
+    MATLAB_name = 'output.csv'
     
     
     MATLAB_auto_array = pd.read_csv(input_path + MATLAB_name, sep=',')
@@ -863,10 +920,6 @@ for input_path in list_folder:
                         all_cells_TRUTH = all_cells_TRUTH[all_cells_TRUTH != num_new_truth]   # remove this cell so cant be retracked
                         
                         
-                        
-                   
-                   
-                   
                    """ get cell from MATLAB """
                    num_MATLAB = np.unique(MATLAB_next_im[coords[:, 0], coords[:, 1], coords[:, 2]])   
                    if len(np.intersect1d(all_cells_MATLAB, num_MATLAB)) > 0:
@@ -889,7 +942,15 @@ for input_path in list_folder:
     print(len(np.where(np.asarray(all_lengths) < 0)[0]))         
                                    
     
-     
+    
+    """ Parse the old array: """
+    print('duplicates: ' + str(np.where(MATLAB_auto_array.duplicated(subset=['X', 'Y', 'Z',  'FRAME']))))    ### *** REAL DUPLICATES
+    MATLAB_auto_array.iloc[np.where(MATLAB_auto_array.duplicated(subset=['X', 'Y', 'Z',  'FRAME'], keep=False))[0]]
+    
+    #print('duplicates: ' + str(np.where(MATLAB_auto_array.duplicated(subset=['X', 'Y', 'Z',  'SERIES']))))   ### cell in same location across frames
+    #MATLAB_auto_array.iloc[np.where(MATLAB_auto_array.duplicated(subset=['X', 'Y', 'Z',  'SERIES'], keep=False))[0]]
+    
+               #duplicates: 378  
     
      
     
@@ -900,11 +961,6 @@ for input_path in list_folder:
      
     
      
-    
-     
-    
-     
-    
      
     
     """ Things to fix still:
@@ -915,7 +971,18 @@ for input_path in list_folder:
          
          
          does using del [] on double tracked cells do anything bad???
-         """
+    
+         
+    
+        ***FINAL OUTPUT:
+                - want to show on tracked graph:
+                        (a) cells tracked over time, organize by mistakes highest at top horizontal bar graph ==> also only used cells matched across all 3 matrices
+                        (b) show number of cells tracked by each method
+                        (c) show # of double_linked to be resolved
+                        
+    
+    
+    """
     
     
     
