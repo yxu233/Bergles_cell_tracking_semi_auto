@@ -120,8 +120,7 @@ for input_path in list_folder:
         print("Directory " , sav_dir ,  " already exists")
         
     sav_dir = sav_dir + '/'
-    
-    zzz
+
     """ Initialize matrix of cells """   
     input_name = examples[0]['input']            
     input_im = open_image_sequence_to_3D(input_name, width_max='default', height_max='default', depth='default')
