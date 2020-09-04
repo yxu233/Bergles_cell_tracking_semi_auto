@@ -241,7 +241,7 @@ for input_path in list_folder:
                                                                           
          
          
-         #truth_name = 'MOBPF_190626w_4_syGlassEdited_20200607.csv'   # cuprizone
+         truth_name = 'MOBPF_190626w_4_syGlassEdited_20200607.csv'   # cuprizone
          
 
                    ### total 1387 , TP == 1926, FP == 64, FN == 173, TN == 1010
@@ -259,7 +259,7 @@ for input_path in list_folder:
          #truth_name = 'a1901128-r670_syGlass_20x.csv'
          
          
-         truth_name = '680_syGlass_10x.csv'    #### TP: 2084, TN: 440, FN: 45, FP: 21, all cells == 711, mistakes 119 (~65 is by 1)  + 51 negatives (over-tracked - doubles???)
+         #truth_name = '680_syGlass_10x.csv'    #### TP: 2084, TN: 440, FN: 45, FP: 21, all cells == 711, mistakes 119 (~65 is by 1)  + 51 negatives (over-tracked - doubles???)
                                                  ### no clearing of singles at end + no clearing of doubly counted
                                                  
                                                  
