@@ -122,7 +122,7 @@ def transfer_to_GPU(X, Y, device, mean, std, transforms = 0):
 import tifffile as tifffile
 class Dataset_tiffs(data.Dataset):
   'Characterizes a dataset for PyTorch'
-  def __init__(self, list_IDs, examples, mean, std, sp_weight_bool=0, transforms=0):
+  def __init__(self, list_IDs, examples, mean, std, sp_weight_bool=0, transforms=0, next_seg=1):
         'Initialization'
         #self.labels = labels
         self.list_IDs = list_IDs
@@ -131,6 +131,7 @@ class Dataset_tiffs(data.Dataset):
         self.mean = mean
         self.std = std
         self.sp_weight_bool = sp_weight_bool
+        self.next = next_seg
 
   def apply_transforms(self, image, labels):
         #inputs = np.asarray(image, dtype=np.float32)
@@ -203,6 +204,30 @@ class Dataset_tiffs(data.Dataset):
         return temp
 
 
+  def append_seed_mask_NO_NEXT(self, image, seed, cur_full_seg, next_input) :
+    
+        """ Append seed to input 
+        
+                Order of channels is:
+                    (1) cur input raw
+                    (2) cur input FULL + seed with value == 255
+                    (3) next input raw
+                    (4) next input FULL
+        
+        """
+        temp = np.zeros((3, ) + np.shape(image))
+        temp[0,...] = image
+        cur_full_seg[cur_full_seg > 0] = 10   # set these to just be of value 10
+        cur_full_seg[seed > 0] = 50
+        temp[1,...] = cur_full_seg
+        
+        temp[2,...] = next_input
+        #next_full_seg[next_full_seg > 0] = 10  # set these to just be of value 10
+        #temp[3,...] = next_full_seg
+                             
+        return temp
+
+
   def __getitem__(self, index):
         'Generates one sample of data'
         # Select sample
@@ -219,7 +244,9 @@ class Dataset_tiffs(data.Dataset):
         seed_name = self.examples[ID]['seed']
         cur_full_seg_name = self.examples[ID]['cur_full_seg']
         next_input_name = self.examples[ID]['next_input']
-        next_full_seg_name = self.examples[ID]['next_full_seg']
+        
+        if self.next:
+            next_full_seg_name = self.examples[ID]['next_full_seg']
         
         
         """ Read in images """
@@ -233,7 +260,9 @@ class Dataset_tiffs(data.Dataset):
         seed = tifffile.imread(seed_name)
         cur_full_seg = tifffile.imread(cur_full_seg_name)
         next_input = tifffile.imread(next_input_name)
-        next_full_seg = tifffile.imread(next_full_seg_name)
+
+        if self.next:
+            next_full_seg = tifffile.imread(next_full_seg_name)
         
         
         """ Get spatial weight matrix """
@@ -255,7 +284,14 @@ class Dataset_tiffs(data.Dataset):
         
         
         """ Append seed mask """
-        X = self.append_seed_mask(X, seed, cur_full_seg, next_input, next_full_seg) 
+        if self.next:
+            X = self.append_seed_mask(X, seed, cur_full_seg, next_input, next_full_seg) 
+    
+        else:        
+            X = self.append_seed_mask_NO_NEXT(X, seed, cur_full_seg, next_input) 
+        
+        
+        
         
         # """ If want to do lr_finder """
         # X = np.asarray(X, dtype=np.float32)

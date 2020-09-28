@@ -58,6 +58,8 @@ class tracker():
         self.sp_weight_bool = sp_weight_bool
         self.transforms = transforms
         self.dataset = dataset
+        
+        self.next_seg = 1;
 
 
     def print_essential(self):

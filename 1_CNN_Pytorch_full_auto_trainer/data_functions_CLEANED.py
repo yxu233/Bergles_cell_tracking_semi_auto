@@ -32,6 +32,49 @@ from skimage.morphology import skeletonize_3d, skeletonize
 import skimage
 
 
+
+
+""" Check size limits """
+def check_limits(all_neighborhoods, width_tmp, height_tmp, depth_tmp):
+    
+        """ Make sure nothing exceeds size limits """
+        idx = 0; 
+        for neighbor_be in all_neighborhoods:
+            
+            if len(neighbor_be) > 0:
+                if np.any(neighbor_be[:, 0] >= width_tmp):
+                    all_neighborhoods[idx][np.where(neighbor_be[:, 0] >= width_tmp), 0] = width_tmp - 1
+                    
+                if np.any(neighbor_be[:, 1] >= height_tmp):
+                    all_neighborhoods[idx][np.where(neighbor_be[:, 1] >= height_tmp), 1] = height_tmp - 1
+    
+                if np.any(neighbor_be[:, 2] >= depth_tmp):
+                    all_neighborhoods[idx][np.where(neighbor_be[:, 2] >= depth_tmp), 2] = depth_tmp - 1
+            idx += 1
+            
+        return all_neighborhoods   
+
+def check_limits_single(all_neighborhoods, width_tmp, height_tmp, depth_tmp):
+    
+        """ Make sure nothing exceeds size limits """
+        idx = 0; 
+        for neighbor_be in all_neighborhoods:
+            
+            if len(neighbor_be) > 0:
+                if np.any(neighbor_be[0] >= width_tmp):
+                    all_neighborhoods[idx][0] = width_tmp - 1
+                    
+                if np.any(neighbor_be[1] >= height_tmp):
+                    all_neighborhoods[idx][1] = height_tmp - 1
+    
+                if np.any(neighbor_be[2] >= depth_tmp):
+                    all_neighborhoods[idx][2] = depth_tmp - 1
+            idx += 1
+            
+        return all_neighborhoods  
+    
+    
+
 """ dilates image by a spherical ball of size radius """
 def erode_by_ball_to_binary(input_im, radius):
      ball_obj = skimage.morphology.ball(radius=radius)

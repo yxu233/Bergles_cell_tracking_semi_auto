@@ -138,3 +138,4 @@ Train_match_ILASTIK/Train_matched/output_analytic_results_2/mean_VERIFIED.npy
 1_CNN_training_and_testing_PYTHON/(4) Checkpoints_ILASTIK_matched/plot_jacc.npy
 1_CNN_training_and_testing_PYTHON/(4) Checkpoints_ILASTIK_matched/plot_cost_val.npy
 1_CNN_training_and_testing_PYTHON/(4) Checkpoints_ILASTIK_matched/plot_cost.npy
+1_CNN_inference_PYTORCH/(19) Checkpoints_TITAN_NO_transforms_AdamW_batch_norm_CLEAN_DATA/check_257091

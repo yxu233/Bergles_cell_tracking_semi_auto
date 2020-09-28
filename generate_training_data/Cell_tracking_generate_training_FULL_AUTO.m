@@ -1,3 +1,15 @@
+%% PROBLEMS:
+% (1) the segmentation from PYTORCH might not be the most accurate...
+%           so if something is missing on the next frame, might just be
+%           because it's not there due to segmentation error...
+%           we want it to pick out what's there REGARDLESS of what
+%           is/isn't...
+% (2) crop around centroid with pads
+% (3) should I regenerate the segmentations???
+% (4) should it be trained to always just put down a dot of the same
+% (5) ***also never gets to see very small cells???
+
+% size??? ==> hausdorf loss paper???
 
 opengl hardware;
 close all;
@@ -112,6 +124,7 @@ for fileNum = 1:length(natfnames)
         im = load_3D_gray(im_name, natfnames_timeseries_RAW);
         timeseries_RAW(:, :, :, m_idx) = im;
     end
+    timeseries_RAW = im2uint8(timeseries_RAW);
     
     
     % (2) load segmentation images
@@ -128,6 +141,8 @@ for fileNum = 1:length(natfnames)
         cc = bwconncomp(imbinarize(im));
         all_cc{end + 1} = cc.PixelIdxList;
     end
+    timeseries_SEG = im2uint8(timeseries_SEG);
+    
     cd(foldername);
     
     
@@ -177,12 +192,12 @@ for fileNum = 1:length(natfnames)
     for i = 1:length(sortedmat)
         
         cur_frame = sortedmat(i);
-                    
+        
         %% ***stop if next frame is the last frame
         if cur_idx + 1 == m_idx
             break;
             
-        
+            
         elseif cur_idx == cur_frame
             % plot
             x = sortedmat(i, 2);
@@ -214,7 +229,7 @@ for fileNum = 1:length(natfnames)
             next_cell_idx = cur_cell_idx + 1;
             j = find(sortedmat(:, 5) == next_cell_idx);
             
-           
+            
             % plot
             x_next = sortedmat(j, 2);
             if x_next > im_x_size
@@ -245,19 +260,23 @@ for fileNum = 1:length(natfnames)
             %% CROP cur timeseries AND next timeseries
             blank_im(lin_ind) = 1;
             
-            raw_cur = timeseries_RAW(:, :, :, cur_idx + 1);
-            raw_next = timeseries_RAW(:, :, :, cur_idx + 2);
+            raw_cur = im2double(timeseries_RAW(:, :, :, cur_idx + 1));
+            raw_next = im2double(timeseries_RAW(:, :, :, cur_idx + 2));
             
             
             cc_cur = all_cc(cur_idx + 1);
             cc_next = all_cc(cur_idx + 2);
             
             %% Find out which cc matches with current lin_ind and lin_ind_next
+            lower = 2; upper = 2;
+            
+            [expanded, lin_ind_expand] =  expand_coord_to_neighborhood([x, y, z], lower, upper, im_size);
+            
             match_1 = 0;
             seg_cur = zeros(size(im));
             for cc_idx = 1:length(cc_cur{1})
                 cur = cc_cur{1}{cc_idx};
-                if ~isempty(find(ismember(cur, lin_ind)))
+                if ~isempty(find(ismember(cur, lin_ind_expand)))
                     disp('matched')
                     matched_cur = cur;
                     seg_cur(matched_cur) = 1;
@@ -268,26 +287,36 @@ for fileNum = 1:length(natfnames)
             
             
             %% ALSO set match_2 == 1 if the cell dies in next timeseries:
-            frame_num_check = sortedmat(j, 1);
-            if frame_num_check ~= cur_frame + 1
-                match_2 = 1;
-                seg_next = zeros(size(im));
-                disp('DEAD CELL');
-            else
-                % do for next as well
-                match_2 = 0;
-                seg_next = zeros(size(im));
-                for cc_idx = 1:length(cc_next{1})
-                    cur = cc_next{1}{cc_idx};
-                    if ~isempty(find(ismember(cur, lin_ind_next)))
-                        disp('matched')
-                        matched_cur_next = cur;
-                        seg_next(matched_cur_next) = 1;
-                        match_2 = 1;
-                        break;
+            if ~isempty(j)   %% if the next cell is DEAD, then still allow tracking!
+                [expanded, lin_ind_next_exapnd] =  expand_coord_to_neighborhood([x_next, y_next, z_next], lower, upper, im_size);
+                
+                frame_num_check = sortedmat(j, 1);
+                if frame_num_check ~= cur_frame + 1
+                    match_2 = 1;
+                    seg_next = zeros(size(im));
+                    disp('DEAD CELL');
+                else
+                    % do for next as well
+                    match_2 = 0;
+                    seg_next = zeros(size(im));
+                    for cc_idx = 1:length(cc_next{1})
+                        cur = cc_next{1}{cc_idx};
+                        if ~isempty(find(ismember(cur, lin_ind_next_exapnd)))
+                            disp('matched')
+                            matched_cur_next = cur;
+                            seg_next(matched_cur_next) = 1;
+                            match_2 = 1;
+                            break;
+                        end
                     end
                 end
+                
+            else
+                
+                match_2 = 1;   %% if the next cell is DEAD, then still allow tracking!
+                
             end
+            
             
             %% ONLY IF BOTH EXIST:
             if match_1 == 1 && match_2 == 1
@@ -295,19 +324,49 @@ for fileNum = 1:length(natfnames)
                 % (1) crop the raw
                 crop_size = 80;
                 z_size = 32;
-                crop_raw_cur = crop_around_centroid(raw_cur, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
-                crop_seg_cur = crop_around_centroid(seg_cur, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
+                crop_raw_cur = crop_around_centroid_with_pads(raw_cur, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
+                crop_seg_cur = crop_around_centroid_with_pads(seg_cur, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
                 
-                crop_raw_next = crop_around_centroid(raw_next, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
-                crop_seg_next = crop_around_centroid(seg_next, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
+                crop_raw_next = crop_around_centroid_with_pads(raw_next, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
+                crop_seg_next = crop_around_centroid_with_pads(seg_next, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
                 
+                
+                %             else
+                %                 % (1) crop the raw
+                %                 if match_1 == 0
+                %                     seg_cur = zeros(size(im));
+                %                     seg_cur(lin_ind) = 1;
+                %
+                %                     %seg_cur = imdilate(seg_cur, strel('sphere', 5));
+                %                 end
+                %
+                %                 if match_2 == 0
+                %                     seg_next = zeros(size(im));
+                %                     seg_next(lin_ind_next) = 1;
+                %
+                %                     %seg_next = imdilate(seg_next, strel('sphere', 5));
+                %                 end
+                %
+                %                 crop_size = 80;
+                %                 z_size = 32;
+                %                 crop_raw_cur = crop_around_centroid_with_pads(raw_cur, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
+                %                 crop_seg_cur = crop_around_centroid_with_pads(seg_cur, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
+                %                 crop_seg_cur = imdilate(crop_seg_cur, strel('sphere', 5));
+                %
+                %
+                %
+                %                 crop_raw_next = crop_around_centroid_with_pads(raw_next, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
+                %                 crop_seg_next = crop_around_centroid_with_pads(seg_next, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
+                %                 crop_seg_next = imdilate(crop_seg_next, strel('sphere', 5));
+                %
+                %             end
                 
                 %% DEBUG:
-%                 mip1 = plot_max(crop_raw_cur);
-%                 mip2 = plot_max(crop_seg_cur);
-%        
-%                 mip3 = plot_max(crop_raw_next);
-%                 mip4 = plot_max(crop_seg_next);
+                %                 mip1 = plot_max(crop_raw_cur);
+                %                 mip2 = plot_max(crop_seg_cur);
+                %
+                %                 mip3 = plot_max(crop_raw_next);
+                %                 mip4 = plot_max(crop_seg_next);
                 
                 %% SAVE:
                 mip1 = max(crop_raw_cur, [], 3);
@@ -324,29 +383,34 @@ for fileNum = 1:length(natfnames)
                 cd(save_name);
                 
                 imwrite(mip1, strcat(save_name, '_frame_' , num2str(cur_idx), '_', num2str(i) , '_mip1.tif') , 'writemode', 'append', 'Compression','none')
-                imwrite(mip2, strcat(save_name, '_frame_' , num2str(cur_idx), '_', num2str(i) , '_mip2.tif') , 'writemode', 'append', 'Compression','none')
+                %imwrite(mip2, strcat(save_name, '_frame_' , num2str(cur_idx), '_', num2str(i) , '_mip2.tif') , 'writemode', 'append', 'Compression','none')
                 imwrite(mip3, strcat(save_name, '_frame_' , num2str(cur_idx), '_', num2str(i), '_mip4.tif') , 'writemode', 'append', 'Compression','none')
-                imwrite(mip4, strcat(save_name, '_frame_' , num2str(cur_idx), '_', num2str(i) ,'_mip5.tif') , 'writemode', 'append', 'Compression','none')
+                %imwrite(mip4, strcat(save_name, '_frame_' , num2str(cur_idx), '_', num2str(i) ,'_mip5.tif') , 'writemode', 'append', 'Compression','none')
                 
                 %figure; imshow(mip_RGB)
                 
                 %% ALSO GET THE ACTUAL FULL SEGMENTATION TO GUIDE THE SEED?
-                seg_cur = timeseries_SEG(:, :, :, cur_idx + 1);
-                seg_next = timeseries_SEG(:, :, :, cur_idx + 2);
+                seg_cur = im2double(timeseries_SEG(:, :, :, cur_idx + 1));
+                seg_next = im2double(timeseries_SEG(:, :, :, cur_idx + 2));
                 
-                crop_seg_cur_FULL = crop_around_centroid(seg_cur, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
-                crop_seg_next_FULL = crop_around_centroid(seg_next, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
+                crop_seg_cur_FULL = crop_around_centroid_with_pads(seg_cur, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
+                crop_seg_next_FULL = crop_around_centroid_with_pads(seg_next, y, x, z, crop_size, z_size, im_x_size, im_y_size, im_z_size);
                 %
                 mip5 = max(crop_seg_cur_FULL, [], 3);
                 mip6 = max(crop_seg_next_FULL, [], 3);
-                imwrite(mip5, strcat(save_name, '_frame_' , num2str(cur_idx), '_', num2str(i), '_mip3.tif') , 'writemode', 'append', 'Compression','none')
-                imwrite(mip6, strcat(save_name, '_frame_' , num2str(cur_idx), '_', num2str(i) ,'_mip6.tif') , 'writemode', 'append', 'Compression','none')
+                
+                
+                mip5_RGB = cat(3, mip5, mip2, zeros(size(mip2)));
+                mip6_RGB = cat(3, mip6, mip4, zeros(size(mip2)));
+                
+                imwrite(mip5_RGB, strcat(save_name, '_frame_' , num2str(cur_idx), '_', num2str(i), '_mip3.tif') , 'writemode', 'append', 'Compression','none')
+                imwrite(mip6_RGB, strcat(save_name, '_frame_' , num2str(cur_idx), '_', num2str(i) ,'_mip6.tif') , 'writemode', 'append', 'Compression','none')
                 
                 
                 %% SAVE:
                 cd(foldername)
                 cd('./Training cell track full auto');
-               if exist(strcat('./', save_name), 'dir') == 0
+                if exist(strcat('./', save_name), 'dir') == 0
                     mkdir(save_name)
                 end
                 cd(save_name);
@@ -378,7 +442,7 @@ for fileNum = 1:length(natfnames)
                 end
                 
             end
-
+            
         else
             cur_idx = cur_idx + 1;
         end

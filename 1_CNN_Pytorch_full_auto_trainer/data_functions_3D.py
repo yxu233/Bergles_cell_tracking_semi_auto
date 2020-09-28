@@ -35,13 +35,21 @@ import pandas as pd
 
 
 """ Given coords of shape x, y, z in a cropped image, scales back to size in full size image """
-def scale_coords_of_crop_to_full(coords, box_x_min, box_y_min, box_z_min):
-        coords[:, 0] = np.round(coords[:, 0]) + box_x_min   # SCALING the ep_center
-        coords[:, 1] = np.round(coords[:, 1]) + box_y_min
-        coords[:, 2] = np.round(coords[:, 2]) + box_z_min
+def scale_coords_of_crop_to_full(coords, box_xyz, box_over):
+        coords[:, 0] = np.round(coords[:, 0]) + (box_xyz[0] - box_over[0])   # SCALING the ep_center
+        coords[:, 1] = np.round(coords[:, 1]) + (box_xyz[2] - box_over[2])
+        coords[:, 2] = np.round(coords[:, 2]) + (box_xyz[4] - box_over[4])
         scaled = coords
         return scaled  
-   
+
+ 
+def scale_single_coord_to_full(coord, box_xyz, box_over):
+        coord[0] = np.round(coord[0]) + (box_xyz[0] - box_over[0])   # SCALING the ep_center
+        coord[1] = np.round(coord[1]) + (box_xyz[2] - box_over[2])
+        coord[2] = np.round(coord[2]) + (box_xyz[4] - box_over[4])
+        scaled = coord
+        return scaled 
+  
 
 """ Get an image from a dataframe """
 def gen_im_frame_from_array(tracked_cells_df, frame_num, input_im, color=0):
@@ -62,6 +70,26 @@ def gen_im_frame_from_array(tracked_cells_df, frame_num, input_im, color=0):
     
     return truth_im
      
+
+""" Get new cells and terminated cells ONLY from a dataframe """
+def gen_im_new_term_from_array(tracked_cells_df, frame_num, input_im, new=0):
+    truth_im = np.zeros(np.shape(input_im))
+    
+    for idx_truth in np.where(tracked_cells_df.FRAME == frame_num)[0]:
+        
+        ### to get only terminated cells
+        if not new and frame_num < np.max(tracked_cells_df.FRAME):  ### EXCLUDING LAST FRAME
+            if tracked_cells_df.iloc[idx_truth + 1].FRAME <= frame_num:   ### MEANS TERMINATED
+                truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = tracked_cells_df.iloc[idx_truth].SERIES 
+        
+        ### get only NEWLY FORMED cells, excluding if on 1st frame
+        elif frame_num > 0:
+            if tracked_cells_df.iloc[idx_truth - 1].FRAME >= frame_num:   ### MEANS NEWLY FORMED
+                truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = tracked_cells_df.iloc[idx_truth].SERIES 
+        
+    return truth_im
+    
+
 
 ### to load from truth_array
 def gen_im_frame_from_TRUTH_array(truth_array, frame_num, input_im, lowest_z_depth, height_tmp, width_tmp, depth_tmp, scale=0):
@@ -114,8 +142,8 @@ def gen_truth_from_csv(frame_num, input_path, filename, input_im, lowest_z_depth
     
     """ SCALE EVERYTHING IF NEEDED """
     if scale:
-         im_x_size = width_tmp
-         im_y_size = height_tmp
+         im_x_size = height_tmp
+         im_y_size = width_tmp
          im_z_size = depth_tmp
          
          x_scale = 1/0.8302662
@@ -144,7 +172,7 @@ def gen_truth_from_csv(frame_num, input_path, filename, input_im, lowest_z_depth
     for idx_truth in np.where(truth_array.FRAME == frame_num)[0]:
          
          if swap:
-              if truth_array.iloc[idx_truth].Z < lowest_z_depth and truth_array.iloc[idx_truth].Y < height_tmp and truth_array.iloc[idx_truth].X < width_tmp:
+              if truth_array.iloc[idx_truth].Z < lowest_z_depth and truth_array.iloc[idx_truth].Y < width_tmp and truth_array.iloc[idx_truth].X < height_tmp:
                    truth_im[int(truth_array.iloc[idx_truth].Y), int(truth_array.iloc[idx_truth].X), int(truth_array.iloc[idx_truth].Z)] = truth_array.iloc[idx_truth].SERIES 
 
          # else:   ### for MATLAB full auto output

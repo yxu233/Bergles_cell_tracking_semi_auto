@@ -21,6 +21,7 @@ for k = 1:num_images
     %green = A(:, :, 2);
     
     red_3D(:, :, im_idx) = im2double(red);
+    
     %green_3D(:, :, k) = im2double(green);
     %blue_3D(:, :, k) = im2double(green);
     im_idx = im_idx + 1;

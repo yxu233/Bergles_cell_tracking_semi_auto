@@ -1,9 +1,13 @@
 import numpy as np
 
 def crop_around_centroid(input_im, y, x, z, crop_size, z_size, height, width, depth):
-     box_x_max = int(x + crop_size); box_x_min = int(x - crop_size);
-     box_y_max = int(y + crop_size); box_y_min = int(y - crop_size);
-     box_z_max = int(z + z_size/2); box_z_min = int(z - z_size/2);
+     """ ADDING + 1 shifts it to be 39, 39, 15 in Python coords, which matches with 40, 40, 16 in MATLAB coords
+     """
+    
+    
+     box_x_max = int(x + crop_size) + 1; box_x_min = int(x - crop_size) + 1;
+     box_y_max = int(y + crop_size) + 1; box_y_min = int(y - crop_size) + 1;
+     box_z_max = int(z + z_size/2) + 1; box_z_min = int(z - z_size/2) + 1;
      
      im_size_x = width;
      im_size_y = height;
@@ -66,12 +70,21 @@ def crop_around_centroid(input_im, y, x, z, crop_size, z_size, height, width, de
      
      
      
-     
+# input_im = np.zeros(np.shape(input_im))
+# x = 100; y = 1039; z = 148
+# input_im[x, y, z] = 1
+# crop_im, box_xyz, box_over, boundaries_crop  = crop_around_centroid_with_pads(input_im, y, x, z, crop_size/2, z_size, height_tmp, width_tmp, depth_tmp)              
+
+# print(crop_im[79, 79, 15])
+# center = np.where(crop_im)
+# center = np.transpose(np.vstack(center))[0]
+# next_centroid = scale_single_coord_to_full(center, box_xyz, box_over)
+
      
 def crop_around_centroid_with_pads(input_im, y, x, z, crop_size, z_size, height, width, depth):
-     box_x_max = int(x + crop_size); box_x_min = int(x - crop_size);
-     box_y_max = int(y + crop_size); box_y_min = int(y - crop_size);
-     box_z_max = int(z + z_size/2); box_z_min = int(z - z_size/2);
+     box_x_max = int(x + crop_size) + 1; box_x_min = int(x - crop_size) + 1;
+     box_y_max = int(y + crop_size) + 1; box_y_min = int(y - crop_size) + 1;
+     box_z_max = int(z + z_size/2) + 1; box_z_min = int(z - z_size/2) + 1;
      
      im_size_x = width;
      im_size_y = height;
@@ -134,8 +147,19 @@ def crop_around_centroid_with_pads(input_im, y, x, z, crop_size, z_size, height,
      
      crop_pad = np.pad(crop, ((overshoot_neg_x, overshoot_x), (overshoot_neg_y, overshoot_y), (overshoot_neg_z, overshoot_z)))
      crop = crop_pad
+
+
+     boundaries_crop = np.zeros(np.shape(crop_pad))
+     boundaries_crop[overshoot_neg_x: int(crop_size * 2 - overshoot_x), overshoot_neg_y: int(crop_size * 2 - overshoot_y),  overshoot_neg_z: z_size - overshoot_z] = 1
      
-     return crop, box_x_min - overshoot_neg_x, box_x_max, box_y_min - overshoot_neg_y, box_y_max, box_z_min - overshoot_neg_z, box_z_max    
+     box_xyz = [box_x_min, box_x_max, box_y_min, box_y_max, box_z_min, box_z_max]
+     
+     box_over = [overshoot_neg_x, overshoot_x, overshoot_neg_y, overshoot_y, overshoot_neg_z, overshoot_z]
+     
+     return crop, box_xyz, box_over, boundaries_crop   
+    
+          
+     
      
      
      

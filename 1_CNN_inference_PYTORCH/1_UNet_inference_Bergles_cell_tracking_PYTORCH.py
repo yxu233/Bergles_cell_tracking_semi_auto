@@ -62,15 +62,7 @@ print(device)
 """  Network Begins: """
 #s_path = './Checkpoints_for_GITHUB/'
 #s_path = './(4) Checkpoints_PYTORCH_5x5_256x64_no_CONVTRANSP_matched_no_DILATION_COMPLEX/'
-
-
-
 #s_path = './(12) Checkpoints_TITAN_5x5_256x64_NO_transforms_AdamW_spatial/'
-
-
-s_path = './(10) Checkpoints_PYTORCH_HUGANIR_5x5_AdamW_batch_norm/'
-
-
 #s_path = './(18) Checkpoints_TITAN_NO_transforms_AdamW_batch_norm_SPATIAL/' 
 #s_path = './(16) Checkpoints_TITAN_YES_transforms_AdamW_SLOWER_switchable_BN/'
 

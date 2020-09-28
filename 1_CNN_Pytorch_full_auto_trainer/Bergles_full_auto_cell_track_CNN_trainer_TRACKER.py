@@ -70,6 +70,7 @@ import torch.optim as optim
 from UNet_pytorch import *
 from UNet_pytorch_online import *
 from PYTORCH_dataloader import *
+from HD_loss import *
 
 from sklearn.model_selection import train_test_split
 
@@ -96,7 +97,21 @@ if __name__ == '__main__':
     
     s_path = './(4) Checkpoints_full_auto_no_spatialW_large_TRACKER/'
     
-    input_path = '/media/user/storage/Data/(2) cell tracking project/a_training_data_GENERATE_FULL_AUTO/Training_cell_track_full_auto_COMPLETED/'
+    #s_path = './(5) Checkpoints_full_auto_no_spatialW_large_TRACKER_switch_norm/'
+    
+    s_path = './(6) Checkpoints_full_auto_no_spatialW_large_TRACKER_NO_NEXT_SEG/'
+    
+    
+    s_path = './(7) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT_SEG_skipped/'; next_seg = 0;
+    
+    
+    #s_path = './(8) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_YES_NEXT_SEG/'; next_seg = 1;
+    
+    
+    s_path = './(9) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT_hausdorf/'; next_seg = 0; HD = 1; alpha = 1;
+    
+    
+    input_path = '/media/user/storage/Data/(2) cell tracking project/a_training_data_GENERATE_FULL_AUTO/Training_cell_track_full_auto_COMPLETED_crop_pads/'
 
     resume = 0
     """ TO LOAD OLD CHECKPOINT """
@@ -125,6 +140,25 @@ if __name__ == '__main__':
                              next_input    = i.replace('_crop_input_cur.tif','_crop_input_next.tif'),
                              next_full_seg = i.replace('_crop_input_cur.tif','_crop_input_next_seg_FULL.tif'),
                              truth         = i.replace('_crop_input_cur.tif','_crop_truth.tif')) for i in images]
+    
+    
+    
+    # ### REMOVE FULL TIMESERIES from training data
+    idx_skip = []
+    for idx, im in enumerate(examples):
+        filename = im['input']
+        if 'MOBPF_190105w_1_cuprBZA_10x' in filename:
+            print('skip')
+            idx_skip.append(idx)
+    
+    
+    ### USE THE EXCLUDED IMAGE AS VALIDATION/TESTING
+    examples_test = examples[0:len(idx_skip)]
+
+    examples = [i for j, i in enumerate(examples) if j not in idx_skip]
+
+    
+    
     counter = list(range(len(examples)))
     
     
@@ -137,15 +171,21 @@ if __name__ == '__main__':
         #transforms = initialize_transforms(p=0.5)
         #transforms = initialize_transforms_simple(p=0.5)
         transforms = 0
-        batch_size = 4;      
+        batch_size = 8;      
         test_size = 0.1  
+        
+        
+        if next_seg:
+            in_channels = 4
+        else:
+            in_channels = 3
         
         
 
         """ Initialize network """  
         kernel_size = 5
         pad = int((kernel_size - 1)/2)
-        unet = UNet_online(in_channels=4, n_classes=2, depth=5, wf=3, kernel_size = kernel_size, padding= int((kernel_size - 1)/2), 
+        unet = UNet_online(in_channels=in_channels, n_classes=2, depth=5, wf=3, kernel_size = kernel_size, padding= int((kernel_size - 1)/2), 
                             batch_norm=True, batch_norm_switchable=switch_norm, up_mode='upsample')
         #unet = NestedUNet(num_classes=2, input_channels=2, deep_sup=deep_sup, padding=pad, batch_norm_switchable=switch_norm)
         #unet = UNet_3Plus(num_classes=2, input_channels=2, kernel_size=kernel_size, padding=pad)
@@ -178,6 +218,8 @@ if __name__ == '__main__':
                                           sp_weight_bool=sp_weight_bool, transforms=transforms, dataset=input_path)
 
      
+        tracker.next_seg = next_seg
+        
     else:             
         """ Find last checkpoint """       
         last_file = onlyfiles_check[-1]
@@ -227,14 +269,11 @@ if __name__ == '__main__':
         
     """ 
 
-
-    
-
     """ Create datasets for dataloader """
     training_set = Dataset_tiffs(tracker.idx_train, examples, tracker.mean_arr, tracker.std_arr,
-                                           sp_weight_bool=tracker.sp_weight_bool, transforms = tracker.transforms)
+                                           sp_weight_bool=tracker.sp_weight_bool, transforms = tracker.transforms, next_seg=tracker.next_seg)
     val_set = Dataset_tiffs(tracker.idx_valid, examples, tracker.mean_arr, tracker.std_arr,
-                                      sp_weight_bool=tracker.sp_weight_bool, transforms = 0)
+                                      sp_weight_bool=tracker.sp_weight_bool, transforms = 0, next_seg=tracker.next_seg)
     
     
     """ Create training and validation generators"""
@@ -272,7 +311,7 @@ if __name__ == '__main__':
          """ check and plot params during training """             
          for param_group in optimizer.param_groups:
                #tracker.alpha = 0.5
-               #param_group['lr'] = 1e-6   # manually sets learning rate
+               param_group['lr'] = 1e-6   # manually sets learning rate
                cur_lr = param_group['lr']
                tracker.lr_plot.append(cur_lr)
                tracker.print_essential()
@@ -280,6 +319,7 @@ if __name__ == '__main__':
               
               
          iter_cur_epoch = 0;          
+         ce_train = 0; dc_train = 0; hd_train = 0;
          for batch_x, batch_y, spatial_weight in training_generator:
                 starter += 1
                 if starter == 1:
@@ -379,7 +419,7 @@ if __name__ == '__main__':
          loss_val = 0; jacc_val = 0
          precision_val = 0; sensitivity_val = 0; val_idx = 0;
          iter_cur_epoch = 0;
-         
+         ce_val = 0; dc_val = 0; hd_val = 0;
          total_FPs = 0; total_TPs = 0; total_FNs = 0; total_TNs = 0;
          if cur_epoch % validate_every_num_epochs == 0:
              
@@ -487,6 +527,10 @@ if __name__ == '__main__':
                   
               """ Add to scheduler to do LR decay """
               scheduler.step()
+
+         """ calculate new alpha for next epoch """   
+         if tracker.HD:
+            tracker.alpha = alpha_step(ce_train, dc_train, hd_train, iter_cur_epoch)
                   
          if cur_epoch % plot_every_num_epochs == 0:       
              
@@ -533,6 +577,8 @@ if __name__ == '__main__':
               batch_y = batch_y.cpu().data.numpy() 
               batch_x_val = batch_x_val.cpu().data.numpy()
               
+              
+              seg_val = np.argmax(output_val[0], axis=-1)  
               
               plot_trainer_3D_PYTORCH_cell_track_AUTO(seg_train, seg_val, batch_x[0, 0:2, ...], batch_x_val[0, 0:2, ...], batch_y[0], batch_y_val[0],
                                        s_path, tracker.iterations, plot_depth=plot_depth)
