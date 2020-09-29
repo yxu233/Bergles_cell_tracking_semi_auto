@@ -427,20 +427,42 @@ def associate_to_closest(tracked_cells_df, cc, seg_train, x, y, z, box_xyz, box_
 
 """
 def predict_next_xyz(tracked_cells_df, x, y, z, crop_size, z_size, frame_num):
-    cell_locs = np.where((tracked_cells_df.X >= x - crop_size/2) & (tracked_cells_df.X <= x + crop_size/2) & (tracked_cells_df.Y >= y - crop_size/2) & (tracked_cells_df.Y <= y + crop_size/2) & (tracked_cells_df.Z >= z - z_size/2) & (tracked_cells_df.Z <= z + z_size/2) & (tracked_cells_df.FRAME == frame_num - 1))
-    cells_cur_crop = tracked_cells_df.iloc[cell_locs]  
-    series_cur_crop = cells_cur_crop.SERIES
-                    
-    cur_centers = []; next_centers = []; num_tracked = 0;
-    for series in series_cur_crop:
+    #cell_locs = np.where((tracked_cells_df.X >= x - crop_size/2) & (tracked_cells_df.X <= x + crop_size/2) & (tracked_cells_df.Y >= y - crop_size/2) & (tracked_cells_df.Y <= y + crop_size/2) & (tracked_cells_df.Z >= z - z_size/2) & (tracked_cells_df.Z <= z + z_size/2) & (tracked_cells_df.FRAME == frame_num - 1))
+   
+    cell_locs =  tracked_cells_df.index[tracked_cells_df['X'].isin(range(int(x-crop_size/2),int(x+crop_size/2))) 
+                                        & tracked_cells_df['Y'].isin(range(int(y-crop_size/2),int(y+crop_size/2)))
+                                        & tracked_cells_df['Z'].isin(range(int(z-z_size/2),int(z+z_size/2)))
+                                        & tracked_cells_df['FRAME'].isin([frame_num - 1])]
+                
+                
+    cur_centers = []; next_centers = []; num_tracked = 0
+    for row_tup in tracked_cells_df.iloc[cell_locs].itertuples():
         
-        locs_cur = np.where((tracked_cells_df.SERIES == series) & (tracked_cells_df.FRAME == frame_num - 1))[0]
-        locs_next =  np.where((tracked_cells_df.SERIES == series) & (tracked_cells_df.FRAME == frame_num))[0]
+        cell = row_tup
+        series = getattr(cell, 'SERIES')
+        x_c = getattr(cell, 'X'); y_c = getattr(cell, 'Y'); z_c = getattr(cell, 'Z');        
+        
+        next_cell_loc =  tracked_cells_df.index[tracked_cells_df['SERIES'].isin([series]) 
+                                        & tracked_cells_df['FRAME'].isin([frame_num])]       
+    
+    # cells_cur_crop = tracked_cells_df.iloc[cell_locs]  
+    # series_cur_crop = cells_cur_crop.SERIES
+                    
+    # cur_centers = []; next_centers = []; num_tracked = 0;
+    # for series in series_cur_crop:
+        
+    #     locs_cur = np.where((tracked_cells_df.SERIES == series) & (tracked_cells_df.FRAME == frame_num - 1))[0]
+    #     locs_next =  np.where((tracked_cells_df.SERIES == series) & (tracked_cells_df.FRAME == frame_num))[0]
         
         ### if is tracked cell (location == 2)
-        if len(locs_cur)  == 1 and len(locs_next) == 1:
-            cur_centroid = [tracked_cells_df.iloc[locs_cur[0]].X, tracked_cells_df.iloc[locs_cur[0]].Y, tracked_cells_df.iloc[locs_cur[0]].Z]
-            next_centroid = [tracked_cells_df.iloc[locs_next[0]].X, tracked_cells_df.iloc[locs_next[0]].Y, tracked_cells_df.iloc[locs_next[0]].Z]
+     #   if len(locs_cur)  == 1 and len(locs_next) == 1:
+     
+        if len(next_cell_loc) > 0:
+            next_cell = tracked_cells_df.loc[next_cell_loc]
+             
+     
+            cur_centroid = [x_c, y_c, z_c]
+            next_centroid = [np.asarray(next_cell.X)[0], np.asarray(next_cell.Y)[0], np.asarray(next_cell.Z)[0]]
             
             cur_centers.append(cur_centroid)
             next_centers.append(next_centroid)
@@ -455,7 +477,7 @@ def predict_next_xyz(tracked_cells_df, x, y, z, crop_size, z_size, frame_num):
         pred_x = int(x + median_disp[0])
         pred_y = int(y + median_disp[1])
         pred_z = int(z + median_disp[2])
-        
+
     else:
         pred_x = x
         pred_y = y
@@ -775,17 +797,21 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
 def check_predicted_distances(tracked_cells_df, frame_num, crop_size, z_size, dist_error_thresh = 10):
     print('checking distances')
     all_dist = []; check_series = []; dist_check = []; num_checked = 0;
-    for series in np.unique(tracked_cells_df.SERIES):
-        index = np.where((tracked_cells_df["SERIES"] == series) & (tracked_cells_df["FRAME"] == frame_num - 1))[0]
-        if len(index) > 0:
+    
+    unique_series =  np.unique(tracked_cells_df.SERIES)    
+    idx_series = tracked_cells_df.index[tracked_cells_df['SERIES'].isin(unique_series) & tracked_cells_df['FRAME'].isin([frame_num - 1])]
             
+    for row_tup in tracked_cells_df.loc[idx_series].itertuples():
+                
             num_checked += 1
             
-            cell = tracked_cells_df.iloc[index[0]]
+            cell = row_tup
              
             ### go to unvisited cells
-            x = cell.X; y = cell.Y; z = cell.Z;           
+            x = getattr(cell, 'X'); y = getattr(cell, 'Y'); z = getattr(cell, 'Z');   
+            series = getattr(cell, 'SERIES')
             
+            #print(num_checked)
             
             ### keep looping until have sufficient neighbor landmarks
             num_tracked = 0; scale = 0.25
@@ -795,9 +821,11 @@ def check_predicted_distances(tracked_cells_df, frame_num, crop_size, z_size, di
                 scale += 0.25
             
             if num_tracked >= 4:
-                index_next = np.where((tracked_cells_df["SERIES"] == series) & (tracked_cells_df["FRAME"] == frame_num))[0]
+                index_next = tracked_cells_df.index[tracked_cells_df['SERIES'].isin([series]) & tracked_cells_df['FRAME'].isin([frame_num])]
+                
+                
                 if len(index_next) > 0:
-                    cell_next = tracked_cells_df.iloc[index_next[0]]    
+                    cell_next = tracked_cells_df.loc[index_next[0]]    
     
                     x_n = cell_next.X; y_n = cell_next.Y; z_n = cell_next.Z; 
                     
@@ -807,8 +835,15 @@ def check_predicted_distances(tracked_cells_df, frame_num, crop_size, z_size, di
                     
                     if dist > dist_error_thresh:
                         check_series.append(series)
-                        dist_check.append(dist)                       
+                        dist_check.append(dist)                   
+                        
     # len(np.where(np.asarray(all_dist) > 4)[0])
     # len(all_dist) 
     
     return tracked_cells_df, all_dist, dist_check, check_series
+
+
+
+
+
+

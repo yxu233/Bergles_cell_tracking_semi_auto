@@ -59,7 +59,7 @@ plt.rc('ytick',labelsize=14)
 
 
 """ Define GPU to use """
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 print(device)
 
 """  Network Begins: """
@@ -701,10 +701,6 @@ for input_path in list_folder:
             tmp_next_seg = np.copy(next_seg)
             
             
-            zzz
-            
-
-
             """  Identify all potential errors of tracking (over the predicted distance error threshold) """
             tracked_cells_df, all_dist, dist_check, check_series = check_predicted_distances(tracked_cells_df, frame_num, crop_size, z_size, dist_error_thresh=10)
             plt.figure(); plt.hist(all_dist)
