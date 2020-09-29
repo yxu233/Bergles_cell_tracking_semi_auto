@@ -347,6 +347,7 @@ if __name__ == '__main__':
                 
                 # imsave(s_path + str(iterations) + '_max_input.tif', in_max)
                 # imsave(s_path + str(iterations) + '_max_label.tif', lb_max)                
+
                 
                 """ Load data ==> shape is (batch_size, num_channels, depth, height, width)
                      (1) converts to Tensor
@@ -362,7 +363,10 @@ if __name__ == '__main__':
                 
                 """ forward + backward + optimize """
                 output_train = unet(inputs)
+ 
                 
+ 
+    
                 """ calculate loss: includes HD loss functions """
                 if tracker.HD:
                     loss, tracker, ce_train, dc_train, hd_train = compute_HD_loss(output_train, labels, tracker.alpha, tracker, 

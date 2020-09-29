@@ -361,8 +361,11 @@ def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_d
                  
             num_new += 1
             
-       print('Checking cell: ' + str(idx) + ' of total: ' + str(len(next_cc)))
-                        
+       #print('Checking cell: ' + str(idx) + ' of total: ' + str(len(next_cc)))
+    
+
+    print('num new cells: ' + str(num_new))
+                    
     return tracked_cells_df, truth_output_df, truth_next_im, truth_array
 
 
@@ -465,17 +468,50 @@ def predict_next_xyz(tracked_cells_df, x, y, z, crop_size, z_size, frame_num):
 
 
 
+""" Help with changing the pointer of the old cell or adding a new cell"""
+def change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, series, frame_num, next_coords, next_centroid, moved_old, new):
+
+    ### change pointer of old cell
+    if len(cell_next) > 0:
+        old_coords = cell_next.coords
+        next_seg[old_coords[:, 0], old_coords[:, 1], old_coords[:, 2]] = 255;   ### RESET NEXT_SEG 
+        
+        
+        cell_next.coords = next_coords
+        cell_next.X = next_centroid[0]
+        cell_next.Y = next_centroid[1]
+        cell_next.Z = next_centroid[2]
+        
+        next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 250;   ### RESET NEXT_SEG 
+        
+        moved_old += 1
+        
+        
+    ### or add new cell
+    else:
+        row = {'SERIES': series, 'COLOR': 'GREEN', 'FRAME': frame_num, 'X': int(next_centroid[0]), 'Y':int(next_centroid[1]), 'Z': int(next_centroid[2]), 'coords':next_coords, 'visited': 0}
+        tracked_cells_df = tracked_cells_df.append(row, ignore_index=True)     
+
+        """ Change next coord """
+        next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 250;                      
+        
+        #print('new cell')
+        new += 1
+        
+    return tracked_cells_df, next_seg, moved_old, new
+
+                
+                
 """ Use predictions to cleanup whatever candidates you wish to try """
 def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_size, z_size, frame_num, seg_train, height_tmp, width_tmp, depth_tmp, min_dist=12):
     print('cleaning with predictions')
     
-    deleted = 0; term_count = 0; new = 0; not_changed = 0;
+    deleted = 0; term_count = 0; new = 0; not_changed = 0; moved_old = 0;
     not_assoc = 0;
     to_drop = [];
     recheck_series = []   ### TO BE RECHECKED LATER
     for series in candidate_series:
-        
-        
+
         index = np.where((tracked_cells_df["SERIES"] == series) & (tracked_cells_df["FRAME"] == frame_num - 1))[0]
         cell = tracked_cells_df.iloc[index[0]]
         x = cell.X; y = cell.Y; z = cell.Z;
@@ -491,14 +527,24 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
         else:
             cell_next = []
             
+        ### DEBUG:
         # im = np.zeros(np.shape(next_seg))
-        # im[x_n, y_n, z_n] = 1
-        # im[pred_x, pred_y, pred_z] = 2
-        # crop_seg_out, box_xyz, box_over, boundaries_crop  = crop_around_centroid_with_pads(im, y, x, z, crop_size/2, z_size, height_tmp, width_tmp, depth_tmp)       
-    
+
         # batch_x, crop_im, crop_cur_seg, crop_seed, crop_next_input, crop_next_seg, crop_next_seg_non_bin, box_xyz, box_over = prep_input_for_CNN(cell, input_im, next_input, cur_seg,
         #                                                                                           next_seg, 0, 0, x, y, z, crop_size, z_size,
         #                                                                                           height_tmp, width_tmp, depth_tmp, next_bool=next_bool)   
+
+        # plot_max(crop_im, ax=-1)
+        # plot_max(crop_cur_seg, ax=-1)
+        # plot_max(crop_next_input, ax=-1)
+
+        # crop_next_seg_non_bin[crop_next_seg_non_bin == 250] = 1
+        # crop_next_seg_non_bin[crop_next_seg_non_bin == 255] = 2
+     
+        # plot_max(crop_next_seg_non_bin, ax=-1)
+
+
+
 
         # inputs_val = torch.tensor(batch_x, dtype = torch.float, device=device, requires_grad=False)
   
@@ -528,7 +574,7 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
         next_coords = []
         if len(cc) > 0:
         
-            num_tracked = 0; scale = 0.25
+            num_tracked = 0; scale = 0.5
             while num_tracked < 4 and scale <= 2:
                 pred_x, pred_y, pred_z, num_tracked = predict_next_xyz(tracked_cells_df, x, y, z, crop_size + crop_size * scale, z_size + z_size * scale, frame_num)
                 
@@ -539,16 +585,37 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                 empty, next_coords, seg_train, next_centroid, closest_dist = associate_to_closest(tracked_cells_df, cc, seg_train, pred_x, pred_y, pred_z, box_xyz, box_over, series, 
                                                                                                  frame_num, width_tmp, height_tmp, depth_tmp, min_dist=min_dist)       
 
+
+
         """ Change next coord only if something close was found
         """
         term_bool = 0
         if len(next_coords) > 0:   ### only add if not empty
-            if np.any(next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] == 250):
+
+        
+            ### DEBUG:
+            #im[x_n, y_n, z_n] = 1
+            # im[pred_x, pred_y, pred_z] = 2
+            # im[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 3
+            # crop_seg_out, box_xyz, box_over, boundaries_crop  = crop_around_centroid_with_pads(im, y, x, z, crop_size/2, z_size, height_tmp, width_tmp, depth_tmp)       
+            # plot_max(crop_seg_out, ax=-1)
+
+
+            """ CASE #1: if next_seg does NOT contain 250, then just associate to current cell"""
+            if not np.any(next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] == 250):
+                
+                """ change the pointer of the old cell OR ADD CELL  
+                            ***also must update "next_seg"
+                    """
+                tracked_cells_df, next_seg, moved_old, new = change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, cell.SERIES, frame_num, next_coords, next_centroid, moved_old, new)
+                        
+                     
+
+            else:
                 """ CASE #2: otherwise, find which cell is currently matched to this cell, then check what the prediction is for that new cell
                     and find which is closer 
                     
                     """
-                    
                 found = 0
                 for series_check in np.unique(tracked_cells_df.SERIES):
                     index_cur_c = np.where((tracked_cells_df["SERIES"] == series_check) & (tracked_cells_df["FRAME"] == frame_num - 1))[0]     
@@ -570,45 +637,31 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                             
                 
                             ### keep looping until have sufficient neighbor landmarks
-                            num_tracked = 0; scale = 0.25
+                            num_tracked = 0; scale = 0.5
                             while num_tracked < 4 and scale <= 2:
                                 pred_x_c, pred_y_c, pred_z_c, num_tracked = predict_next_xyz(tracked_cells_df, x_c_cur, y_c_cur, z_c_cur, crop_size + crop_size * scale, z_size + z_size * scale, frame_num)
                                 
-                                scale += 0.25
-                                #
+                                scale += 0.25                            
                             
                             
-                            
-                            
+                            """ Find distances to the next cell using predictions from 2 cells on current frame """
                             dist_to_check = np.linalg.norm(np.asarray([pred_x_c, pred_y_c, pred_z_c]) - next_centroid)
                             dist_to_new = np.linalg.norm(np.asarray([pred_x, pred_y, pred_z]) - next_centroid)
                             
-                            ### DELETE CELL
+                            ### if the new cell is closer, than DELETE the pointer from the "check" cell
                             if dist_to_new <= dist_to_check:
                                 #print('delete cell')
                                 deleted += 1
                                 to_drop.append(index_next_c[0])   ### drop NEXT FRAMES cell that was conflicting
                                 
-                                ### and append the cell to check later
+                                ### and append the cell who's pointer is removed, so we can check it again later
                                 recheck_series.append(series_check)
 
-                                ### and add the new cell
-                                ### ADD CELL
-                                if len(cell_next) > 0:
-                                    
-                                    old_coords = cell_next.coords
-                                    next_seg[old_coords[:, 0], old_coords[:, 1], old_coords[:, 2]] = 255;   ### RESET NEXT_SEG 
-                                    
-                                    cell_next.coords = next_coords
-                                    cell_next.X = next_centroid[0]
-                                    cell_next.Y = next_centroid[1]
-                                    cell_next.Z = next_centroid[2]
-                                else:
-                                    row = {'SERIES': cell.SERIES, 'COLOR': 'GREEN', 'FRAME': frame_num, 'X': int(next_centroid[0]), 'Y':int(next_centroid[1]), 'Z': int(next_centroid[2]), 'coords':next_coords, 'visited': 0}
-                                    tracked_cells_df = tracked_cells_df.append(row, ignore_index=True)     
-                
-                                    """ Change next coord """
-                                    next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 250;    
+                                """ change the pointer of the old cell OR ADD CELL  
+                                            ***also must update "next_seg"
+                                    """
+                                
+                                tracked_cells_df, next_seg, moved_old, new = change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, cell.SERIES, frame_num, next_coords, next_centroid, moved_old, new)
                                 
                             else:
                                 ### otherwise, leave current cell as empty
@@ -618,57 +671,33 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                                 
                                 next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 255;   ### RESET NEXT_SEG 
                      
-                                
+                      
+                    ### MIGHT BE BUG???
+                    ### for now, if didn't match, then just add as new cell
                 if found == 0:
                     not_assoc += 1
                     print(not_assoc)
-
-
-            """ CASE #1: if next_seg does NOT contain 250, then just associate to current cell"""
-            #next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 250;      
-
-            if not np.any(next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] == 250) or not found:
-                
-                ### ADD CELL
-                if len(cell_next) > 0:
-                    old_coords = cell_next.coords
-                    next_seg[old_coords[:, 0], old_coords[:, 1], old_coords[:, 2]] = 255;   ### RESET NEXT_SEG 
+                    """ change the pointer of the old cell OR ADD CELL  
+                                ***also must update "next_seg"
+                    """                    
+                    tracked_cells_df, next_seg, moved_old, new = change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, series, frame_num, next_coords, next_centroid, moved_old, new)
                     
-                    
-                    cell_next.coords = next_coords
-                    cell_next.X = next_centroid[0]
-                    cell_next.Y = next_centroid[1]
-                    cell_next.Z = next_centroid[2]
-                else:
-                    row = {'SERIES': cell.SERIES, 'COLOR': 'GREEN', 'FRAME': frame_num, 'X': int(next_centroid[0]), 'Y':int(next_centroid[1]), 'Z': int(next_centroid[2]), 'coords':next_coords, 'visited': 0}
-                    tracked_cells_df = tracked_cells_df.append(row, ignore_index=True)     
 
-                    """ Change next coord """
-                    next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 250;                      
-                    
-                #print('new cell')
-                new += 1
-
-                        
-                     
+        """   CASE #3: none matched, set as eliminated and remove cell_next """
                                 
         if len(next_coords) == 0 or term_bool:
-            """   CASE #3: none matched, set as eliminated and remove cell_next """
+           
             if len(index_next) > 0:
                 to_drop.append(index_next[0])
                 deleted += 1
             
             else:
                 not_changed += 1
-                
-        else:
-            print('what')
-            #zzz
-                
+                                
 
     """ drop everything that has .coords = [] """
     tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[to_drop])
-    print('new associations: ' + str(new) + '\ndeleted_old_tracks: ' + str(deleted) + '\nterminated: ' + str(term_count) + '\nnot changed: ' + str(not_changed))
+    print('new associations: ' + str(new) + '\ndeleted_old_tracks: ' + str(deleted) + '\nterminated: ' + str(term_count) + '\nnot changed: ' + str(not_changed) + '\nmoved: ' + str(moved_old))
     
     
     return tracked_cells_df, recheck_series, next_seg
@@ -677,6 +706,63 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
 
 
 
+
+### check new cells
+
+""" PLOT new cells """
+# all_cur_frame = np.where(tracked_cells_df["FRAME"] == frame_num)[0]
+# cur_series = tracked_cells_df.iloc[all_cur_frame].SERIES
+# new_series = []
+# for cur in cur_series:
+#     index_cur = np.where((tracked_cells_df["SERIES"] == cur) & (tracked_cells_df["FRAME"] == frame_num - 1))[0]
+#     index_next = np.where((tracked_cells_df["SERIES"] == cur) & (tracked_cells_df["FRAME"] == frame_num))[0]
+     
+#     """ if next frame is empty, then terminated """
+#     if len(index_cur) == 0:
+#         new_series.append(cur)
+        
+        
+# print('cleaning with predictions')
+# for series in new_series:
+
+#     index = np.where((tracked_cells_df["SERIES"] == series) & (tracked_cells_df["FRAME"] == frame_num))[0]
+#     cell = tracked_cells_df.iloc[index[0]]
+#     x = cell.X; y = cell.Y; z = cell.Z;
+#     pred_x, pred_y, pred_z, num_tracked = predict_next_xyz(tracked_cells_df, x, y, z, crop_size, z_size, frame_num)
+#     print(len(cell.coords))
+
+#     ### DEBUG: when debugging get next cell too and plot it
+#     #im = np.zeros(np.shape(next_seg))
+#     index_next = np.where((tracked_cells_df["SERIES"] == series) & (tracked_cells_df["FRAME"] == frame_num - 1))[0]
+#     if len(index_next) > 0:
+#         cell_next = tracked_cells_df.iloc[index_next[0]]
+#         x_n = cell_next.X; y_n = cell_next.Y; z_n = cell_next.Z;
+
+#     else:
+#         cell_next = []
+        
+#     im = np.zeros(np.shape(next_seg))
+
+#     batch_x, crop_im, crop_cur_seg, crop_seed, crop_next_input, crop_next_seg, crop_next_seg_non_bin, box_xyz, box_over = prep_input_for_CNN(cell, next_input, input_im, next_seg,
+#                                                                                               cur_seg, 0, 0, x, y, z, crop_size, z_size,
+#                                                                                               height_tmp, width_tmp, depth_tmp, next_bool=next_bool)   
+
+#     plot_max(crop_im, ax=-1)
+#     plot_max(crop_cur_seg, ax=-1)
+#     plot_max(crop_next_input, ax=-1)
+
+#     crop_next_seg_non_bin[crop_next_seg_non_bin == 250] = 1
+#     crop_next_seg_non_bin[crop_next_seg_non_bin == 255] = 2
+ 
+#     plot_max(crop_next_seg_non_bin, ax=-1)
+    
+    
+    
+    
+    
+    
+    
+    
 
 
 """ Given dataframe, find predicted distances of ALL

@@ -32,6 +32,23 @@ from data_functions_3D import *
 from functions_cell_track_auto import *
 from skimage.transform import rescale, resize, downscale_local_mean
 
+""" Define transforms"""
+import torchio
+from torchio.transforms import (
+   RescaleIntensity,
+   RandomFlip,
+   RandomAffine,
+   RandomElasticDeformation,
+   RandomMotion,
+   RandomBiasField,
+   RandomBlur,
+   RandomNoise,
+   Interpolation,
+   Compose
+)
+from torchio import Image, Subject, ImagesDataset
+                
+
 torch.backends.cudnn.benchmark = True  
 torch.backends.cudnn.enabled = True  # new thing? what do? must be True
 
@@ -55,6 +72,12 @@ print(device)
 #s_path = './(6) Checkpoints_full_auto_no_spatialW_large_TRACKER_NO_NEXT_SEG/'; next_bool = 0;
 
 s_path = './(7) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT_SEG/'; next_bool = 0;
+
+
+#s_path = './(7) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT_SEG_skipped/'; next_bool = 0;
+
+
+#s_path = './(8) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_YES_NEXT_SEG/'; next_bool = 1;
 
 crop_size = 160
 z_size = 32
@@ -304,7 +327,7 @@ for input_path in list_folder:
                  """ DONT TEST IF TOO SMALL """
                  cell_size.append(len(cell.coords))
                  if len(cell.coords) < min_size:
-                          continue;
+                           continue;
                  
                  """ SKIP IF HAVE TO MOVE THE CROPPING BOX IN THE BOTTOM Z-dimension """
                  # if z + z_size/2 >= lowest_z_depth:
@@ -316,6 +339,9 @@ for input_path in list_folder:
                  batch_x, crop_im, crop_cur_seg, crop_seed, crop_next_input, crop_next_seg, crop_next_seg_non_bin, box_xyz, box_over = prep_input_for_CNN(cell, input_im, next_input, cur_seg,
                                                                                                          next_seg, mean_arr, std_arr, x, y, z, crop_size, z_size,
                                                                                                          height_tmp, width_tmp, depth_tmp, next_bool=next_bool)
+                 
+                
+                 
                  ### Convert to Tensor
                  inputs_val = torch.tensor(batch_x, dtype = torch.float, device=device, requires_grad=False)
 
@@ -330,22 +356,113 @@ for input_path in list_folder:
 
 
 
-                 # if z >= 100:      
-                 #    plot_max(crop_im, ax=-1)
-                 #    plot_max(crop_cur_seg, ax=-1)
-                 #    plot_max(crop_next_input, ax=-1)
-                 #    #plot_max(crop_next_seg, ax=-1)
-               
+                 """ For trying out different warping functions 
+                 
+                         cell_idx in image timeseries 680 that are good:
+                             - 600 ==> nice clean simple cell
+                             
+                 """
+
+                 test_permutations = 0
+                 if test_permutations:
+                     
+                   
+                    plot_max(crop_im, ax=-1)
+                    plot_max(crop_cur_seg, ax=-1)
+                    plot_max(crop_next_input, ax=-1)
+                    #plot_max(crop_next_seg, ax=-1)
+                    crop_next_seg_non_bin[crop_next_seg_non_bin == 250] = 1
+                    crop_next_seg_non_bin[crop_next_seg_non_bin == 255] = 2              
+                    plot_max(crop_next_seg_non_bin, ax=-1)               
+                    plot_max(seg_train, ax=-1)
+                  
+                    p = 1 
+                  
+                    ### (1) try with different flips
+                    #transforms = [RandomFlip(axes = 0, flip_probability = 1, p = p, seed = None)]; transform = Compose(transforms)
                     
-                   
-                 #    crop_next_seg_non_bin[crop_next_seg_non_bin == 250] = 1
-                 #    crop_next_seg_non_bin[crop_next_seg_non_bin == 255] = 2
-                   
-                 #    plot_max(crop_next_seg_non_bin, ax=-1)
+                    ### (2) try with different blur
+                    #transforms = [RandomBlur(std = (0, 4), p = p, seed=None)]; transforms = Compose(transforms)
                     
-                 #    plot_max(seg_train, ax=-1)
-                 #    len(np.where(crop_seed)[0])    
-                   
+                    
+                    ### (3) try with different warp (affine transformatins)
+                    transforms = [RandomAffine(scales=(0.9, 1.1), degrees=(10), isotropic=False,
+                                        default_pad_value='otsu', image_interpolation=Interpolation.LINEAR,
+                                        p = p, seed=None)]; transforms = Compose(transforms)                    
+
+                    ### (4) try with different warp (elastic transformations)
+                    #transforms = [RandomElasticDeformation(num_control_points = 7, max_displacement = 7.5,
+                    #                                locked_borders = 2, image_interpolation = Interpolation.LINEAR,
+                    #                                p = p, seed = None),]; transforms = Compose(transforms)
+
+                    ### (5) try with different motion artifacts
+                    #transforms = [RandomMotion(degrees = 10, translation = 10, num_transforms = 2, image_interpolation = Interpolation.LINEAR,
+                    #                    p = p, seed = None),]; transforms = Compose(transforms)
+
+
+                    ### (6) try with different noise artifacts
+                    #transforms = [RandomNoise(mean = 0, std = (0, 0.25), p = p, seed = None)]; transforms = Compose(transforms)
+
+                     
+                    ### transforms to apply to crop_im                     
+                    inputs = crop_im
+                    inputs = torch.tensor(inputs, dtype = torch.float,requires_grad=False)
+                    #labels = torch.tensor(labels, dtype = torch.long, requires_grad=False)         
+                    labels = inputs
+                
+                    subject_a = Subject(
+                            one_image=Image(None,  torchio.INTENSITY, inputs),   # *** must be tensors!!!
+                            a_segmentation=Image(None, torchio.LABEL, labels))
+                      
+                    subjects_list = [subject_a]
+            
+                    subjects_dataset = ImagesDataset(subjects_list, transform=transforms)
+                    subject_sample = subjects_dataset[0]
+                      
+                      
+                    """ MUST ALSO TRANSFORM THE SEED IF IS ELASTIC, rotational transformation!!!"""
+                      
+                    X = subject_sample['one_image']['data'].numpy()
+                    Y = subject_sample['a_segmentation']['data'].numpy()
+                     
+                    if next_bool:
+                        batch_x = np.zeros((4, ) + np.shape(crop_im))
+                        batch_x[0,...] = X
+                        batch_x[1,...] = crop_cur_seg
+                        batch_x[2,...] = crop_next_input
+                        batch_x[3,...] = crop_next_seg
+                        batch_x = np.moveaxis(batch_x, -1, 1)
+                        batch_x = np.expand_dims(batch_x, axis=0)
+                
+                    else:
+                        batch_x = np.zeros((3, ) + np.shape(crop_im))
+                        batch_x[0,...] = X
+                        batch_x[1,...] = crop_cur_seg
+                        batch_x[2,...] = crop_next_input
+                        #batch_x[3,...] = crop_next_seg
+                        batch_x = np.moveaxis(batch_x, -1, 1)
+                        batch_x = np.expand_dims(batch_x, axis=0)
+                
+                    
+                    ### NORMALIZE
+                    batch_x = normalize(batch_x, mean_arr, std_arr)                 
+
+                    ### Convert to Tensor
+                    inputs_val = torch.tensor(batch_x, dtype = torch.float, device=device, requires_grad=False)
+    
+                    # forward pass to check validation
+                    output_val = unet(inputs_val)
+    
+                    """ Convert back to cpu """                                      
+                    output_val = np.moveaxis(output_val.cpu().data.numpy(), 1, -1)      
+                    seg_train = np.moveaxis(np.argmax(output_val[0], axis=-1), 0, -1)
+    
+                    plot_max(X[0], ax=-1)
+                    plot_max(seg_train, ax=-1)
+                     
+                 
+
+                 
                    
                    
 
@@ -408,6 +525,40 @@ for input_path in list_folder:
                       """ FIND DOUBLES EARLY TO CORRECT AS YOU GO """
                       if np.any(next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] == 250): ### if this place has already been visited in the past
                            print('double_linked'); double_linked += 1
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                           """ should also switch to use prediction, rather than distance???
+                                   or just flag for association later???
+                           """
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
                         
                            tracked_cells_df, dup_series = sort_double_linked(tracked_cells_df, next_centroid, frame_num)
                            #all_dup_indices.append(dup_series)
@@ -516,7 +667,7 @@ for input_path in list_folder:
 
                 
                  print('Testing cell: ' + str(iterator) + ' of total: ' + str(len(np.where(tracked_cells_df.visited == 0)[0]))) 
-                 print(all_dup_indices)
+                 #print(all_dup_indices)
 
 
 
@@ -546,10 +697,11 @@ for input_path in list_folder:
             
             
             """ #1 == check all cells with tracked predictions """
-
-            
             tmp = tracked_cells_df.copy()
             tmp_next_seg = np.copy(next_seg)
+            
+            
+            zzz
             
 
 
@@ -585,6 +737,11 @@ for input_path in list_folder:
             ### then also checkup on all the following cells that were deleted and need to be rechecked
             tracked_cells_df, all_dist, dist_check, check_series = check_predicted_distances(tracked_cells_df, frame_num, crop_size, z_size, dist_error_thresh=10)
             plt.figure(); plt.hist(all_dist)
+
+            ### check on recheck_series
+            recheck_series = np.unique(recheck_series)
+            tracked_cells_df, recheck_series, next_seg = clean_with_predictions(tracked_cells_df, recheck_series, next_seg, crop_size, z_size, frame_num, seg_train, height_tmp, width_tmp, depth_tmp, min_dist=10)
+            print(recheck_series)
             
             # for dup_idx in all_dup_indices:
             #      index = np.where((tracked_cells_df["SERIES"] == dup_idx) & (tracked_cells_df["FRAME"] == frame_num - 1))[0]
@@ -715,6 +872,15 @@ for input_path in list_folder:
             
             
             
+            ### check on recheck_series
+            recheck_series = np.unique(recheck_series)
+            tracked_cells_df, recheck_series, next_seg = clean_with_predictions(tracked_cells_df, recheck_series, next_seg, crop_size, z_size, frame_num, seg_train, height_tmp, width_tmp, depth_tmp, min_dist=10)
+            print(recheck_series)
+            
+            
+            
+            
+            
             """ #4 repeat until no more recheck series """
             
             # ### THESE ARE LIKELY CELLS THAT ARE DOUBLED UP!!!
@@ -723,11 +889,6 @@ for input_path in list_folder:
             #     tracked_cells_df, recheck_series, next_seg = clean_with_predictions(tracked_cells_df, recheck_series, next_seg, crop_size, z_size, frame_num, seg_train, height_tmp, width_tmp, depth_tmp, min_dist=10)
             #     print(recheck_series)
                 
-                
-                
-                
-            
-            
             
             # num_checked = 0
             # matched = 0;
@@ -810,11 +971,24 @@ for input_path in list_folder:
             
 
             """ associate remaining cells that are "new" cells and add them to list to check as well as the TRUTH tracker """
+            if not truth:
+                truth_next_im = 0
             tracked_cells_df, truth_output_df, truth_next_im, truth_array = associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_depth, z_size, min_size,
                                                                            truth=truth, truth_output_df=truth_output_df, truth_next_im=truth_next_im, truth_array=truth_array)
 
                              
                     
+            """ delete any 100% duplicated rows
+            
+            
+                    ***figure out WHY they are occuring??? probably from re-checking???
+            """
+            tmp_drop = tracked_cells_df.copy()
+            tmp_drop = tmp_drop.drop(columns='coords')
+            dup_idx = np.where(tmp_drop.duplicated(keep="first")) ### keep == True ==> means ONLY tells you subseqent duplicates!!!
+            tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[dup_idx])
+            
+            
             
             """ Set next frame to be current frame """
             ### for debug
@@ -925,12 +1099,12 @@ for input_path in list_folder:
             
         
       
-        elif np.any(X_cur_cell > width_tmp - 20) or np.any(X_cur_cell < 20):
+        elif np.any(X_cur_cell > width_tmp - 40) or np.any(X_cur_cell < 40):
             tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[idx])
             num_edges += 1
             
         
-        elif np.any(Y_cur_cell > height_tmp - 20) or np.any(Y_cur_cell < 20):
+        elif np.any(Y_cur_cell > height_tmp - 40) or np.any(Y_cur_cell < 40):
             tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[idx])
             
             num_edges += 1
@@ -938,7 +1112,7 @@ for input_path in list_folder:
 
     """ Also remove by min_size """
     num_small = 0;
-    min_size = 80;
+    min_size = 100;
     for cell_num in np.unique(tracked_cells_df.SERIES):
                 
         idx = np.where(tracked_cells_df.SERIES == cell_num)
@@ -1262,97 +1436,97 @@ for input_path in list_folder:
     
 
 
-        """ Plot """
+    """ Plot """
         
         
-        def plot_timeframes(tracked_cells_df, add_name='OUTPUT_'):
-            new_cells_per_frame =  np.zeros(len(np.unique(tracked_cells_df.FRAME)))
-            terminated_cells_per_frame =  np.zeros(len(np.unique(tracked_cells_df.FRAME)))
-            num_total_cells_per_frame = np.zeros(len(np.unique(tracked_cells_df.FRAME)))
-            for cell_num in np.unique(tracked_cells_df.SERIES):
-                
-                frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
-                
-                beginning_frame = np.min(frames_cur_cell)
-                if beginning_frame > 0:   # skip the first frame
-                    new_cells_per_frame[beginning_frame] += 1
-    
-                            
-                term_frame = np.max(frames_cur_cell)
-                if term_frame < len(terminated_cells_per_frame) - 1:   # skip the last frame
-                    terminated_cells_per_frame[term_frame] += 1
-                
-                for num in frames_cur_cell:
-                    num_total_cells_per_frame[num] += 1    
-                
-                
-                
-    
-    
-            y_pos = np.unique(tracked_cells_df.FRAME)
-            plt.figure(); plt.bar(y_pos, new_cells_per_frame, color='k')
-            ax = plt.gca()
-            rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-            name = 'new cells per frame'
-            #plt.title(name);
-            plt.xlabel('time frame', fontsize=16); plt.ylabel('# new cells', fontsize=16)
-            # ax.set_xticklabels(x_ticks, rotation=0, fontsize=12)
-            # ax.set_yticklabels(y_ticks, rotation=0, fontsize=12)
-            plt.savefig(sav_dir + add_name + name + '.png')
-    
-            plt.figure(); plt.bar(y_pos, terminated_cells_per_frame, color='k')
-            ax = plt.gca()
-            rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-            name = 'terminated cells per frame'
-            #plt.title(name)
-            plt.xlabel('time frame', fontsize=16); plt.ylabel('# terminated cells', fontsize=16)
-            plt.savefig(sav_dir + add_name + name + '.png')
-    
+    def plot_timeframes(tracked_cells_df, add_name='OUTPUT_'):
+        new_cells_per_frame =  np.zeros(len(np.unique(tracked_cells_df.FRAME)))
+        terminated_cells_per_frame =  np.zeros(len(np.unique(tracked_cells_df.FRAME)))
+        num_total_cells_per_frame = np.zeros(len(np.unique(tracked_cells_df.FRAME)))
+        for cell_num in np.unique(tracked_cells_df.SERIES):
             
-            plt.figure(); plt.bar(y_pos, num_total_cells_per_frame, color='k')
-            ax = plt.gca()
-            rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-            name = 'number cells per frame'
-            #plt.title(name)
-            plt.xlabel('time frame', fontsize=16); plt.ylabel('# cells', fontsize=16)
-            plt.savefig(sav_dir + add_name + name + '.png')
+            frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
+            
+            beginning_frame = np.min(frames_cur_cell)
+            if beginning_frame > 0:   # skip the first frame
+                new_cells_per_frame[beginning_frame] += 1
+
+                        
+            term_frame = np.max(frames_cur_cell)
+            if term_frame < len(terminated_cells_per_frame) - 1:   # skip the last frame
+                terminated_cells_per_frame[term_frame] += 1
+            
+            for num in frames_cur_cell:
+                num_total_cells_per_frame[num] += 1    
+            
+            
+            
+
+
+        y_pos = np.unique(tracked_cells_df.FRAME)
+        plt.figure(); plt.bar(y_pos, new_cells_per_frame, color='k')
+        ax = plt.gca()
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        name = 'new cells per frame'
+        #plt.title(name);
+        plt.xlabel('time frame', fontsize=16); plt.ylabel('# new cells', fontsize=16)
+        # ax.set_xticklabels(x_ticks, rotation=0, fontsize=12)
+        # ax.set_yticklabels(y_ticks, rotation=0, fontsize=12)
+        plt.savefig(sav_dir + add_name + name + '.png')
+
+        plt.figure(); plt.bar(y_pos, terminated_cells_per_frame, color='k')
+        ax = plt.gca()
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        name = 'terminated cells per frame'
+        #plt.title(name)
+        plt.xlabel('time frame', fontsize=16); plt.ylabel('# terminated cells', fontsize=16)
+        plt.savefig(sav_dir + add_name + name + '.png')
+
+        
+        plt.figure(); plt.bar(y_pos, num_total_cells_per_frame, color='k')
+        ax = plt.gca()
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        name = 'number cells per frame'
+        #plt.title(name)
+        plt.xlabel('time frame', fontsize=16); plt.ylabel('# cells', fontsize=16)
+        plt.savefig(sav_dir + add_name + name + '.png')
 
 
 
-            """ Normalize to proportions like Cody did
-            
-            """
-            new_cells_per_frame
-            terminated_cells_per_frame
-            num_total_cells_per_frame
-            
-            
-            baseline = num_total_cells_per_frame[0]
-            
-            norm_tots = num_total_cells_per_frame/baseline
-            norm_new = new_cells_per_frame/baseline
+        """ Normalize to proportions like Cody did
+        
+        """
+        new_cells_per_frame
+        terminated_cells_per_frame
+        num_total_cells_per_frame
+        
+        
+        baseline = num_total_cells_per_frame[0]
+        
+        norm_tots = num_total_cells_per_frame/baseline
+        norm_new = new_cells_per_frame/baseline
 
-            width = 0.35       # the width of the bars: can also be len(x) sequence
-            plt.figure()
-            p1 = plt.bar(y_pos, norm_tots, yerr=0, color='k')
-            p2 = plt.bar(y_pos, norm_new, bottom=norm_tots, yerr=0, color='g')
-            
-            line = np.arange(-5, len(y_pos) + 5, 1)
-            plt.plot(line, np.ones(len(line)), 'r--', linewidth=2, markersize=10)
-            
-            plt.ylabel('Proportion of cells', fontsize=16)
-            plt.xlabel('weeks', fontsize=16); 
-            plt.xticks(np.arange(0, len(y_pos), 1))
-            plt.xlim(-1, len(y_pos))
-            plt.ylim(0, 1.4)
-            plt.yticks(np.arange(0, 1.4, 0.2))
-            plt.legend((p1[0], p2[0]), ('Baseline', 'New cells'))
-            
-            
-            ax = plt.gca()
-            rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-            name = 'normalized recovery'
-            plt.savefig(sav_dir + add_name + name + '.png')
+        width = 0.35       # the width of the bars: can also be len(x) sequence
+        plt.figure()
+        p1 = plt.bar(y_pos, norm_tots, yerr=0, color='k')
+        p2 = plt.bar(y_pos, norm_new, bottom=norm_tots, yerr=0, color='g')
+        
+        line = np.arange(-5, len(y_pos) + 5, 1)
+        plt.plot(line, np.ones(len(line)), 'r--', linewidth=2, markersize=10)
+        
+        plt.ylabel('Proportion of cells', fontsize=16)
+        plt.xlabel('weeks', fontsize=16); 
+        plt.xticks(np.arange(0, len(y_pos), 1))
+        plt.xlim(-1, len(y_pos))
+        plt.ylim(0, 1.4)
+        plt.yticks(np.arange(0, 1.4, 0.2))
+        plt.legend((p1[0], p2[0]), ('Baseline', 'New cells'))
+        
+        
+        ax = plt.gca()
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        name = 'normalized recovery'
+        plt.savefig(sav_dir + add_name + name + '.png')
 
             
             
