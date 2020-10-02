@@ -714,7 +714,7 @@ for input_path in list_folder:
             """ Set next frame to be current frame """
             ### for debug
             tmp_cur = np.copy(next_seg)
-            plot_max(next_seg, ax=-1)
+            #plot_max(next_seg, ax=-1)
             
             input_im = next_input
             cur_seg = next_seg
@@ -963,11 +963,11 @@ for input_path in list_folder:
 
 
     """ plot timeframes """
-    plot_timeframes(tracked_cells_df, add_name='OUTPUT_')
+    plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_')
     
     if truth:
-        plot_timeframes(MATLAB_auto_array, add_name='MATLAB_')
-        plot_timeframes(truth_array, add_name='TRUTH_')
+        plot_timeframes(MATLAB_auto_array, sav_dir, add_name='MATLAB_')
+        plot_timeframes(truth_array, sav_dir, add_name='TRUTH_')
 
 
     """ Show that truth predicitions are accurate! """

@@ -992,7 +992,7 @@ def load_and_compare_csvs_to_truth(input_path, filename, examples, truth_array):
 
 
 """ Plot """
-def plot_timeframes(tracked_cells_df, add_name='OUTPUT_'):
+def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_'):
     new_cells_per_frame =  np.zeros(len(np.unique(tracked_cells_df.FRAME)))
     terminated_cells_per_frame =  np.zeros(len(np.unique(tracked_cells_df.FRAME)))
     num_total_cells_per_frame = np.zeros(len(np.unique(tracked_cells_df.FRAME)))
