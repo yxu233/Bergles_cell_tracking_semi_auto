@@ -52,7 +52,7 @@ torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.enabled = True  # new thing? what do? must be True
 
 """ Define GPU to use """
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
 
@@ -67,6 +67,11 @@ print(device)
 #s_path = './(16) Checkpoints_TITAN_YES_transforms_AdamW_SLOWER_switchable_BN/'
 
 s_path = './(19) Checkpoints_TITAN_NO_transforms_AdamW_batch_norm_CLEAN_DATA/'
+
+
+#s_path = './(20) Checkpoints_PYTORCH_NO_transforms_AdamW_batch_norm_CLEAN_DATA/'
+
+s_path = './(21) Checkpoints_PYTORCH_NO_transforms_AdamW_batch_norm_CLEAN_DATA_LARGE_NETWORK/'
 
 
 overlap_percent = 0.5
@@ -89,13 +94,19 @@ num_check = int(num_check[0])
 
 check = torch.load(s_path + checkpoint, map_location=device)
 
-unet = check['model_type']
-unet.load_state_dict(check['model_state_dict'])
-unet.to(device)
-unet.eval()
+# unet = check['model_type']
+# unet.load_state_dict(check['model_state_dict'])
+# unet.to(device)
+# unet.eval()
+# #unet.training # check if mode set correctly
+
+
+unet = check['model_type']; unet.load_state_dict(check['model_state_dict'])
+unet.to(device); unet.eval()
 #unet.training # check if mode set correctly
 
 print('parameters:', sum(param.numel() for param in unet.parameters()))
+
 
 # """ load mean and std """  
 input_path = './normalize_pytorch_CLEANED/'
@@ -127,7 +138,7 @@ while(another_folder == 'y'):
 """ Loop through all the folders and do the analysis!!!"""
 for input_path in list_folder:
     foldername = input_path.split('/')[-2]
-    sav_dir = input_path + '/' + foldername + '_output_PYTORCH'
+    sav_dir = input_path + '/' + foldername + '_output_PYTORCH_RETRAINED_105834'
 
     """ For testing ILASTIK images """
     images = glob.glob(os.path.join(input_path,'*.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
@@ -205,8 +216,8 @@ for input_path in list_folder:
             imsave(sav_dir + filename + '_' + str(int(i)) +'_segmentation.tif', segmentation)
             segmentation[segmentation > 0] = 1
             
-            # input_im = np.asarray(input_im, np.uint8)
-            # imsave(sav_dir + filename + '_' + str(int(i)) +'_input_im.tif', input_im)
+            input_im = np.asarray(input_im, np.uint8)
+            imsave(sav_dir + filename + '_' + str(int(i)) +'_input_im.tif', input_im)
             
             
             """ Load in truth data for comparison!!! sens + precision """
@@ -237,33 +248,32 @@ for input_path in list_folder:
             # truth_im_cleaned = np.asarray(truth_im_cleaned, np.uint8)
             # imsave(sav_dir + filename + '_' + str(int(i)) +'_truth_im_cleaned.tif', truth_im_cleaned)            
             
-            """ Compare with ilastik () if you want to """
+            # """ Compare with ilastik () if you want to """
             # ilastik_compare = 0
             # if ilastik_compare:
                  
-            #      """ Load in truth data for comparison!!! sens + precision """
-            #      ilastik_name = examples[i]['ilastik']
+            #     """ Load in truth data for comparison!!! sens + precision """
+            #     ilastik_name = examples[i]['ilastik']
 
-            #      ilastik_im = open_image_sequence_to_3D(ilastik_name, width_max='default', height_max='default', depth='default')
-            #      ilastik_im[ilastik_im > 0] = 1                                   
+            #     ilastik_im = open_image_sequence_to_3D(ilastik_name, width_max='default', height_max='default', depth='default')
+            #     ilastik_im[ilastik_im > 0] = 1                                   
                  
-
-            #      ilastik_im_cleaned = clean_edges(ilastik_im, depth_im, w=width, h=height, extra_z=1, extra_xy=3)
+            #     ilastik_im_cleaned = clean_edges(ilastik_im, depth_im, w=width, h=height, extra_z=1, extra_xy=3)
                                                    
-            #      TP, FN, FP, truth_im_cleaned, cleaned_seg = find_TP_FP_FN_from_seg(ilastik_im, truth_im_cleaned, size_limit=10)
+            #     TP, FN, FP, truth_im_cleaned, cleaned_seg = find_TP_FP_FN_from_seg(ilastik_im, truth_im_cleaned, size_limit=10)
                                     
                                
-            #      ilastik_im_cleaned = np.asarray(ilastik_im_cleaned, np.uint8)
-            #      imsave(sav_dir + filename + '_' + str(int(i)) +'_ilastik_cleaned.tif', ilastik_im_cleaned)
+            #     ilastik_im_cleaned = np.asarray(ilastik_im_cleaned, np.uint8)
+            #     imsave(sav_dir + filename + '_' + str(int(i)) +'_ilastik_cleaned.tif', ilastik_im_cleaned)
                  
                       
-            #      plot_max(ilastik_im_cleaned)
+            #     plot_max(ilastik_im_cleaned)
                  
-            #      if TP + FN == 0: TP;
-            #      else: sensitivity = TP/(TP + FN);     # PPV
+            #     if TP + FN == 0: TP;
+            #     else: sensitivity = TP/(TP + FN);     # PPV
                         
-            #      if TP + FP == 0: TP;
-            #      else: precision = TP/(TP + FP);     # precision
+            #     if TP + FP == 0: TP;
+            #     else: precision = TP/(TP + FP);     # precision
         
-            #      print(str(sensitivity))
-            #      print(str(precision))                                         
+            #     print(str(sensitivity))
+            #     print(str(precision))                                         

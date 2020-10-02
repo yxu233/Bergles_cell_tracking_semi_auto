@@ -174,7 +174,7 @@ def gen_truth_from_csv(frame_num, input_path, filename, input_im, lowest_z_depth
          if swap:
               if truth_array.iloc[idx_truth].Z < lowest_z_depth and truth_array.iloc[idx_truth].Y < width_tmp and truth_array.iloc[idx_truth].X < height_tmp:
                    truth_im[int(truth_array.iloc[idx_truth].Y), int(truth_array.iloc[idx_truth].X), int(truth_array.iloc[idx_truth].Z)] = truth_array.iloc[idx_truth].SERIES 
-
+                   
          # else:   ### for MATLAB full auto output
          #       if truth_array.Z[idx_truth] < lowest_z_depth and truth_array.X[idx_truth] < height_tmp and truth_array.Y[idx_truth] < width_tmp:
          #            truth_im[int(truth_array.X[idx_truth]) + 1, int(truth_array.Y[idx_truth]) + 1, int(truth_array.Z[idx_truth]) + 1] = truth_array.SERIES[idx_truth]               

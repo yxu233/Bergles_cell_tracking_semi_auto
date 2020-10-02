@@ -108,7 +108,11 @@ if __name__ == '__main__':
     #s_path = './(8) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_YES_NEXT_SEG/'; next_seg = 1;
     
     
-    s_path = './(9) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT_hausdorf/'; next_seg = 0; HD = 1; alpha = 1;
+    #s_path = './(9) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT_hausdorf/'; next_seg = 0; HD = 1; alpha = 1;
+    
+    
+    s_path = './(10) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT/'; next_seg = 0;
+    
     
     
     input_path = '/media/user/storage/Data/(2) cell tracking project/a_training_data_GENERATE_FULL_AUTO/Training_cell_track_full_auto_COMPLETED_crop_pads/'
@@ -171,7 +175,7 @@ if __name__ == '__main__':
         #transforms = initialize_transforms(p=0.5)
         #transforms = initialize_transforms_simple(p=0.5)
         transforms = 0
-        batch_size = 8;      
+        batch_size = 4;      
         test_size = 0.1  
         
         
@@ -183,9 +187,9 @@ if __name__ == '__main__':
         
 
         """ Initialize network """  
-        kernel_size = 5
+        kernel_size = 7
         pad = int((kernel_size - 1)/2)
-        unet = UNet_online(in_channels=in_channels, n_classes=2, depth=5, wf=3, kernel_size = kernel_size, padding= int((kernel_size - 1)/2), 
+        unet = UNet_online(in_channels=in_channels, n_classes=2, depth=5, wf=4, kernel_size = kernel_size, padding= int((kernel_size - 1)/2), 
                             batch_norm=True, batch_norm_switchable=switch_norm, up_mode='upsample')
         #unet = NestedUNet(num_classes=2, input_channels=2, deep_sup=deep_sup, padding=pad, batch_norm_switchable=switch_norm)
         #unet = UNet_3Plus(num_classes=2, input_channels=2, kernel_size=kernel_size, padding=pad)
@@ -311,7 +315,7 @@ if __name__ == '__main__':
          """ check and plot params during training """             
          for param_group in optimizer.param_groups:
                #tracker.alpha = 0.5
-               param_group['lr'] = 1e-6   # manually sets learning rate
+               #param_group['lr'] = 1e-6   # manually sets learning rate
                cur_lr = param_group['lr']
                tracker.lr_plot.append(cur_lr)
                tracker.print_essential()
