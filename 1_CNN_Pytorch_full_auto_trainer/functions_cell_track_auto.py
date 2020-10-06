@@ -901,11 +901,11 @@ def check_predicted_distances(tracked_cells_df, frame_num, crop_size, z_size, di
 
 
 """ Directly compare tracking using .csv files """
-def load_and_compare_csvs_to_truth(input_path, filename, examples, truth_array):
+def load_and_compare_csvs_to_truth(input_path, filename, examples, lowest_z_depth, truth_array, truth_name, truth_path, input_im, height_tmp, width_tmp, depth_total, scale):
 
 
 
-    MATLAB_auto_array = pd.read_csv(input_path + MATLAB_name, sep=',')
+    MATLAB_auto_array = pd.read_csv(input_path + filename, sep=',')
     
     
     all_cells_MATLAB = np.unique(MATLAB_auto_array.SERIES)
@@ -926,11 +926,11 @@ def load_and_compare_csvs_to_truth(input_path, filename, examples, truth_array):
          
          
     
-         truth_next_im, truth_array  = gen_truth_from_csv(frame_num=frame_num, input_path=input_path, filename=truth_name, 
+         truth_next_im, truth_array  = gen_truth_from_csv(frame_num=frame_num, input_path=truth_path, filename=truth_name, 
                                    input_im=input_im, lowest_z_depth=lowest_z_depth, height_tmp=height_tmp, width_tmp=width_tmp, depth_tmp=depth_total, scale=scale)
                           
          
-         MATLAB_next_im, MATLAB_auto_array  = gen_truth_from_csv(frame_num=frame_num, input_path=input_path, filename=MATLAB_name, 
+         MATLAB_next_im, MATLAB_auto_array  = gen_truth_from_csv(frame_num=frame_num, input_path=input_path, filename=filename, 
                                    input_im=input_im, lowest_z_depth=lowest_z_depth, height_tmp=height_tmp, width_tmp=width_tmp,
                                    depth_tmp=depth_total, scale=0, swap=1)
          

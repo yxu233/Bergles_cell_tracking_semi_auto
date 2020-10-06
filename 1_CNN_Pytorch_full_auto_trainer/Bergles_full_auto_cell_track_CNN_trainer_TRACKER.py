@@ -315,7 +315,7 @@ if __name__ == '__main__':
          """ check and plot params during training """             
          for param_group in optimizer.param_groups:
                #tracker.alpha = 0.5
-               #param_group['lr'] = 1e-6   # manually sets learning rate
+               param_group['lr'] = 1e-6   # manually sets learning rate
                cur_lr = param_group['lr']
                tracker.lr_plot.append(cur_lr)
                tracker.print_essential()

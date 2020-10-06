@@ -84,14 +84,21 @@ s_path = './(7) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEX
 #s_path = './(8) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_YES_NEXT_SEG/'; next_bool = 1;
 
 
+s_path = './(10) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT/'; next_bool = 0;
+
+
 lowest_z_depth = 180;
 
 crop_size = 160
 z_size = 32
 num_truth_class = 2
-scale_for_animation = 0
 min_size = 10
 both = 0
+
+
+
+
+scale_for_animation = 0
 
 
 """ TO LOAD OLD CHECKPOINT """
@@ -151,7 +158,7 @@ net_two_tested = 0;
     
 for input_path in list_folder:
     foldername = input_path.split('/')[-2]
-    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_seg_CLEANED'
+    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_seg_CLEANED_10_125762'
 
 
     """ For testing ILASTIK images """
@@ -181,6 +188,9 @@ for input_path in list_folder:
     #input_im = input_im[0:lowest_z_depth, ...]
     input_im = np.moveaxis(input_im, 0, -1)
     width_tmp, height_tmp, depth_tmp = input_im.shape
+    
+    if scale_for_animation:
+        copy_input_im = np.copy(input_im)
     
     
     
@@ -248,6 +258,8 @@ for input_path in list_folder:
     """ Start looping through segmented nuclei """
     list_exclude = [];
     TN = 0; TP = 0; FN = 0; FP = 0; doubles = 0; extras = 0; skipped = 0; blobs = 0; not_registered = 0; double_linked = 0; seg_error = 0;
+    
+    animator_iterator = 0;
     for frame_num in range(1, len(examples)):
          print('Starting inference on volume: ' + str(frame_num) + ' of total: ' + str(len(examples)))
          all_dup_indices = [];
@@ -259,6 +271,8 @@ for input_path in list_folder:
             next_input = open_image_sequence_to_3D(input_name, width_max='default', height_max='default', depth='default')
             #next_input = np.moveaxis(next_input[0:lowest_z_depth, ...], 0, -1)
             next_input = np.moveaxis(next_input, 0, -1)
+            if scale_for_animation:
+                copy_next_input = np.copy(next_input)
             
             
             seg_name = examples[frame_num]['seg']  
@@ -268,8 +282,11 @@ for input_path in list_folder:
 
 
             """ Plot for animation """
-            if scale_for_animation and frame_num <= 2:
+            if scale_for_animation:
                 track_cur_seg = np.zeros(np.shape(next_seg))
+                track_new_seg = np.zeros(np.shape(next_seg))
+                track_term_seg = np.zeros(np.shape(next_seg))
+                plot_next = np.zeros(np.shape(next_seg))
                 
             """ Get truth for next seg as well """
             if truth:
@@ -297,19 +314,11 @@ for input_path in list_folder:
                  if len(cell.coords) < min_size:
                            continue;
                  
-                 """ SKIP IF HAVE TO MOVE THE CROPPING BOX IN THE BOTTOM Z-dimension """
-                 # if z + z_size/2 >= lowest_z_depth:
-                 #      print('skip'); skipped += 1
-                 #      continue
-                 
-
                  """ Crop and prep data for CNN, ONLY for the first 2 frames so far"""
                  batch_x, crop_im, crop_cur_seg, crop_seed, crop_next_input, crop_next_seg, crop_next_seg_non_bin, box_xyz, box_over = prep_input_for_CNN(cell, input_im, next_input, cur_seg,
                                                                                                          next_seg, mean_arr, std_arr, x, y, z, crop_size, z_size,
                                                                                                          height_tmp, width_tmp, depth_tmp, next_bool=next_bool)
-                 
-                
-                 
+
                  ### Convert to Tensor
                  inputs_val = torch.tensor(batch_x, dtype = torch.float, device=device, requires_grad=False)
 
@@ -321,114 +330,6 @@ for input_path in list_folder:
                  seg_train = np.moveaxis(np.argmax(output_val[0], axis=-1), 0, -1)
 
                  iterator += 1
-
-
-
-                 """ For trying out different warping functions 
-                 
-                         cell_idx in image timeseries 680 that are good:
-                             - 600 ==> nice clean simple cell
-                             
-                 """
-
-                 # test_permutations = 0
-                 # if test_permutations:
-                     
-                   
-                 #    plot_max(crop_im, ax=-1)
-                 #    plot_max(crop_cur_seg, ax=-1)
-                 #    plot_max(crop_next_input, ax=-1)
-                 #    #plot_max(crop_next_seg, ax=-1)
-                 #    crop_next_seg_non_bin[crop_next_seg_non_bin == 250] = 1
-                 #    crop_next_seg_non_bin[crop_next_seg_non_bin == 255] = 2              
-                 #    plot_max(crop_next_seg_non_bin, ax=-1)               
-                 #    plot_max(seg_train, ax=-1)
-                  
-                 #    p = 1 
-                  
-                 #    ### (1) try with different flips
-                 #    #transforms = [RandomFlip(axes = 0, flip_probability = 1, p = p, seed = None)]; transform = Compose(transforms)
-                    
-                 #    ### (2) try with different blur
-                 #    #transforms = [RandomBlur(std = (0, 4), p = p, seed=None)]; transforms = Compose(transforms)
-                    
-                    
-                 #    ### (3) try with different warp (affine transformatins)
-                 #    transforms = [RandomAffine(scales=(0.9, 1.1), degrees=(10), isotropic=False,
-                 #                        default_pad_value='otsu', image_interpolation=Interpolation.LINEAR,
-                 #                        p = p, seed=None)]; transforms = Compose(transforms)                    
-
-                 #    ### (4) try with different warp (elastic transformations)
-                 #    #transforms = [RandomElasticDeformation(num_control_points = 7, max_displacement = 7.5,
-                 #    #                                locked_borders = 2, image_interpolation = Interpolation.LINEAR,
-                 #    #                                p = p, seed = None),]; transforms = Compose(transforms)
-
-                 #    ### (5) try with different motion artifacts
-                 #    #transforms = [RandomMotion(degrees = 10, translation = 10, num_transforms = 2, image_interpolation = Interpolation.LINEAR,
-                 #    #                    p = p, seed = None),]; transforms = Compose(transforms)
-
-
-                 #    ### (6) try with different noise artifacts
-                 #    #transforms = [RandomNoise(mean = 0, std = (0, 0.25), p = p, seed = None)]; transforms = Compose(transforms)
-
-                     
-                 #    ### transforms to apply to crop_im                     
-                 #    inputs = crop_im
-                 #    inputs = torch.tensor(inputs, dtype = torch.float,requires_grad=False)
-                 #    #labels = torch.tensor(labels, dtype = torch.long, requires_grad=False)         
-                 #    labels = inputs
-                
-                 #    subject_a = Subject(
-                 #            one_image=Image(None,  torchio.INTENSITY, inputs),   # *** must be tensors!!!
-                 #            a_segmentation=Image(None, torchio.LABEL, labels))
-                      
-                 #    subjects_list = [subject_a]
-            
-                 #    subjects_dataset = ImagesDataset(subjects_list, transform=transforms)
-                 #    subject_sample = subjects_dataset[0]
-                      
-                      
-                 #    """ MUST ALSO TRANSFORM THE SEED IF IS ELASTIC, rotational transformation!!!"""
-                      
-                 #    X = subject_sample['one_image']['data'].numpy()
-                 #    Y = subject_sample['a_segmentation']['data'].numpy()
-                     
-                 #    if next_bool:
-                 #        batch_x = np.zeros((4, ) + np.shape(crop_im))
-                 #        batch_x[0,...] = X
-                 #        batch_x[1,...] = crop_cur_seg
-                 #        batch_x[2,...] = crop_next_input
-                 #        batch_x[3,...] = crop_next_seg
-                 #        batch_x = np.moveaxis(batch_x, -1, 1)
-                 #        batch_x = np.expand_dims(batch_x, axis=0)
-                
-                 #    else:
-                 #        batch_x = np.zeros((3, ) + np.shape(crop_im))
-                 #        batch_x[0,...] = X
-                 #        batch_x[1,...] = crop_cur_seg
-                 #        batch_x[2,...] = crop_next_input
-                 #        #batch_x[3,...] = crop_next_seg
-                 #        batch_x = np.moveaxis(batch_x, -1, 1)
-                 #        batch_x = np.expand_dims(batch_x, axis=0)
-                
-                    
-                 #    ### NORMALIZE
-                 #    batch_x = normalize(batch_x, mean_arr, std_arr)                 
-
-                 #    ### Convert to Tensor
-                 #    inputs_val = torch.tensor(batch_x, dtype = torch.float, device=device, requires_grad=False)
-    
-                 #    # forward pass to check validation
-                 #    output_val = unet(inputs_val)
-    
-                 #    """ Convert back to cpu """                                      
-                 #    output_val = np.moveaxis(output_val.cpu().data.numpy(), 1, -1)      
-                 #    seg_train = np.moveaxis(np.argmax(output_val[0], axis=-1), 0, -1)
-    
-                 #    plot_max(X[0], ax=-1)
-                 #    plot_max(seg_train, ax=-1)
-                     
-                 
 
 
                  """ ***IF MORE THAN ONE OBJECT IS IN FINAL SEGMENTATION, choose the best matched one!!!
@@ -443,10 +344,6 @@ for input_path in list_folder:
                  new = 0
                  if len(cc_seg_train) > 0:
                       next_coords = cc_seg_train[0].coords
-                      
-                      # if len(next_coords) > 2000:
-                      #     print('check large blobs')
-                      
                       next_coords = scale_coords_of_crop_to_full(next_coords, box_xyz, box_over)
                       
                       next_centroid = np.asarray(cc_seg_train[0].centroid)
@@ -465,128 +362,124 @@ for input_path in list_folder:
                       """ FIND DOUBLES EARLY TO CORRECT AS YOU GO """
                       if np.any(next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] == 250): ### if this place has already been visited in the past
                            #print('double_linked'); 
-                           double_linked += 1
-                        
-                        
-                           """ should also switch to use prediction, rather than distance???
-                                   or just flag for association later???
-                           """
-
-                        
-                        
-                           tracked_cells_df, dup_series = sort_double_linked(tracked_cells_df, next_centroid, frame_num)
-                           #all_dup_indices.append(dup_series)
+                           double_linked += 1                    
+                           tracked_cells_df, dup_series = sort_double_linked(tracked_cells_df, next_centroid, frame_num)                           
                            all_dup_indices = np.concatenate((all_dup_indices, dup_series))
-                           
-                           # plot_max(crop_im, ax=-1)
-                           # plot_max(crop_cur_seg, ax=-1)
-                           # plot_max(crop_next_input, ax=-1)
 
-                           # crop_next_seg_non_bin[crop_next_seg_non_bin == 250] = 1
-                           # crop_next_seg_non_bin[crop_next_seg_non_bin == 255] = 2
-                           
-                           # plot_max(crop_next_seg_non_bin, ax=-1)
-                            
-                           # plot_max(seg_train, ax=-1)
-                           # len(np.where(crop_seed)[0])                            
-                           
-                           
-                           
                       """ set current one to be value 2 so in future will know has already been identified """
                       next_seg[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 250;  
                       new = 1;
                       
-                 else:
-                           
-                           ####   DEBUG if not matched
-
-                           len(np.where(crop_seed)[0])         
+                 else:                           
+                      ####   DEBUG if not matched
+                      len(np.where(crop_seed)[0])         
                       
                         
                  """ Check if TP, TN, FP, FN """
-                 if truth:
-                     
+                 if False:
                       TP, FP, TN, FN, extras, blobs, truth_output_df, truth_array, list_exclude = parse_truth(truth_cur_im,  truth_array, truth_output_df, truth_next_im, 
                                                                                                               seg_train, crop_next_seg, crop_seed, list_exclude, frame_num, x, y, z, crop_size, z_size,
                                                                                                               blobs, TP, FP, TN, FN, extras, height_tmp, width_tmp, depth_tmp)
                  """ Plot for animation """
-                 if scale_for_animation and frame_num < 2:
+                 if scale_for_animation and (frame_num == 1 or frame_num == 4): 
                       input_name = examples[0]['input']
                       filename = input_name.split('/')[-1]
                       filename = filename.split('.')[0:-1]
                       filename = '.'.join(filename)
                       low_crop = 0.3; high_crop = 0.7; 
-                      z_crop_h = 0.8
+                      z_crop_h = 0.6
                       
                       
                       """ Skip if not within middle crop"""
-                      if np.min(cell.coords[:, 0]) < track_cur_seg.shape[0] * low_crop or np.max(cell.coords[:, 0]) > track_cur_seg.shape[0] * high_crop or  np.min(cell.coords[:, 1]) < track_cur_seg.shape[1] * low_crop or np.max(cell.coords[:, 1]) > track_cur_seg.shape[1] * high_crop or np.max(cell.coords[:, 2]) > track_cur_seg.shape[2] * z_crop_h:
-                          print('not animated')
-                      
-                      else:
-                          ### PLOT CUR FRAME
+                      #if np.min(cell.coords[:, 0]) < track_cur_seg.shape[0] * low_crop or np.max(cell.coords[:, 0]) > track_cur_seg.shape[0] * high_crop or  np.min(cell.coords[:, 1]) < track_cur_seg.shape[1] * low_crop or np.max(cell.coords[:, 1]) > track_cur_seg.shape[1] * high_crop or np.max(cell.coords[:, 2]) > track_cur_seg.shape[2] * z_crop_h:
                           
+                      if cell.X > track_cur_seg.shape[0] * low_crop and cell.X < track_cur_seg.shape[0] * high_crop and cell.Y > track_cur_seg.shape[1] * low_crop and cell.Y < track_cur_seg.shape[1] * high_crop and cell.Z < track_cur_seg.shape[2] * z_crop_h:
+                          ### PLOT current and next frame
+                          #plot_next = np.copy(next_seg)
+                          #plot_next[plot_next != 250] = 0     ### delete everything that hasn't been visited
+                          #plot_next[plot_next > 0] = 150      ### MAKE THE BACKGROUND PAST TRACES DIMMER
+                          from random import randint
+                          rand = randint(1, 6)
+                          if new:  ### if a cell was tracked on second frame, use those coords to highlight it brighter than the rest
+                               track_new_seg = np.zeros(np.shape(track_cur_seg))
+                               track_new_seg[cell.coords[:, 0], cell.coords[:, 1], cell.coords[:, 2]] = 255
+                              
+                               track_new_seg_next = np.zeros(np.shape(track_cur_seg))
+                               track_new_seg_next[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 255       
+                              
+                              
+                               # track_cur_seg[cell.coords[:, 0], cell.coords[:, 1], cell.coords[:, 2]] = rand
+                               # plot_next[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = rand    
+                               copy_next_input[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 0
+                              
+                          else:   ### otherwise, if NOT TRACKED, then change the color of the cell on the FIRST FRAME!!!
+                              track_cur_seg[cell.coords[:, 0], cell.coords[:, 1], cell.coords[:, 2]] = 0
+                              track_term_seg[cell.coords[:, 0], cell.coords[:, 1], cell.coords[:, 2]] = 255
                           
-                          
-                          """ 
-                                  how about carving out (setting ot 0) the intensities on the RAW data so can better 
-                                      see intensity values???
-                          
-                          
-                          """
-                    
-                          
-                          track_cur_seg[track_cur_seg > 0] = 150    ### MAKE THE BACKGROUND PAST TRACES DIMMER
-                          track_cur_seg[cell.coords[:, 0], cell.coords[:, 1], cell.coords[:, 2]] = 255
-                          
-                          im = convert_matrix_to_multipage_tiff(input_im)
-                          
-                          
-                          
-                          ### or just crop it
-                          im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
-                          im = resize(im, (im.shape[0], im.shape[1] * scale_for_animation, im.shape[2]  * scale_for_animation))
-                          imsave(sav_dir + filename + 'ANIMATION_iterator_' + str(iterator) + '_frame_num_' + str(frame_num - 1) + '_cell_num_' + str(cell_idx) + '_cur_input.tif',  np.asarray(im * 255, dtype=np.uint8))
-        
-                          im = convert_matrix_to_multipage_tiff(track_cur_seg)
-                          im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
-                          im = resize(im, (im.shape[0], im.shape[1] * scale_for_animation, im.shape[2]  * scale_for_animation))
-                          imsave(sav_dir + filename + 'ANIMATION_iterator_' + str(iterator) + '_frame_num_' + str(frame_num - 1) +  '_cell_num_' + str(cell_idx) + '_cur_seg.tif',  np.asarray(im * 255, dtype=np.uint8))
-    
-    
-    
-                          ### PLOT NEXT FRAME
-                          plot_next = np.copy(next_seg)
-                          plot_next[plot_next != 250] = 0     ### delete everything that hasn't been visited
-                          plot_next[plot_next > 0] = 150      ### MAKE THE BACKGROUND PAST TRACES DIMMER
-                          if new:  ### if a new cell was added, use those coords to highlight it brighter than the rest
-                              plot_next[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 255; 
+                              
+                              
                                                   
+                          """ Print out animation for 2nd frame """
+                          copy_next_input[plot_next > 0] = 0      ### set old cells to blank so color comes through better!
+                          
                         
-                          im = convert_matrix_to_multipage_tiff(next_input)
+                          im = convert_matrix_to_multipage_tiff(copy_next_input)
                           im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
-                          im = resize(im, (im.shape[0], im.shape[1] * scale_for_animation, im.shape[2]  * scale_for_animation))
-                          imsave(sav_dir + filename + 'ANIMATION_iterator_' + str(iterator) + '_frame_num_' + str(frame_num) +  '_cell_num_' + str(cell_idx) + '_next_input.tif',  np.asarray(im * 255, dtype=np.uint8))
+                          im = resize(im, (im.shape[0], im.shape[1] * scale_for_animation, im.shape[2]  * scale_for_animation), order = 0)
+                          imsave(sav_dir + filename + '_ANIMATION_iterator_' + str(animator_iterator) + '_frame_num_' + str(frame_num) +  '_cell_num_' + str(cell_idx) + '_next_input.tif',  np.asarray(im * 255, dtype=np.uint8))
                           
                           im = convert_matrix_to_multipage_tiff(plot_next)
                           im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
+                          im = resize(im, (im.shape[0], im.shape[1] * scale_for_animation, im.shape[2]  * scale_for_animation), order = 0)
+                          imsave(sav_dir + filename + '_ANIMATION_iterator_' + str(animator_iterator) + '_frame_num_' + str(frame_num) +  '_cell_num_' + str(cell_idx) + '_next_seg.tif',  np.asarray(im * 255, dtype=np.uint8))
+
+
+                          im = convert_matrix_to_multipage_tiff(track_new_seg_next)
+                          im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
                           im = resize(im, (im.shape[0], im.shape[1] * scale_for_animation, im.shape[2]  * scale_for_animation))
-                          imsave(sav_dir + filename + 'ANIMATION_iterator_' + str(iterator) + '_frame_num_' + str(frame_num) +  '_cell_num_' + str(cell_idx) + '_next_seg.tif',  np.asarray(im * 255, dtype=np.uint8))
-                                 
+                          imsave(sav_dir + filename + '_ANIMATION_iterator_' + str(animator_iterator) + '_frame_num_' + str(frame_num) +  '_cell_num_' + str(cell_idx) + '_next_CUR_CHECK.tif',  np.asarray(im * 255, dtype=np.uint8))
+                           
+                          
+
+                          """ Print out animation for 1st frame """
+                          copy_input_im[track_cur_seg > 0] = 0   ### set old cells to blank so color comes through better!
+                          im = convert_matrix_to_multipage_tiff(copy_input_im)
+                          
+                          ### or just crop it
+                          im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
+                          im = resize(im, (im.shape[0], im.shape[1] * scale_for_animation, im.shape[2]  * scale_for_animation), order = 0)
+                          imsave(sav_dir + filename + '_ANIMATION_iterator_' + str(animator_iterator) + '_frame_num_' + str(frame_num - 1) + '_cell_num_' + str(cell_idx) + '_cur_input.tif',  np.asarray(im * 255, dtype=np.uint8))
+        
+                          im = convert_matrix_to_multipage_tiff(track_cur_seg)
+                          im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
+                          im = resize(im, (im.shape[0], im.shape[1] * scale_for_animation, im.shape[2]  * scale_for_animation), order = 0)
+                          imsave(sav_dir + filename + '_ANIMATION_iterator_' + str(animator_iterator) + '_frame_num_' + str(frame_num - 1) +  '_cell_num_' + str(cell_idx) + '_cur_seg.tif',  np.asarray(im * 255, dtype=np.uint8))
+    
+                          im = convert_matrix_to_multipage_tiff(track_new_seg)
+                          im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
+                          im = resize(im, (im.shape[0], im.shape[1] * scale_for_animation, im.shape[2]  * scale_for_animation))
+                          imsave(sav_dir + filename + '_ANIMATION_iterator_' + str(animator_iterator) + '_frame_num_' + str(frame_num - 1) +  '_cell_num_' + str(cell_idx) + '_cur_CURRENT_seg.tif',  np.asarray(im * 255, dtype=np.uint8))
+    
+    
+                          im = convert_matrix_to_multipage_tiff(track_term_seg)
+                          im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
+                          im = resize(im, (im.shape[0], im.shape[1] * scale_for_animation, im.shape[2]  * scale_for_animation), order = 0)
+                          imsave(sav_dir + filename + '_ANIMATION_iterator_' + str(animator_iterator) + '_frame_num_' + str(frame_num - 1) +  '_cell_num_' + str(cell_idx) + '_cur_TERM.tif',  np.asarray(im * 255, dtype=np.uint8))
+    
+    
+                          animator_iterator += 1
+                          
+                          
+                          ### add rainbow color index AFTER iterating through current index
+                          if new:
+                               track_cur_seg[cell.coords[:, 0], cell.coords[:, 1], cell.coords[:, 2]] = rand
+                               plot_next[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = rand
+                             
+                          print('YOOOOOOOOOOO')
 
 
 
-                
-                 #print('Testing cell: ' + str(iterator) + ' of total: ' + str(len(np.where(tracked_cells_df.visited == 0)[0]))) 
-                 #print(all_dup_indices)
-
-
-
-
-
-            """ POST-PROCESSING on per-frame basis
-            """
-            
+            """ POST-PROCESSING on per-frame basis """            
             
             """ #1 == check all cells with tracked predictions """
             tmp = tracked_cells_df.copy()
@@ -717,6 +610,11 @@ for input_path in list_folder:
             #plot_max(next_seg, ax=-1)
             
             input_im = next_input
+            
+            if scale_for_animation:
+                copy_input_im = np.copy(next_input)
+                
+            
             cur_seg = next_seg
             cur_seg[cur_seg > 0] = 255    ### WAS WRONGLY SET TO 0 BEFORE!!!
             truth_cur_im = truth_next_im
@@ -729,8 +627,7 @@ for input_path in list_folder:
     """
             
     
-    
-    
+
     """
         Things to do:
             (1) find out which cells being eliminated and why
@@ -766,7 +663,8 @@ for input_path in list_folder:
     
     ### (1) unsure that all of 'RED' or 'YELLOW' are indicated as such
     ### ***should be fine, just turn all "BLANK" into "GREEN"  
-    tracked_cells_df.COLOR[tracked_cells_df['COLOR'] == 'BLANK'] = 'GREEN'
+    tracked_cells_df.COLOR[tracked_cells_df['COLOR'] == 'BLANK'] = 'Green'
+    tracked_cells_df.COLOR[tracked_cells_df['COLOR'] == 'GREEN'] = 'Green'
     
     num_YELLOW = 0; num_RED = 0; num_new_color = 0;
     for cell_num in np.unique(tracked_cells_df.SERIES):
@@ -791,10 +689,15 @@ for input_path in list_folder:
             #print(color_arr)
      
 
-    
-    
+    tracked_cells_df.COLOR[tracked_cells_df['COLOR'] == 'YELLOW'] = 'Yellow' 
+    tracked_cells_df.COLOR[tracked_cells_df['COLOR'] == 'RED'] = 'Red' 
 
     
+
+    ### (4) re-name X and Y columns
+    tracked_cells_df = tracked_cells_df.rename(columns={'X': 'Y', 'Y': 'X'})
+
+
     
     """ Pre-save everything """
     tracked_cells_df = tracked_cells_df.sort_values(by=['SERIES', 'FRAME'])
@@ -913,12 +816,8 @@ for input_path in list_folder:
     
     
     ### and reorder columns
-    cols =  ['SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z']
+    cols =  ['SERIES', 'COLOR', 'FRAME', 'Y', 'X', 'Z']
     tracked_cells_df = tracked_cells_df[cols]
-
-    
-    ### (4) re-name X and Y columns
-    tracked_cells_df = tracked_cells_df.rename(columns={'X': 'Y', 'Y': 'X'})
 
 
     ### (5) save cleaned
@@ -929,31 +828,17 @@ for input_path in list_folder:
     """ Plot out 3D line plot where each cell is tracked through a line """
     # fig = plt.figure()
     # ax = fig.add_subplot(111, projection='3d')
-
-
-    # for series in np.unique(tracked_cells_df.SERIES):
-        
+    # for series in np.unique(tracked_cells_df.SERIES):   
     #     all_cur_series = tracked_cells_df.loc[tracked_cells_df["SERIES"].isin([series])]
-        
-        
     #     all_x = all_cur_series.X
     #     all_y = all_cur_series.Y
     #     all_z = all_cur_series.Z
-
-        
     #     ax.plot(all_x, all_y, all_z, linewidth=2, linestyle='dashed')
-        
-        
     #     size = all_cur_series.FRAME
-        
     #     #ax.scatter([all_x], [all_y], [all_z], s=  ((np.asarray(size, dtype=np.float32) + 1)/4)**2, marker='o', c=;r;, label='the data')
-            
     #     ax.scatter([all_x], [all_y], [all_z], c=np.asarray(size, dtype=np.float32)/np.max(tracked_cells_df.FRAME), marker='o', s=5, label='the data')
             
-            
-           
-            
-            
+               
     """ If want to reload quickly without running full analysis """            
     #tracked_cells_df = pd.read_csv(sav_dir + 'tracked_cells_df_RAW.csv', sep=',')           
     #truth_output_df = pd.read_csv(sav_dir + 'truth_output_df.csv', sep=',')            
@@ -966,6 +851,13 @@ for input_path in list_folder:
     plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_')
     
     if truth:
+        #MATLAB_name = 'MOBPF_190627w_5_output_FULL_AUTO_MATLAB.csv'
+
+        #MATLAB_name = 'MOBPF_190626w_4_10x_output_PYTORCH_output_FULLY_AUTO.csv'; ### CUPRIZONE
+        #MATLAB_name = 'output.csv'
+        
+        MATLAB_name = '680_MATLAB_output.csv'  
+        MATLAB_auto_array = pd.read_csv(input_path + MATLAB_name, sep=',')
         plot_timeframes(MATLAB_auto_array, sav_dir, add_name='MATLAB_')
         plot_timeframes(truth_array, sav_dir, add_name='TRUTH_')
 
@@ -995,7 +887,26 @@ for input_path in list_folder:
         """ Load .csv from tracked_output
         """
         CNN_name = 'tracked_cells_df_clean.csv'
-        all_lengths_CNN = load_and_compare_csvs_to_truth(sav_dir, CNN_name, examples, truth_array)
+        all_lengths_CNN = load_and_compare_csvs_to_truth(sav_dir, CNN_name, examples, 
+                                                         lowest_z_depth, truth_array, truth_name, truth_path=input_path,
+                                                         input_im=input_im, height_tmp=height_tmp, width_tmp=width_tmp, depth_total=depth_total,
+                                                         scale=scale)
+        
+        ### length == TRUTH - test
+        ### > 0 ==> TRUTH is longer (undertracked)
+        ### < 0 ==> test is longer (overtracked)
+        
+        errs_CNN_under = len(np.where(np.asarray(all_lengths_CNN) > 0)[0])
+        errs_CNN_under_2 = len(np.where(np.asarray(all_lengths_CNN) > 1)[0])
+        
+        errs_CNN_over = len(np.where(np.asarray(all_lengths_CNN) < 0)[0])
+        errs_CNN_over_2 = len(np.where(np.asarray(all_lengths_CNN) < -1)[0])
+        
+        perc_errs = (errs_CNN_under + errs_CNN_over) / len(all_lengths_CNN) * 100
+        perc_errs_over_2 = (errs_CNN_under_2 + errs_CNN_over_2) / len(all_lengths_CNN) * 100
+        
+        
+
         ### Figure out proportions
         total = len(all_lengths_CNN)
         prop = []; track_diff = [];
@@ -1025,15 +936,19 @@ for input_path in list_folder:
         
         """ Load .csv from MATLAB run and plot it
         """
-        #MATLAB_name = 'MOBPF_190627w_5_output_FULL_AUTO_MATLAB.csv'
-
-        #MATLAB_name = 'MOBPF_190626w_4_10x_output_PYTORCH_output_FULLY_AUTO.csv'; ### CUPRIZONE
-        #MATLAB_name = 'output.csv'
+                  
+        all_lengths_MATLAB = load_and_compare_csvs_to_truth(input_path, MATLAB_name, examples, 
+                                                            lowest_z_depth, truth_array, truth_name, truth_path=input_path,
+                                                            input_im=input_im, height_tmp=height_tmp, width_tmp=width_tmp, depth_total=depth_total,
+                                                            scale=scale)
+        errs_CNN_under = len(np.where(np.asarray(all_lengths_MATLAB) > 0)[0])
+        errs_CNN_under_2 = len(np.where(np.asarray(all_lengths_MATLAB) > 1)[0])
         
-        MATLAB_name = '680_MATLAB_output.csv'                    
-        all_lengths_MATLAB = load_and_compare_csvs_to_truth(input_path, MATLAB_name, examples, truth_array)
-        print(len(np.where(np.asarray(all_lengths_MATLAB) > 0)[0]))
-        print(len(np.where(np.asarray(all_lengths_MATLAB) < 0)[0]))                 
+        errs_CNN_over = len(np.where(np.asarray(all_lengths_MATLAB) < 0)[0])
+        errs_CNN_over_2 = len(np.where(np.asarray(all_lengths_MATLAB) < -1)[0])
+        
+        perc_errs_MATLAB = (errs_CNN_under + errs_CNN_over) / len(all_lengths_MATLAB) * 100
+        perc_errs_over_2_MATLAB = (errs_CNN_under_2 + errs_CNN_over_2) / len(all_lengths_MATLAB) * 100
 
 
         ### Figure out proportions
@@ -1059,6 +974,8 @@ for input_path in list_folder:
         plt.xlabel("proportion of tracks", fontsize=14)
         plt.ylabel("track difference (# frames)", fontsize=14)
         
+        ax.legend(['CNN tracker', 'Heuristic'])
+        
         plt.savefig(sav_dir + 'plot.png')
 
         
@@ -1069,11 +986,29 @@ for input_path in list_folder:
 
 
 
+        """ Plot errors  """
+        fig = plt.figure()
+        ax = plt.gca()
+        
+        errs = [perc_errs, perc_errs_MATLAB]
+        errs_over_2 = [perc_errs_over_2, perc_errs_over_2_MATLAB]
+        
+        X = np.arange(len(errs))
+        ax.bar(X + 0.00, errs, color = 'k', width = 0.25)
+        ax.bar(X + 0.25, errs_over_2, color = 'g', width = 0.25)
 
+        ind = np.arange(len(errs))
+        width = 0.25
+        ax.set_xticks(ind + width / 2)
+        ax.set_xticklabels(('CNN tracker', 'Heuristic'))
+        ax.legend(['All errors', 'errors > 1 frame'])
 
-
-
-
+        #plt.xlabel("proportion of tracks", fontsize=14)
+        plt.ylabel("% cells tracked with errors", fontsize=14)
+        plt.yticks(np.arange(0, max(errs)+1, 5))
+        rs = ax.spines["right"]; rs.set_visible(False)
+        ts = ax.spines["top"]; ts.set_visible(False)
+        plt.savefig(sav_dir + 'cell_tracking_errors' + '.png')
 
 
 
@@ -1087,7 +1022,7 @@ for input_path in list_folder:
         Also do density analysis of where new cells pop-up???
     
     """
-    analyze = 0;
+    analyze = 1;
     
     
     if analyze == 1:
@@ -1185,10 +1120,17 @@ for input_path in list_folder:
                 
                 
             plt.figure(neighbors + frame_num); 
+            ax = plt.gca()
             plt.scatter(total_z, total_dists, s=5, marker='o');
             plt.scatter(new_z, new_dists, s=10, marker='o');
-            plt.xlabel('depth (um)'); plt.ylabel('density (mean distance 10 nn um - smaller = dense)')
+            plt.xlabel('depth (um)'); plt.ylabel('sparsity (mean distance 10 nn um - smaller = dense)')
             plt.title('num neighbors: ' + str(neighbors))    
+            rs = ax.spines["right"]; rs.set_visible(False)
+            ts = ax.spines["top"]; ts.set_visible(False)
+            plt.xlim(0, 500)
+            plt.ylim(30, 200)
+            
+
             plt.savefig(sav_dir + 'DENSITY_new_' + str(neighbors + frame_num) + '.png')
         
         
@@ -1244,14 +1186,25 @@ for input_path in list_folder:
                     
     
             plt.figure(neighbors * 100 + frame_num); 
+            ax = plt.gca()
             plt.scatter(total_z, total_dists, s=5, marker='o');            
             plt.scatter(term_z, term_dists, s=10, marker='o', color='k');
-            plt.xlabel('depth (um)'); plt.ylabel('density (mean distance 10 nn um - smaller = dense)')
+            plt.xlabel('depth (um)'); plt.ylabel('sparsity (mean distance 10 nn um - smaller = dense)')
             plt.title('num neighbors: ' + str(neighbors))
-            plt.xlim(0, 350)
-            plt.ylim(50, 200)
+            rs = ax.spines["right"]; rs.set_visible(False)
+            ts = ax.spines["top"]; ts.set_visible(False)
+            plt.xlim(0, 500)
+            plt.ylim(30, 200)
             
             plt.savefig(sav_dir + 'DENSITY_term_' + str(neighbors * 100 + frame_num)  + '.png')
+        
+        
+        
+        
+        
+        
+        
+        
         
         
     
@@ -1301,11 +1254,15 @@ for input_path in list_folder:
     
     
             plt.figure(neighbors + frame_num); 
+            ax = plt.gca()
             plt.scatter(total_z, total_vols, s=5, marker='o');            
             plt.scatter(term_z, term_vol, s=10, marker='o', color='k');
             plt.xlabel('depth (um)'); plt.ylabel('size')
             plt.title('num neighbors: ' + str(neighbors))
             #plt.xlim(0, 350)
+            rs = ax.spines["right"]; rs.set_visible(False)
+            ts = ax.spines["top"]; ts.set_visible(False)
+            
             plt.ylim(0, 4000)   
             plt.savefig(sav_dir + 'SIZE_new_' + str(neighbors + frame_num) + '.png')
     
@@ -1336,7 +1293,7 @@ for input_path in list_folder:
             total_z = np.concatenate((total_z, np.asarray(all_z) * scale_z))            
     
     
-            """ Get terminated cells """
+            """ Get new cells """
             for cur_cell in cells:
                 
                 dist_idx = np.where(all_series_num == cur_cell)
@@ -1353,15 +1310,31 @@ for input_path in list_folder:
     
     
             plt.figure(neighbors * 100 + frame_num); 
+            ax = plt.gca()
             plt.scatter(total_z, total_vols, s=5, marker='o');            
             plt.scatter(new_z, new_vol, s=10, marker='o');
             plt.xlabel('depth (um)'); plt.ylabel('size')
             plt.title('frame num: ' + str(frame_num))
             #plt.xlim(0, 350)
-    
+            rs = ax.spines["right"]; rs.set_visible(False)
+            ts = ax.spines["top"]; ts.set_visible(False)    
             plt.ylim(0, 4000)   
             
             plt.savefig(sav_dir + 'SIZE_term_' + str(neighbors * 100 + frame_num) + '.png')
+            
+            
+            
+            
+            
+            
+        """ 
+            Plot size decay
+        """
+            
+            
+            
+            
+            
         
         """ 
             Also split by depths
