@@ -1034,6 +1034,7 @@ def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_low
         plt.xlabel('time frame', fontsize=16); plt.ylabel('# new cells', fontsize=16)
         # ax.set_xticklabels(x_ticks, rotation=0, fontsize=12)
         # ax.set_yticklabels(y_ticks, rotation=0, fontsize=12)
+        plt.tight_layout()
         plt.savefig(sav_dir + add_name + name + '.png')
     
         plt.figure(); plt.bar(y_pos, terminated_cells_per_frame, color='k')
@@ -1041,7 +1042,9 @@ def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_low
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
         name = 'terminated cells per frame'
         #plt.title(name)
+        
         plt.xlabel('time frame', fontsize=16); plt.ylabel('# terminated cells', fontsize=16)
+        plt.tight_layout()
         plt.savefig(sav_dir + add_name + name + '.png')
     
         
@@ -1050,7 +1053,9 @@ def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_low
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
         name = 'number cells per frame'
         #plt.title(name)
+        plt.tight_layout()
         plt.xlabel('time frame', fontsize=16); plt.ylabel('# cells', fontsize=16)
+        plt.tight_layout()
         plt.savefig(sav_dir + add_name + name + '.png')
     
 
@@ -1088,4 +1093,5 @@ def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_low
     ax = plt.gca()
     rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
     name = 'normalized recovery'
+    plt.tight_layout()
     plt.savefig(sav_dir + add_name + name + '.png')

@@ -181,6 +181,23 @@ for input_path in list_folder:
     
     
     
+    """ Get truth from .csv as well """
+    truth = 1
+    scale = 1
+    
+    if truth:
+         #truth_name = 'MOBPF_190627w_5_syglassCorrectedTracks.csv'; scale = 0
+         #truth_name = 'MOBPF_190626w_4_syGlassEdited_20200607.csv';  scale = 1  # cuprizone
+         #truth_name = 'a1901128-r670_syGlass_20x.csv';    # gets hazy at the end
+         truth_name = '680_syGlass_10x.csv'                  
+
+         #truth_name = 'MOBPF_190106w_5_cuprBZA_10x.tif - T=0_650_syGlass_10x.csv'   # well registered and clean window except for single frame
+
+         
+         
+         truth_cur_im, truth_array  = gen_truth_from_csv(frame_num=0, input_path=input_path, filename=truth_name, 
+                            input_im=input_im, lowest_z_depth=lowest_z_depth, height_tmp=height_tmp, width_tmp=width_tmp, depth_tmp=depth_total, scale=scale)
+         truth_output_df = pd.DataFrame(columns = {'SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z'})    
     
     
     
@@ -188,8 +205,7 @@ for input_path in list_folder:
     
     
     
-    
-    #tracked_cells_df = pd.read_pickle(sav_dir + 'tracked_cells_df_RAW_pickle.pkl')
+    tracked_cells_df = pd.read_pickle(sav_dir + 'tracked_cells_df_RAW_pickle.pkl')
     
     ### (2) remove everything only on a single frame, except for very first frame
     singles = []
@@ -259,11 +275,7 @@ for input_path in list_folder:
                 tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[idx])   ### DROPS ENTIRE CELL SERIES
                 num_small += 1
                 break;
-
-
-    tmp = tracked_cells_df.copy()
-
-            
+      
             
     """ Plot out 3D line plot where each cell is tracked through a line """
     # fig = plt.figure()
@@ -288,8 +300,8 @@ for input_path in list_folder:
 
 
     """ Set plot size and DPI """
-    plt.rcParams['figure.figsize'] = [8.0, 6.0]
-    plt.rcParams['figure.dpi'] = 140
+    #plt.rcParams['figure.figsize'] = [6.0, 4.0]
+    #plt.rcParams['figure.dpi'] = 140
 
     
 
@@ -297,7 +309,7 @@ for input_path in list_folder:
 
     """ plot timeframes """
     plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_lower=0, depth_lim_upper=120)
-
+    
 
     """ 
         Also split by depths
@@ -338,12 +350,12 @@ for input_path in list_folder:
 
     """ Show that truth predicitions are accurate! """
     
-    
+    ax_title_size = 16
     if truth:
          distances = []
          for frame_num in range(len(examples)):
         
-            tracked_cells_df, all_dist, dist_check, check_series = check_predicted_distances(truth_array, frame_num, crop_size, z_size, dist_error_thresh=10)
+            empty, all_dist, dist_check, check_series = check_predicted_distances(truth_array, frame_num, crop_size, z_size, dist_error_thresh=10)
                 
             if frame_num == 1:
                 plt.figure(); plt.hist(all_dist, color='k')
@@ -355,6 +367,7 @@ for input_path in list_folder:
 
                 
                 plt.savefig(sav_dir + 'prediction_accuracy_truth.png')
+                #break;
             distances = np.concatenate((distances, np.asarray(all_dist)))
 
 
@@ -368,7 +381,6 @@ for input_path in list_folder:
          print('% cells above 10 pixels: ' + str((num_above_10/num_total)  * 100))
 
 
-            
     """ Plot compare to truth """
     if truth:
 
@@ -420,6 +432,7 @@ for input_path in list_folder:
         ts = ax.spines["top"]; ts.set_visible(False)
         ax.margins(x=0)
         ax.margins(y=0.02)
+        plt.tight_layout()
                 
         
         """ Load .csv from MATLAB run and plot it
@@ -463,7 +476,7 @@ for input_path in list_folder:
         plt.ylabel("track difference (# frames)", fontsize=14)
         
         ax.legend(['CNN tracker', 'Heuristic'])
-        
+        plt.tight_layout()
         plt.savefig(sav_dir + 'plot.png')
 
         
@@ -496,6 +509,7 @@ for input_path in list_folder:
         plt.yticks(np.arange(0, max(errs)+1, 5))
         rs = ax.spines["right"]; rs.set_visible(False)
         ts = ax.spines["top"]; ts.set_visible(False)
+        plt.tight_layout()
         plt.savefig(sav_dir + 'cell_tracking_errors' + '.png')
 
 
@@ -541,10 +555,10 @@ for input_path in list_folder:
     """
     analyze = 1;
     
-    ax_title_size = 16
+    
     
     if analyze == 1:
-        tracked_cells_df = tmp.copy()
+        #tracked_cells_df = tmp.copy()
         
         neighbors = 10
         
@@ -648,7 +662,7 @@ for input_path in list_folder:
             plt.xlim(0, 500)
             plt.ylim(30, 200)
             
-
+            plt.tight_layout()
             plt.savefig(sav_dir + 'DENSITY_new_' + str(neighbors + frame_num) + '.png')
         
         
@@ -713,7 +727,7 @@ for input_path in list_folder:
             ts = ax.spines["top"]; ts.set_visible(False)
             plt.xlim(0, 500)
             plt.ylim(30, 200)
-            
+            plt.tight_layout()
             plt.savefig(sav_dir + 'DENSITY_term_' + str(neighbors * 100 + frame_num)  + '.png')
         
         
@@ -782,7 +796,8 @@ for input_path in list_folder:
             ts = ax.spines["top"]; ts.set_visible(False)
             
             plt.ylim(0, 4000)   
-            plt.savefig(sav_dir + 'SIZE_new_' + str(neighbors + frame_num) + '.png')
+            plt.tight_layout()
+            plt.savefig(sav_dir + 'SIZE_term_' + str(neighbors + frame_num) + '.png')
     
     
         ### NEW CELL
@@ -837,8 +852,8 @@ for input_path in list_folder:
             rs = ax.spines["right"]; rs.set_visible(False)
             ts = ax.spines["top"]; ts.set_visible(False)    
             plt.ylim(0, 4000)   
-            
-            plt.savefig(sav_dir + 'SIZE_term_' + str(neighbors * 100 + frame_num) + '.png')
+            plt.tight_layout()
+            plt.savefig(sav_dir + 'SIZE_new_' + str(neighbors * 100 + frame_num) + '.png')
             
             
             
@@ -897,7 +912,7 @@ for input_path in list_folder:
                 if len(size) == len(np.unique(tracked_cells_df.FRAME)) - frame:
                     plt.plot(z, size, linewidth=1)
                     plt.ylim(0, 10000)   
-                
+                    plt.tight_layout()
                 
                 
 
@@ -960,7 +975,8 @@ for input_path in list_folder:
         
         plt.ylabel('Cell size', fontsize=16)
         rs = ax.spines["right"]; rs.set_visible(False)
-        ts = ax.spines["top"]; ts.set_visible(False)   
+        ts = ax.spines["top"]; ts.set_visible(False)  
+        plt.tight_layout()
         plt.savefig(sav_dir + 'Cell sizes changing.png')
     
         ### plot with z as well
@@ -969,7 +985,7 @@ for input_path in list_folder:
         plt.scatter(z_1_week, first_frame_1_week, color='orange')
         plt.scatter(z_2_week, first_frame_2_week, color='green')
         plt.scatter(z_3_week, first_frame_3_week, color='red')
-        
+        plt.tight_layout()
         
             
         
@@ -1060,7 +1076,7 @@ for input_path in list_folder:
         plt.legend(['1 week old', '2 weeks old', '3 weeks old', '< 2 weeks old', '< 3 weeks old'])
         
         
-        
+        plt.tight_layout()
         plt.savefig(sav_dir + 'probabilities.png')
 
                 
@@ -1096,7 +1112,7 @@ for input_path in list_folder:
         #plt.yticks(np.arange(0.12, 0.35, 0.04))
         plt.xticks(np.arange(0, len(tracker.train_jacc_per_epoch)+1, 5.0))
         
-        plt.figure(33); plt.yscale('log'); plt.savefig(sav_dir + 'loss_per_epoch.png')          
+        plt.figure(33); plt.yscale('log'); plt.tight_layout(); plt.savefig(sav_dir + 'loss_per_epoch.png')          
                         
 
         plot_metric_fun([], tracker.plot_acc, class_name='', metric_name='accuracy', plot_num=29,
@@ -1107,7 +1123,7 @@ for input_path in list_folder:
         ax = plt.gca()
         leg = ax.get_legend()
         leg.legendHandles[0].set_color('orange')
-        plt.figure(29); plt.savefig(sav_dir + 'Accuracy.png')
+        plt.figure(29); plt.tight_layout(); plt.savefig(sav_dir + 'Accuracy.png')
         print('Final accuracy: ' + str(tracker.plot_acc[-1]))
         
         
@@ -1119,7 +1135,7 @@ for input_path in list_folder:
         ax = plt.gca()
         leg = ax.get_legend()
         leg.legendHandles[0].set_color('orange')
-        plt.figure(30); plt.savefig(sav_dir + 'Sensitivity.png')
+        plt.figure(30); plt.tight_layout(); plt.savefig(sav_dir + 'Sensitivity.png')
         print('Final sensitivity: ' + str(tracker.plot_sens[-1]))
         
               
@@ -1131,7 +1147,7 @@ for input_path in list_folder:
         ax = plt.gca()
         leg = ax.get_legend()
         leg.legendHandles[0].set_color('orange')
-        plt.figure(31); plt.savefig(sav_dir + 'Precision.png')
+        plt.figure(31); plt.tight_layout(); plt.savefig(sav_dir + 'Precision.png')
         print('Final precision: ' + str(tracker.plot_prec[-1]))
         
         
