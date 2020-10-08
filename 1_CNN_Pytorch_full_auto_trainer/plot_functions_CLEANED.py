@@ -394,7 +394,7 @@ def plot_cost_fun(plot_cost, plot_cost_val, mov_avg_loss=None, plot_cost_val_NO=
      
 """ Plots any metric with moving average
 """
-def plot_metric_fun(plot_jaccard, plot_jaccard_val=False, class_name='', metric_name='Jaccard', plot_num=30):
+def plot_metric_fun(plot_jaccard, plot_jaccard_val=False, class_name='', metric_name='Jaccard', plot_num=30, location='upper left'):
       
      avg_window_size = 40
  
@@ -415,16 +415,20 @@ def plot_metric_fun(plot_jaccard, plot_jaccard_val=False, class_name='', metric_
      """ Graph global metric
      """      
      plt.figure(plot_num); plt.clf();
-     plt.plot(plot_jaccard, alpha=0.3, label=metric_name + class_name); plt.title(metric_name)  
-     plt.plot(mov_avg_jacc, color='tab:blue');
+     if plot_jaccard:
+         plt.plot(plot_jaccard, label='Training'); #plt.title(metric_name)  
+         plt.plot(mov_avg_jacc, color='tab:blue');
 
      if plot_jaccard_val:
-         plt.plot(plot_jaccard_val, alpha=0.3, label='Validation ' + metric_name + ' ' + class_name);
+         plt.plot(plot_jaccard_val, label='Validation');
          plt.plot(mov_avg_jacc_val, color='tab:orange');
 
      plt.ylabel(metric_name); plt.xlabel('Epochs');            
-     plt.legend(loc='upper left');    #plt.pause(0.05)
-      
+     plt.legend(loc=location);    #plt.pause(0.05)
+     
+     ax = plt.gca()
+     rs = ax.spines["right"]; rs.set_visible(False)
+     ts = ax.spines["top"]; ts.set_visible(False)    
 
 
 """ Easier moving average calculation """

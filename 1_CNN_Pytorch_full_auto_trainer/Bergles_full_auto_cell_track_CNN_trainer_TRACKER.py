@@ -108,10 +108,10 @@ if __name__ == '__main__':
     #s_path = './(8) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_YES_NEXT_SEG/'; next_seg = 1;
     
     
-    #s_path = './(9) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT_hausdorf/'; next_seg = 0; HD = 1; alpha = 1;
+    s_path = './(9) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT_hausdorf/'; next_seg = 0; HD = 1; alpha = 1;
     
     
-    s_path = './(10) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT/'; next_seg = 0;
+    #s_path = './(10) Checkpoints_full_auto_no_spatialW_large_TRACKER_CROP_PADS_NO_NEXT/'; next_seg = 0;
     
     
     
@@ -367,10 +367,7 @@ if __name__ == '__main__':
                 
                 """ forward + backward + optimize """
                 output_train = unet(inputs)
- 
-                
- 
-    
+
                 """ calculate loss: includes HD loss functions """
                 if tracker.HD:
                     loss, tracker, ce_train, dc_train, hd_train = compute_HD_loss(output_train, labels, tracker.alpha, tracker, 

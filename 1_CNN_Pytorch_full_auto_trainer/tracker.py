@@ -82,7 +82,8 @@ def show_vars(obj_name):
 """ Plot metrics in tracker """           
 def plot_tracker(tracker, s_path):
 
-    plot_metric_fun(tracker.train_jacc_per_epoch, tracker.val_jacc_per_eval, class_name='', metric_name='jaccard', plot_num=32)
+    plot_metric_fun(tracker.train_jacc_per_epoch, tracker.val_jacc_per_eval, class_name='', metric_name='jaccard', plot_num=32,
+                    location='lower right')
     plt.figure(32); plt.savefig(s_path + 'Jaccard.png')
     
        

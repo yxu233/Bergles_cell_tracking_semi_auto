@@ -992,7 +992,7 @@ def load_and_compare_csvs_to_truth(input_path, filename, examples, lowest_z_dept
 
 
 """ Plot """
-def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_'):
+def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_lower=0, depth_lim_upper=100000, only_one_plot=0):
     new_cells_per_frame =  np.zeros(len(np.unique(tracked_cells_df.FRAME)))
     terminated_cells_per_frame =  np.zeros(len(np.unique(tracked_cells_df.FRAME)))
     num_total_cells_per_frame = np.zeros(len(np.unique(tracked_cells_df.FRAME)))
@@ -1000,6 +1000,15 @@ def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_'):
         
         frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
         
+        
+        z_cur = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].Z
+        
+        
+        if np.min(z_cur) <= depth_lim_lower or np.max(z_cur) >= depth_lim_upper:
+            
+            continue;
+            
+            
         beginning_frame = np.min(frames_cur_cell)
         if beginning_frame > 0:   # skip the first frame
             new_cells_per_frame[beginning_frame] += 1
@@ -1014,49 +1023,49 @@ def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_'):
         
         
         
-
-
     y_pos = np.unique(tracked_cells_df.FRAME)
-    plt.figure(); plt.bar(y_pos, new_cells_per_frame, color='k')
-    ax = plt.gca()
-    rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-    name = 'new cells per frame'
-    #plt.title(name);
-    plt.xlabel('time frame', fontsize=16); plt.ylabel('# new cells', fontsize=16)
-    # ax.set_xticklabels(x_ticks, rotation=0, fontsize=12)
-    # ax.set_yticklabels(y_ticks, rotation=0, fontsize=12)
-    plt.savefig(sav_dir + add_name + name + '.png')
-
-    plt.figure(); plt.bar(y_pos, terminated_cells_per_frame, color='k')
-    ax = plt.gca()
-    rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-    name = 'terminated cells per frame'
-    #plt.title(name)
-    plt.xlabel('time frame', fontsize=16); plt.ylabel('# terminated cells', fontsize=16)
-    plt.savefig(sav_dir + add_name + name + '.png')
-
+    if not only_one_plot:
+        
+        plt.figure(); plt.bar(y_pos, new_cells_per_frame, color='k')
+        ax = plt.gca()
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        name = 'new cells per frame'
+        #plt.title(name);
+        plt.xlabel('time frame', fontsize=16); plt.ylabel('# new cells', fontsize=16)
+        # ax.set_xticklabels(x_ticks, rotation=0, fontsize=12)
+        # ax.set_yticklabels(y_ticks, rotation=0, fontsize=12)
+        plt.savefig(sav_dir + add_name + name + '.png')
     
-    plt.figure(); plt.bar(y_pos, num_total_cells_per_frame, color='k')
-    ax = plt.gca()
-    rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-    name = 'number cells per frame'
-    #plt.title(name)
-    plt.xlabel('time frame', fontsize=16); plt.ylabel('# cells', fontsize=16)
-    plt.savefig(sav_dir + add_name + name + '.png')
-
+        plt.figure(); plt.bar(y_pos, terminated_cells_per_frame, color='k')
+        ax = plt.gca()
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        name = 'terminated cells per frame'
+        #plt.title(name)
+        plt.xlabel('time frame', fontsize=16); plt.ylabel('# terminated cells', fontsize=16)
+        plt.savefig(sav_dir + add_name + name + '.png')
+    
+        
+        plt.figure(); plt.bar(y_pos, num_total_cells_per_frame, color='k')
+        ax = plt.gca()
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        name = 'number cells per frame'
+        #plt.title(name)
+        plt.xlabel('time frame', fontsize=16); plt.ylabel('# cells', fontsize=16)
+        plt.savefig(sav_dir + add_name + name + '.png')
+    
 
 
     """ Normalize to proportions like Cody did
     
     """
-    new_cells_per_frame
-    terminated_cells_per_frame
-    num_total_cells_per_frame
+    # new_cells_per_frame
+    # terminated_cells_per_frame
+    # num_total_cells_per_frame
     
     
     baseline = num_total_cells_per_frame[0]
     
-    norm_tots = num_total_cells_per_frame/baseline
+    norm_tots = (num_total_cells_per_frame - new_cells_per_frame)/baseline
     norm_new = new_cells_per_frame/baseline
 
     width = 0.35       # the width of the bars: can also be len(x) sequence
