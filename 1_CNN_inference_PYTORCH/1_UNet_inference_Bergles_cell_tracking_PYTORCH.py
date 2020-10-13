@@ -52,7 +52,7 @@ torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.enabled = True  # new thing? what do? must be True
 
 """ Define GPU to use """
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 print(device)
 
 
@@ -72,6 +72,20 @@ s_path = './(19) Checkpoints_TITAN_NO_transforms_AdamW_batch_norm_CLEAN_DATA/'
 #s_path = './(20) Checkpoints_PYTORCH_NO_transforms_AdamW_batch_norm_CLEAN_DATA/'
 
 s_path = './(21) Checkpoints_PYTORCH_NO_transforms_AdamW_batch_norm_CLEAN_DATA_LARGE_NETWORK/'
+
+
+
+
+""" AMOUNT OF EDGE TO ELIMINATE 
+
+
+    scaling???
+"""
+
+
+
+
+
 
 
 overlap_percent = 0.5

@@ -83,7 +83,7 @@ torch.backends.cudnn.enabled = True
 if __name__ == '__main__':
         
     """ Define GPU to use """
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
     
     

@@ -150,6 +150,42 @@ def select_one_from_excess(seg_train, crop_next_seg):
 
 
 
+""" When there is more than one cell/object identified in next frame,
+        need to associate the one that is BEST MATCHED with the original frame
+"""
+def match_to_existing(seg_train, crop_next_seg):
+    label = measure.label(seg_train)
+    cc_seg_train = measure.regionprops(label)
+         
+    ### pick the ideal one ==> confidence??? distance??? and then set track color to 'YELLOW'
+    """ Best one is one that takes up most of the area in the "next_seg" """
+    #add = crop_next_seg + seg_train
+    label = measure.label(crop_next_seg)
+    cc_next = measure.regionprops(label)
+    
+    
+    best = np.zeros(np.shape(crop_next_seg))
+    overlapped = 0;
+    for multi_check in cc_seg_train:
+         coords_m = multi_check['coords']
+         for seg_check in cc_next:
+              coords_n = seg_check['coords']
+             
+              if np.any((coords_m[:, None] == coords_n).all(-1).any(-1)):   ### overlapped
+                   best[coords_n[:, 0], coords_n[:, 1], coords_n[:, 2]] = 1
+                   overlapped += 1
+                   
+
+    ### if something overlaps, use the overlap, otherwise don't                   
+    if overlapped:
+        seg_train = best
+        label = measure.label(seg_train)
+        cc_seg_train = measure.regionprops(label)      
+         
+    return cc_seg_train, seg_train, crop_next_seg
+
+
+
 
 """ Find cell number that matches in next_frame (i.e. where more than 1 cell 
          from cur_frame points to a cell in next frame)
@@ -336,6 +372,12 @@ def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_d
     
     labelled = measure.label(bw_next_seg)
     next_cc = measure.regionprops(labelled)
+
+    debug = 0
+    if debug:
+        debug_seg = np.copy(next_seg)
+        debug_seg[debug_seg == 255] = 1 
+        debug_seg[debug_seg == 250] = 2 
       
       
     ### add the cells from the first frame into "tracked_cells" matrix
@@ -344,9 +386,11 @@ def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_d
        coords = cell['coords']
        
        
+       
        if not np.any(next_seg[coords[:, 0], coords[:, 1], coords[:, 2]] == 250) and len(coords) > min_size:   ### 250 means already has been visited
             series = np.max(tracked_cells_df.SERIES) + 1        
             centroid = cell['centroid']
+            print(len(coords))
      
             """ SKIP IF HAVE TO MOVE THE CROPPING BOX IN THE BOTTOM Z-dimension """
             # if int(centroid[2]) + z_size/2 >= lowest_z_depth:
@@ -366,6 +410,11 @@ def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_d
                      num_new_truth += 1
                  
             num_new += 1
+            
+       else:
+            if debug:
+                debug_seg[coords[:, 0], coords[:, 1], coords[:, 2]] = 2
+            
             
        #print('Checking cell: ' + str(idx) + ' of total: ' + str(len(next_cc)))
     
@@ -529,9 +578,7 @@ def change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, series, fr
 """ Use predictions to cleanup whatever candidates you wish to try """
 def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_size, z_size, frame_num, height_tmp, width_tmp, depth_tmp, input_im=0, next_input=0, cur_seg = 0, min_dist=12):
     
-    
     debug = 0
-    
     print('cleaning with predictions')
     #start = time.perf_counter()
     deleted = 0; term_count = 0; new = 0; not_changed = 0; moved_old = 0;
@@ -545,6 +592,8 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
         index = getattr(cell, 'Index')
         x =  getattr(cell, 'X'); y =  getattr(cell, 'Y'); z =  getattr(cell, 'Z');
         series = getattr(cell, 'SERIES')
+        
+        cur_cell_coords = getattr(cell, 'coords')
        
         #print(series)             
         
@@ -552,18 +601,18 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
         #im = np.zeros(np.shape(next_seg))
         cell_next = tracked_cells_df.loc[tracked_cells_df['FRAME'].isin([frame_num]) & tracked_cells_df['SERIES'].isin([series])]
         index_next = cell_next.index
+        
+        unassociated_bool = 0
         if len(index_next) > 0:
             cell_next = tracked_cells_df.loc[index_next[0]]
             x_n = cell_next.X; y_n = cell_next.Y; z_n = cell_next.Z;
 
         else:
             cell_next = []
+            unassociated_bool = 1
             
-            
-        
         ### DEBUG:
         im = np.zeros(np.shape(next_seg))
-
         batch_x, crop_im, crop_cur_seg, crop_seed, crop_next_input, crop_next_seg, crop_next_seg_non_bin, box_xyz, box_over = prep_input_for_CNN(cell, input_im, next_input, cur_seg,
                                                                                                   next_seg, 0, 0, x, y, z, crop_size, z_size,
                                                                                                   height_tmp, width_tmp, depth_tmp, next_bool=1)   
@@ -577,11 +626,9 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
          
             plot_max(crop_next_seg_non_bin, ax=-1)
             
-            
             crop_next_seg, box_xyz, box_over, boundaries_crop  = crop_around_centroid_with_pads(next_seg, y, x, z, crop_size/2, z_size, height_tmp, width_tmp, depth_tmp)                    
 
         """ now associate cell to the object closest to the predicted location
-        
                 a few things can happen:
                         (1) no cell currently occupied, so just associate
                         (2) currently occupied, in which case, remove that association, and add that cell to the new list of cells to check
@@ -606,12 +653,25 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                 empty, next_coords, next_centroid, closest_dist = associate_to_closest(tracked_cells_df, cc, pred_x, pred_y, pred_z, box_xyz, box_over, series, 
                                                                                                  frame_num, width_tmp, height_tmp, depth_tmp, min_dist=min_dist)       
             
+            
+        """ If this cell was previously unassociated, make sure that the next cell is not exorbitantly large!!!
+        
+        
+        """
+        if unassociated_bool:
+            if len(next_coords) > 0:
+                print('unassociated, check size'); print(len(cur_cell_coords)); print(len(next_coords));
+                if len(cur_cell_coords) < 100 and len(next_coords) > 200:
+                    #next_coords = []
+                    print('yo')
+        
+        
+        
+            
         """ Change next coord only if something close was found
         """
         term_bool = 0
         if len(next_coords) > 0:   ### only add if not empty
-
-        
             ### DEBUG:
             if debug:
                 #im[x_n, y_n, z_n] = 1
@@ -631,8 +691,6 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                   
                 #print('hello')
                 #zzz
-                
-                     
 
             else:
                 """ CASE #2: otherwise, find which cell is currently matched to this cell, then check what the prediction is for that new cell
@@ -990,108 +1048,3 @@ def load_and_compare_csvs_to_truth(input_path, filename, examples, lowest_z_dept
 
 
 
-
-""" Plot """
-def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_lower=0, depth_lim_upper=100000, only_one_plot=0):
-    new_cells_per_frame =  np.zeros(len(np.unique(tracked_cells_df.FRAME)))
-    terminated_cells_per_frame =  np.zeros(len(np.unique(tracked_cells_df.FRAME)))
-    num_total_cells_per_frame = np.zeros(len(np.unique(tracked_cells_df.FRAME)))
-    for cell_num in np.unique(tracked_cells_df.SERIES):
-        
-        frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
-        
-        
-        z_cur = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].Z
-        
-        
-        if np.min(z_cur) <= depth_lim_lower or np.max(z_cur) >= depth_lim_upper:
-            
-            continue;
-            
-            
-        beginning_frame = np.min(frames_cur_cell)
-        if beginning_frame > 0:   # skip the first frame
-            new_cells_per_frame[beginning_frame] += 1
-
-                    
-        term_frame = np.max(frames_cur_cell)
-        if term_frame < len(terminated_cells_per_frame) - 1:   # skip the last frame
-            terminated_cells_per_frame[term_frame] += 1
-        
-        for num in frames_cur_cell:
-            num_total_cells_per_frame[num] += 1    
-        
-        
-        
-    y_pos = np.unique(tracked_cells_df.FRAME)
-    if not only_one_plot:
-        
-        plt.figure(); plt.bar(y_pos, new_cells_per_frame, color='k')
-        ax = plt.gca()
-        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        name = 'new cells per frame'
-        #plt.title(name);
-        plt.xlabel('time frame', fontsize=16); plt.ylabel('# new cells', fontsize=16)
-        # ax.set_xticklabels(x_ticks, rotation=0, fontsize=12)
-        # ax.set_yticklabels(y_ticks, rotation=0, fontsize=12)
-        plt.tight_layout()
-        plt.savefig(sav_dir + add_name + name + '.png')
-    
-        plt.figure(); plt.bar(y_pos, terminated_cells_per_frame, color='k')
-        ax = plt.gca()
-        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        name = 'terminated cells per frame'
-        #plt.title(name)
-        
-        plt.xlabel('time frame', fontsize=16); plt.ylabel('# terminated cells', fontsize=16)
-        plt.tight_layout()
-        plt.savefig(sav_dir + add_name + name + '.png')
-    
-        
-        plt.figure(); plt.bar(y_pos, num_total_cells_per_frame, color='k')
-        ax = plt.gca()
-        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        name = 'number cells per frame'
-        #plt.title(name)
-        plt.tight_layout()
-        plt.xlabel('time frame', fontsize=16); plt.ylabel('# cells', fontsize=16)
-        plt.tight_layout()
-        plt.savefig(sav_dir + add_name + name + '.png')
-    
-
-
-    """ Normalize to proportions like Cody did
-    
-    """
-    # new_cells_per_frame
-    # terminated_cells_per_frame
-    # num_total_cells_per_frame
-    
-    
-    baseline = num_total_cells_per_frame[0]
-    
-    norm_tots = (num_total_cells_per_frame - new_cells_per_frame)/baseline
-    norm_new = new_cells_per_frame/baseline
-
-    width = 0.35       # the width of the bars: can also be len(x) sequence
-    plt.figure()
-    p1 = plt.bar(y_pos, norm_tots, yerr=0, color='k')
-    p2 = plt.bar(y_pos, norm_new, bottom=norm_tots, yerr=0, color='g')
-    
-    line = np.arange(-5, len(y_pos) + 5, 1)
-    plt.plot(line, np.ones(len(line)), 'r--', linewidth=2, markersize=10)
-    
-    plt.ylabel('Proportion of cells', fontsize=16)
-    plt.xlabel('weeks', fontsize=16); 
-    plt.xticks(np.arange(0, len(y_pos), 1))
-    plt.xlim(-1, len(y_pos))
-    plt.ylim(0, 1.4)
-    plt.yticks(np.arange(0, 1.4, 0.2))
-    plt.legend((p1[0], p2[0]), ('Baseline', 'New cells'))
-    
-    
-    ax = plt.gca()
-    rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-    name = 'normalized recovery'
-    plt.tight_layout()
-    plt.savefig(sav_dir + add_name + name + '.png')

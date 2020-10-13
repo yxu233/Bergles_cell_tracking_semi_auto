@@ -83,51 +83,74 @@ switch name
         wkIdx = {1 2 3 4 5 6 7 8 9 NaN 10 11 12 NaN NaN NaN NaN};
         wkIdxCum = {1 2 3 4 5 6 7 8 9 NaN 10 11 12 NaN NaN NaN NaN};
         wks = length(wkIdx);
-    case 'v264' % tp0:1 2wks; tp12:13 2wks
-        tpAlign = {1 NaN 2 3 4 NaN 5 NaN 6 7 8 9 10 11 12 13 NaN 14 15 NaN};
-        wkIdx = {1 NaN 2 3 5 7 8 9 10 11 12 13 NaN 14 15 NaN NaN};
-        wkIdxCum = {1 NaN 2 3 4:5 6:7 8 9 10 11 12 13 NaN 14 15 NaN NaN};
-        wks = length(wkIdx);
+
     case 'v277' % tp0:1 2wks; tp13:14 2wks
         tpAlign = {1 NaN 2 3 4 NaN 5 6 7 8 9 10 11 12 13 14 NaN 15 16 NaN};
         wkIdx = {1 NaN 2 3 5 7 8 9 10 11 12 13 14 NaN 15 16 NaN};
         wkIdxCum = {1 NaN 2 3 4:5 6:7 8 9 10 11 12 13 14 NaN 15 16 NaN};
         wks = length(wkIdx);
+        
+        
+        
+    %% CUPRIZONE
     case 'v235' % tp0:1 2wks; tp13:14 2wks
+        %         bsln 1w 2w 3w 3d 5d 1w 10d 2w 3w...
         tpAlign = {1 NaN 2 3 4 NaN 5 6 7 8 9 10 11 12 13 14 NaN 15 16 NaN};
         wkIdx = {1 NaN 2 3 5 7 8 9 10 11 12 13 14 NaN 15 16 NaN};
         wkIdxCum = {1 NaN 2 3 4:5 6:7 8 9 10 11 12 13 14 NaN 15 16 NaN}; 
         wks = length(wkIdx);
-    case 'r001'
-        tpAlign = {1 2 3 4 5 NaN 6 7 8 9 10 11 12 13 14 NaN NaN NaN NaN NaN};
-        wkIdx = {1 2 3 4 6 7 9 10 11 12 13 14 NaN NaN NaN NaN NaN};
-        wkIdxCum = {1 2 3 4 5:6 7:8 9 10 11 12 13 14 NaN NaN NaN NaN NaN};
-        wks = length(wkIdx);
-    case {'r033','r030','r037','r090'}
+%     case 'r001'
+%         tpAlign = {1 2 3 4 5 NaN 6 7 8 9 10 11 12 13 14 NaN NaN NaN NaN NaN};
+%         wkIdx = {1 2 3 4 6 7 9 10 11 12 13 14 NaN NaN NaN NaN NaN};
+%         wkIdxCum = {1 2 3 4 5:6 7:8 9 10 11 12 13 14 NaN NaN NaN NaN NaN};
+%         wks = length(wkIdx);
+    case {'r033','r030','r037','r090'}   % 9 weeks
         tpAlign = {1 2 3 4 5 6 7 8 9 10 11 12 NaN NaN NaN NaN NaN NaN NaN NaN};
         wkIdx = {1 2 3 4 7 9 10 11 12 NaN NaN NaN NaN NaN NaN NaN NaN};
         wkIdxCum = {1 2 3 4 5:7 8:9 10 11 12 NaN NaN NaN NaN NaN NaN NaN NaN};
         wks = length(wkIdx);
-    case 'r097'
+        
+        
+        %%% MAYBE EXCLUDE or substituted???
+        
+    case 'r097'     % 7 weeks   %%% # 7 is screwed up, substituted with 8
         tpAlign = {1 2 3 4 5 6 7 8 9 10 NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN};
         wkIdx = {1 2 3 4 7 9 10 NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN};
         wkIdxCum = {1 2 3 4 5:7 8:9 10 NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN};
         wks = length(wkIdx);
-    case 'r099' 
+    case 'r099'    % 6 weeks
         tpAlign = {1 2 3 4 5 6 7 8 9 NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN};
         wkIdx = {1 2 3 4 7 9 NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN};
         wkIdxCum = {1 2 3 4 5:7 8:9 NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN};
         wks = length(wkIdx);
-    case {'r089','r115','r186'}
+        
+        
+        %% CONTROL
+    case 'v264' % tp0:1 2wks; tp12:13 2wks  %% subbed in 
+        tpAlign = {1 NaN 2 3 4 NaN 5 NaN 6 7 8 9 10 11 12 13 NaN 14 15 NaN};
+        wkIdx = {1 NaN 2 3 5 7 8 9 10 11 12 13 NaN 14 15 NaN NaN};
+        wkIdxCum = {1 NaN 2 3 4:5 6:7 8 9 10 11 12 13 NaN 14 15 NaN NaN};
+        wks = length(wkIdx);
+        
+    case {'r089','r115','r186'}   % 9 weeks total
         tpAlign = {1 2 NaN 3 NaN NaN 4 5 6 7 8 9 10 NaN NaN NaN NaN NaN NaN NaN};
         wkIdx = {1 2 NaN 3 4 6 7 8 9 10 NaN NaN NaN NaN NaN NaN NaN};
         wkIdxCum = {1 2 NaN 3 4 5:6 7 8 9 10 NaN NaN NaN NaN NaN NaN NaN};
         wks = length(wkIdx);
-    case 'r056'
+        
+    case 'r056'  % 6 weeks total
         tpAlign = {1 2 NaN 3 NaN NaN 4 5 6 7 NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN};
         wkIdx = {1 2 NaN 3 4 6 7 NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN};
         wkIdxCum = {1 2 NaN 3 4 5:6 7 NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN};
         wks = length(wkIdx);
+    
+    case {'r385','r420'}   % 8 weeks total
+        tpAlign = {1 2 3 4 NaN NaN 5 NaN 6 7 8 NaN NaN NaN NaN NaN NaN NaN NaN NaN};
+        wkIdx = {1 2 3 4 5 6 7 8 NaN NaN NaN NaN NaN NaN NaN NaN NaN};
+        wkIdxCum = {1 2 3 4 5 6 7 8 NaN NaN NaN NaN NaN NaN NaN NaN NaN};
+        wks = length(wkIdx);
+
+        
     case 'r339'
         tpAlign = {1 2 3 4 NaN NaN 5 NaN 6 7 8 9 NaN NaN NaN NaN NaN NaN NaN NaN};
         wkIdx = {1 2 3 4 5 6 7 8 9 NaN NaN NaN NaN NaN NaN NaN NaN};
@@ -138,11 +161,7 @@ switch name
         wkIdx = {1 2 3 4 5 6 NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN};
         wkIdxCum = {1 2 3 4 5 6 NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN};
         wks = length(wkIdx);
-    case {'r385','r420'}
-        tpAlign = {1 2 3 4 NaN NaN 5 NaN 6 7 8 NaN NaN NaN NaN NaN NaN NaN NaN NaN};
-        wkIdx = {1 2 3 4 5 6 7 8 NaN NaN NaN NaN NaN NaN NaN NaN NaN};
-        wkIdxCum = {1 2 3 4 5 6 7 8 NaN NaN NaN NaN NaN NaN NaN NaN NaN};
-        wks = length(wkIdx);
+
 end
 if nargin==3 && skiprest
     WKdata = [];
