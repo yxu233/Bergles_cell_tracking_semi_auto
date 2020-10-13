@@ -416,7 +416,7 @@ for fold_idx, input_path in enumerate(list_folder):
             Plot size decay for each frame STARTING from recovery
         """     
         plt.close('all'); 
-        plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=0, y_lim=8000, ax_title_size=ax_title_size)
+        plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=4, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=8000, ax_title_size=ax_title_size)
     
 
 
@@ -428,7 +428,8 @@ for fold_idx, input_path in enumerate(list_folder):
                 - 3 weeks after cupr 
             
             """
-        first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
+        first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=4, end_frame=8, 
+                                                                                                                       min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
 
         
         
@@ -454,10 +455,6 @@ for fold_idx, input_path in enumerate(list_folder):
 """ Also pool things from WITHIN the same experiment """
 folder_pools
 
-
-
-
-zzz
 
 max_week = -1
 plot_pooled_trends(all_norm_tots, all_norm_new, ax_title_size, sav_dir, add_name='OUTPUT_overall_')

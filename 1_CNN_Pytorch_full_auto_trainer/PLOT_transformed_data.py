@@ -216,65 +216,65 @@ if __name__ == '__main__':
         """ Run through diff iterations of transforms """
         
         
-        # all_jacc = []
-        # for val in range(10):
-        #     transforms = define_transform(transform='blur', p=1, blur_std=val, motion_trans=10, biascoeff=0.5, noise_std=0.25, affine_deg=10, elastic_disp=7.5)
+        all_jacc = []
+        for val in range(10):
+            transforms = define_transform(transform='blur', p=1, blur_std=val, motion_trans=10, biascoeff=0.5, noise_std=0.25, affine_deg=10, elastic_disp=7.5)
 
-        #     jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
-        #                           mean_arr, std_arr, device, sav_dir, transform_type='1_blur', val=val)
-        #     all_jacc.append(jacc)
+            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+                                  mean_arr, std_arr, device, sav_dir, transform_type='1_blur', val=val)
+            all_jacc.append(jacc)
 
 
-        # all_jacc = []
-        # for val in range(10):
-        #     transforms = define_transform(transform='motion', p=1, blur_std=4,
-        #                                   motion_trans=val, biascoeff=0.5, noise_std=0.25, affine_deg=10, elastic_disp=7.5)
+        all_jacc = []
+        for val in range(10):
+            transforms = define_transform(transform='motion', p=1, blur_std=4,
+                                          motion_trans=val, biascoeff=0.5, noise_std=0.25, affine_deg=10, elastic_disp=7.5)
 
-        #     jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
-        #                           mean_arr, std_arr, device, sav_dir, transform_type='2_motion', val=val)
-        #     all_jacc.append(jacc)
+            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+                                  mean_arr, std_arr, device, sav_dir, transform_type='2_motion', val=val)
+            all_jacc.append(jacc)
             
             
-        # all_jacc = []
-        # for val in range(4):
-        #     transforms = define_transform(transform='biasfield', p=1, blur_std=4, motion_trans=10, 
-        #                                   biascoeff=val, noise_std=0.25, affine_deg=10, elastic_disp=7.5)
+        all_jacc = []
+        for val in range(4):
+            transforms = define_transform(transform='biasfield', p=1, blur_std=4, motion_trans=10, 
+                                          biascoeff=val, noise_std=0.25, affine_deg=10, elastic_disp=7.5)
 
-        #     jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
-        #                           mean_arr, std_arr, device, sav_dir, transform_type='3_biasfield', val=val)
-        #     all_jacc.append(jacc)
+            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+                                  mean_arr, std_arr, device, sav_dir, transform_type='3_biasfield', val=val)
+            all_jacc.append(jacc)
             
             
             
-        # all_jacc = []
-        # for val in np.arange(0.1, 4, 0.2):
-        #     transforms = define_transform(transform='noise', p=1, blur_std=4, motion_trans=10, biascoeff=0.5, 
-        #                                   noise_std=val, affine_deg=10, elastic_disp=7.5)
+        all_jacc = []
+        for val in np.arange(0.1, 4, 0.2):
+            transforms = define_transform(transform='noise', p=1, blur_std=4, motion_trans=10, biascoeff=0.5, 
+                                          noise_std=val, affine_deg=10, elastic_disp=7.5)
 
-        #     jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
-        #                           mean_arr, std_arr, device, sav_dir, transform_type='4_noise', val=val)
-        #     all_jacc.append(jacc)
+            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+                                  mean_arr, std_arr, device, sav_dir, transform_type='4_noise', val=val)
+            all_jacc.append(jacc)
             
             
             
-        # all_jacc = []
-        # for val in range(10):
-        #     transforms = define_transform(transform='affine', p=1, blur_std=val, motion_trans=10, biascoeff=0.5, noise_std=0.25,
-        #                                   affine_deg=val, elastic_disp=7.5)
+        all_jacc = []
+        for val in range(10):
+            transforms = define_transform(transform='affine', p=1, blur_std=val, motion_trans=10, biascoeff=0.5, noise_std=0.25,
+                                          affine_deg=val, elastic_disp=7.5)
 
-        #     jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
-        #                           mean_arr, std_arr, device, sav_dir, transform_type='5_affine', val=val)
-        #     all_jacc.append(jacc)
+            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+                                  mean_arr, std_arr, device, sav_dir, transform_type='5_affine', val=val)
+            all_jacc.append(jacc)
             
             
-        # all_jacc = []
-        # for val in range(10):
-        #     transforms = define_transform(transform='elastic', p=1, blur_std=val, motion_trans=10, biascoeff=0.5, noise_std=0.25, affine_deg=10, 
-        #                                   elastic_disp=val)
+        all_jacc = []
+        for val in range(10):
+            transforms = define_transform(transform='elastic', p=1, blur_std=val, motion_trans=10, biascoeff=0.5, noise_std=0.25, affine_deg=10, 
+                                          elastic_disp=val)
 
-        #     jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
-        #                           mean_arr, std_arr, device, sav_dir, transform_type='6_elastic', val=val)
-        #     all_jacc.append(jacc)            
+            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+                                  mean_arr, std_arr, device, sav_dir, transform_type='6_elastic', val=val)
+            all_jacc.append(jacc)            
             
 
 

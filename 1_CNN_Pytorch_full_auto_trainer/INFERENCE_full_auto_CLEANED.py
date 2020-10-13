@@ -89,11 +89,6 @@ elim_size = 100
 
     scaling???
 """
-
-
-
-
-
 scale_for_animation = 0
 
 
@@ -630,7 +625,7 @@ for input_path in list_folder:
                if not np.any(next_seg[coords[:, 0], coords[:, 1], coords[:, 2]] == 250) and (len(coords) > size_ex and len(coords) < size_upper):   ### 250 means already has been visited
                     series = np.max(tracked_cells_df.SERIES) + 1        
                     centroid = cell['centroid']
-                    print(len(coords))
+                    #print(len(coords))
                     
                     ### go to unvisited cells
                     x = int(centroid[0]); y = int(centroid[1]); z = int(centroid[2]);
@@ -722,16 +717,10 @@ for input_path in list_folder:
                             - check if ACTUALLY has been there before, if not, still okay!!!
                         
                         """
-                    
-                    
-                    
-
-            print('num new cells: ' + str(num_new))
-            
     
     
             """ associate remaining cells that are "new" cells and add them to list to check as well as the TRUTH tracker """
-            new_min_size = 300
+            new_min_size = 250
             if not truth:
                 truth_next_im = 0
             tracked_cells_df, truth_output_df, truth_next_im, truth_array = associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_depth, z_size, min_size=new_min_size,
@@ -865,13 +854,9 @@ for input_path in list_folder:
     for cell_num in np.unique(tracked_cells_df.SERIES):
           
                track_length_SEG = len(np.unique(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME))         
-
-
                """ remove anything that's only tracked for length of 1 timeframe """
                """ excluding if that timeframe is the very first one OR the very last one"""
-               
-               #print(truth_output_df.FRAME[truth_output_df.SERIES == cell_num] )
-               #if track_length_SEG > 0:
+        
                if len(np.where(np.asarray(track_length_SEG) == 1)[0]) and not np.any(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME == 0) and not np.any(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME == np.max(tracked_cells_df.FRAME)):
                
                #if len(np.where(np.asarray(track_length_SEG) == 1)[0]) and not np.any(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME == np.max(tracked_cells_df.FRAME)):
@@ -879,39 +864,25 @@ for input_path in list_folder:
                            tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[np.where(tracked_cells_df.SERIES == cell_num)])
                            #print(cell_num)
                            continue;
-                        
-
-
-    
     """ (3) ALSO clean up bottom of image so that no new cell can appear in the last 20 stacks
-    
                 also maybe remove cells on edges as well???
     """
-    
-    
     num_edges = 0;
+    
     for cell_num in np.unique(tracked_cells_df.SERIES):
-                
         idx = np.where(tracked_cells_df.SERIES == cell_num)[0]
-        
         Z_cur_cell = tracked_cells_df.iloc[idx].Z
-        
         X_cur_cell = tracked_cells_df.iloc[idx].X
-        
         Y_cur_cell = tracked_cells_df.iloc[idx].Y
-        
-        
+
         if np.any(Z_cur_cell > lowest_z_depth - 20):
             tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[idx])
-            
-        
-      
-        elif np.any(X_cur_cell > width_tmp - 40) or np.any(X_cur_cell < 40):
+        elif np.any(X_cur_cell > width_tmp - exclude_side_px) or np.any(X_cur_cell < exclude_side_px):
             tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[idx])
             num_edges += 1
             
         
-        elif np.any(Y_cur_cell > height_tmp - 40) or np.any(Y_cur_cell < 40):
+        elif np.any(Y_cur_cell > height_tmp - exclude_side_px) or np.any(Y_cur_cell < exclude_side_px):
             tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[idx])
             
             num_edges += 1
@@ -919,14 +890,13 @@ for input_path in list_folder:
 
     """ Also remove by min_size """
     num_small = 0; real_saved = 0;
-    upper_thresh = 800
     for cell_num in np.unique(tracked_cells_df.SERIES):
                 
         idx = np.where(tracked_cells_df.SERIES == cell_num)
         all_lengths = []
         small_bool = 0;
         for iter_idx, cell_obj in enumerate(tracked_cells_df.iloc[idx].coords):
-            if len(cell_obj) < elim_size:  
+            if len(cell_obj) < min_size:  
                 
                 small_bool = 1
             
@@ -940,11 +910,7 @@ for input_path in list_folder:
             tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[idx])   ### DROPS ENTIRE CELL SERIES
             num_small += 1
 
-
-    tmp = tracked_cells_df.copy()
-
-
-
+                
     """  Save images in output """
     input_name = examples[0]['input']
     filename = input_name.split('/')[-1]
@@ -953,41 +919,247 @@ for input_path in list_folder:
     
     for frame_num, im_dict in enumerate(examples):
          
-          output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im)
-          im = convert_matrix_to_multipage_tiff(output_frame)
-          imsave(sav_dir + filename + '_' + str(frame_num) + '_output_CLEANED.tif', im)
+            output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im)
+            im = convert_matrix_to_multipage_tiff(output_frame)
+            imsave(sav_dir + filename + '_' + str(frame_num) + '_output_CLEANED.tif', im)
          
          
-          output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, color=1)
-          im = convert_matrix_to_multipage_tiff(output_frame)
-          imsave(sav_dir + filename + '_' + str(frame_num) + '_output_COLOR.tif', im)
-
-
-          # output_frame = gen_im_new_term_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, new=0)
+          # output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, color=1)
           # im = convert_matrix_to_multipage_tiff(output_frame)
-          # imsave(sav_dir + filename + '_' + str(frame_num) + '_output_TERMINATED.tif', im)
+          # imsave(sav_dir + filename + '_' + str(frame_num) + '_output_COLOR.tif', im)
 
 
-          # output_frame = gen_im_new_term_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, new=1)
-          # im = convert_matrix_to_multipage_tiff(output_frame)
-          # imsave(sav_dir + filename + '_' + str(frame_num) + '_output_NEW.tif', im)
+            # output_frame = gen_im_new_term_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, new=0)
+            # im = convert_matrix_to_multipage_tiff(output_frame)
+            # imsave(sav_dir + filename + '_' + str(frame_num) + '_output_TERMINATED.tif', im)
+
+
+            output_frame = gen_im_new_term_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, new=1)
+            im = convert_matrix_to_multipage_tiff(output_frame)
+            imsave(sav_dir + filename + '_' + str(frame_num) + '_output_NEW.tif', im)
          
-
-          """ Also save image with different colors for RED/YELLOW and GREEN"""
+            
          
-     ### (3) drop other columns
-    tracked_cells_df = tracked_cells_df.drop(columns=['visited', 'coords'])
+            
+    """ SCALE CELL COORDS to true volume 
+    """
+    tmp = np.zeros(np.shape(input_im))
+    tracked_cells_df['vol_rescaled'] = np.nan
+    print('scaling cell coords')
+    for idx in range(len(tracked_cells_df)):
+        
+        cell = tracked_cells_df.iloc[idx]
+        
+        coords = cell.coords   
+        tmp[coords[:, 0], coords[:, 1], coords[:, 2]] = 1
+        
+        crop, box_xyz, box_over, boundaries_crop = crop_around_centroid_with_pads(tmp, cell.X, cell.Y, cell.Z, 50/2, z_size, height_tmp, width_tmp, depth_tmp)                                                      
+   
+        crop_rescale = resize(crop, (crop.shape[0] * scale_xy, crop.shape[1] * scale_xy, crop.shape[2] * scale_z), order=0, anti_aliasing=True)
+        
+        label = measure.label(crop_rescale)       
+        cc = measure.regionprops(label)
+        new_coords = cc[0]['coords']
+        tracked_cells_df.iloc[idx, tracked_cells_df.columns.get_loc('vol_rescaled')] = len(new_coords)
+   
+        tmp[tmp > 0] = 0  # reset
+        
+    """ Create copy """
+    all_tracked_cells_df.append(tracked_cells_df)
+
+            
+                
+    """ If filename contains 235 or 246, then must +1 to timeframes after baseline, because week 2 skipped """
+    if '235' in foldername or '264' in foldername:
+        
+        for idx in range(len(tracked_cells_df)):
+            
+            cell = tracked_cells_df.iloc[idx]
+            if cell.FRAME >= 1:
+                new_val = cell.FRAME + 1
+                cell.FRAME = new_val
+                tracked_cells_df.iloc[idx] = cell
+            
+
+    """ Normalize to 0 um using vertices """
     
+    if '235' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        z_0 = 0; z_y = 27 - 2  ### upper right corner, y=0
+        z_x = 0; z_xy = 31 - 2
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)
+
+    elif '037' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        z_0 = 18 - 0; z_y = 18 - 0   ### upper right corner, y=0
+        z_x = 2 - 0; z_xy = 7 - 0
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)    
+
+    elif '030' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        
+        z_0 = 16 + 2; z_y = 30 + 2   ### upper right corner, y=0
+        z_x = 6 + 2; z_xy = 26 + 2
+
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)  
+        
+        folder_pools[fold_idx] = 1;   ### TO POOL LATER
+
+    elif '033' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        
+        z_0 = 12 - 0; z_y = 21 - 0   ### upper right corner, y=0
+        z_x = 5 - 0; z_xy = 16 - 0
+
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)    
+
+        folder_pools[fold_idx] = 1;   ### TO POOL LATER
+
+    elif '097' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        
+        z_0 = 10 + 1; z_y = 19 + 1   ### upper right corner, y=0
+        z_x = 2 + 1; z_xy = 10 + 1
+
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)   
+        
+        folder_pools[fold_idx] = 2;   ### TO POOL LATER
+
+    elif '099' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        
+        z_0 = 0 + 3; z_y = 15 + 3   ### upper right corner, y=0
+        z_x = 0 + 3; z_xy = 15 + 3
+
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)  
+        
+        folder_pools[fold_idx] = 2;   ### TO POOL LATER
+        
+        
+    """ Scale Z to mesh """
+    #m = np.max(input_im, axis=-1)
+    print('scaling cell Z to mesh')
+    for idx in range(len(tracked_cells_df)):
+        
+        cell = tracked_cells_df.iloc[idx]
     
-    ### and reorder columns
-    cols =  ['SERIES', 'COLOR', 'FRAME', 'Y', 'X', 'Z']
-    tracked_cells_df = tracked_cells_df[cols]
+        x = cell.X
+        y = cell.Y
+        z = cell.Z
+        
+        
+        ### ENSURE ORDER OF XY IS CORRECT HERE!!!
+        scale = mesh[int(y), int(x)]
+    
+        new_z = z - scale
+        
+        ### DEBUG
+        #m[int(y), int(x)] = 0
+        cell.Z = new_z
+    
+        tracked_cells_df.iloc[idx] = cell
+    
+    #plt.figure(); plt.imshow(m)        
+                
+    """ Set globally """
+    plt.rc('xtick',labelsize=16)
+    plt.rc('ytick',labelsize=16)
+    ax_title_size = 18
+    leg_size = 14
+
+    """ plot timeframes """
+    norm_tots_ALL, norm_new_ALL = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_lower=0, depth_lim_upper=120, ax_title_size=ax_title_size, leg_size=leg_size)
+    
+    """ 
+        Also split by depths
+    """
+    norm_tots_32, norm_new_32 = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_0-32', depth_lim_lower=0, depth_lim_upper=32, only_one_plot=1, ax_title_size=ax_title_size, leg_size=leg_size)
+    norm_tots_65, norm_new_65 = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_33-65', depth_lim_lower=33, depth_lim_upper=65, only_one_plot=1, ax_title_size=ax_title_size, leg_size=leg_size)
+    norm_tots_99, norm_new_99 = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_66-99', depth_lim_lower=66, depth_lim_upper=99, only_one_plot=1, ax_title_size=ax_title_size, leg_size=leg_size)
+    norm_tots_132, norm_new_132 = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_100-132', depth_lim_lower=100, depth_lim_upper=132, only_one_plot=1, ax_title_size=ax_title_size, leg_size=leg_size)
+    norm_tots_165, norm_new_165 = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_133-165', depth_lim_lower=133, depth_lim_upper=165, only_one_plot=1, ax_title_size=ax_title_size, leg_size=leg_size)
+    
+
+    all_norm_tots.append(norm_tots_ALL); all_norm_new.append(norm_new_ALL);
+    all_norm_t32.append(norm_tots_32) ; all_norm_n32.append(norm_new_32);
+    all_norm_t65.append(norm_tots_65); all_norm_n65.append(norm_new_65);
+    all_norm_t99.append(norm_tots_99); all_norm_n99.append(norm_new_99);
+    all_norm_t132.append(norm_tots_132); all_norm_n132.append(norm_new_132);
+    all_norm_t165.append(norm_tots_165); all_norm_n165.append(norm_new_165);
 
 
-    ### (5) save cleaned
-    tracked_cells_df.to_csv(sav_dir + 'tracked_cells_df_clean.csv', index=False)               
+    
+    """ Per-timeseries analysis """
+    """ 
+        Also do density analysis of where new cells pop-up???
+    """        
+    analyze = 1;    
+    if analyze == 1:
+        neighbors = 10
+        
+        new_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)) + 1)]
+        terminated_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)) + 1)]
+        for cell_num in np.unique(tracked_cells_df.SERIES):
             
+            frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
             
+            beginning_frame = np.min(frames_cur_cell)
+            if beginning_frame > 0:   # skip the first frame
+                new_cells_per_frame[beginning_frame].append(cell_num)
+                        
+            term_frame = np.max(frames_cur_cell)
+            if term_frame < len(terminated_cells_per_frame) - 1:   # skip the last frame
+                terminated_cells_per_frame[term_frame].append(cell_num)
+            
+    
+        ### loop through each frame and all the new cells and find "i.... i + n" nearest neighbors        
+        """ Plt density of NEW cells vs. depth """
+        scaled_vol = 1
+        plot_density_and_volume(tracked_cells_df, new_cells_per_frame, terminated_cells_per_frame, scale_xy, scale_z, sav_dir, neighbors, ax_title_size, leg_size, scaled_vol=scaled_vol)
+
+       
+        """ 
+            Plot size decay for each frame STARTING from recovery
+        """     
+        plt.close('all'); 
+        plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=4, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=8000, ax_title_size=ax_title_size)
+    
+
+
+        """ Plot scatters of each type:
+                - control/baseline day 1 ==> frame 0
+                        ***cuprizone ==> frame 4
+                - 1 week after cupr
+                - 2 weeks after cupr
+                - 3 weeks after cupr 
+            
+            """
+        first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=4, end_frame=8, 
+                                                                                                                       min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
+
+        
+        
+        """ Predict age based on size??? 
+        
+                what is probability that cell is 1 week old P(B) given that it is size X P(A) == P(B|A) == P(A and B) / P(A)
+                P(A) == prob cell is ABOVE size X
+                P(B) == prob cell 1 week old
+                P(A and B) == prob cell is at least 1 week old AND above size X
+        """
+        """ DOUBLE CHECK THIS PROBABILITY CALCULATION!!!"""
+        
+        upper_r = 8000
+        lower_r = 0
+        step = 100
+        thresh_range = [lower_r, upper_r, step]
+        probability_curves(sav_dir, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range, ax_title_size, leg_size)
+   
             
             
             

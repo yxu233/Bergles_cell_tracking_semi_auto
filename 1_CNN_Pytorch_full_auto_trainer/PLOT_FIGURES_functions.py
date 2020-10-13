@@ -547,14 +547,16 @@ def plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end
     #for frame in range(4, 7):
         
     ### if skipped week 2:
+    first_frame_1_week = []; z_1_week = [];
+    first_frame_2_week = []; z_2_week = [];
+    first_frame_3_week = []; z_3_week = [];
+    
     for frame in range(start_frame, end_frame):
         
         all_sizes_frame_0, all_z = get_sizes_and_z_cur_frame(tracked_cells_df, frame=frame, use_scaled=use_scaled)
-        first_frame_1_week = []; z_1_week = [];
-        first_frame_2_week = []; z_2_week = [];
-        first_frame_3_week = []; z_3_week = [];
+
         for idx, size in enumerate(all_sizes_frame_0):
-            
+      
             if len(size) >= min_survive_frames:
                 first_frame_1_week.append(size[0])
                 z_1_week.append(all_z[idx][0])
