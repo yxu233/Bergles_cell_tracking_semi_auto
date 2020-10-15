@@ -56,7 +56,7 @@ scale_z = 3
 truth = 1
 
 
-exclude_side_px = 10
+exclude_side_px = 40
 
 min_size = 100;
 upper_thresh = 800;
@@ -101,7 +101,7 @@ folder_pools = np.zeros(len(list_folder))
     
 for fold_idx, input_path in enumerate(list_folder):
     foldername = input_path.split('/')[-2]
-    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_3'
+    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_6'
 
 
     """ For testing ILASTIK images """
@@ -176,8 +176,13 @@ for fold_idx, input_path in enumerate(list_folder):
             num_edges += 1
                 
 
-    """ Also remove by min_size """
-    num_small = 0; real_saved = 0;
+    """ Also remove by min_size 
+    
+    
+                ***ONLY IF SMALL WITHIN FIRST FEW FRAMES???
+    
+    """
+    num_small = 0; real_saved = 0; upper_thresh = 500;   small_start = 0;
     for cell_num in np.unique(tracked_cells_df.SERIES):
                 
         idx = np.where(tracked_cells_df.SERIES == cell_num)
@@ -185,11 +190,16 @@ for fold_idx, input_path in enumerate(list_folder):
         small_bool = 0;
         for iter_idx, cell_obj in enumerate(tracked_cells_df.iloc[idx].coords):
             if len(cell_obj) < min_size:  
-                
                 small_bool = 1
+
+
+            ### if start is super small, then also delete
+            if len(cell_obj) < 200 and iter_idx == 0:  
+                small_bool = 1
+                small_start += 1
             
-            ### exception, spare if large cell at any point
-            if len(cell_obj) > upper_thresh:  
+            ### exception, spare if large cell within first 2 frames
+            if len(cell_obj) > upper_thresh and iter_idx < 1:  
                 small_bool = 0
                 real_saved += 1
                 break;
@@ -330,6 +340,85 @@ for fold_idx, input_path in enumerate(list_folder):
         folder_pools[fold_idx] = 2;   ### TO POOL LATER
         
         
+        
+        
+        
+        
+    """ 
+        Normalize for control experiments
+    
+    """
+    if '056' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        z_0 = 10 + 3; z_y = 12 + 3  ### upper right corner, y=0
+        z_x = 4 + 3; z_xy = 8 + 3
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)
+        
+        
+
+    elif '264' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        z_0 = 5 + 6; z_y = 48 + 6   ### upper right corner, y=0
+        z_x = 0 + 6; z_xy = 32 + 6
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)        
+    
+        ### pool 1
+    elif '089' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        z_0 = 2 + 3; z_y = 2 + 3   ### upper right corner, y=0
+        z_x = 2 + 3; z_xy = 2 + 3
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)       
+        
+        folder_pools[fold_idx] = 1
+        
+    elif '115' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        z_0 = 11; z_y = 7   ### upper right corner, y=0
+        z_x = 2; z_xy = 6
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)       
+        
+        folder_pools[fold_idx] = 1
+        
+    elif '186' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        z_0 = 5 + 3; z_y = 5 + 3  ### upper right corner, y=0
+        z_x = 5 + 3; z_xy = 5 + 3
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)    
+        
+        folder_pools[fold_idx] = 1
+        
+        
+        ### pool 2
+    elif '385' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        z_0 = 4; z_y = 11   ### upper right corner, y=0
+        z_x = 4; z_xy = 11
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)    
+        
+        folder_pools[fold_idx] = 2
+        
+    elif '420' in foldername:
+        x_0 = 0; y_lim = height_tmp
+        y_0 = 0; x_lim = width_tmp
+        z_0 = 4 + 2; z_y = 6 + 2   ### upper right corner, y=0
+        z_x = 4 + 2; z_xy = 6 + 2
+        mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)    
+        
+        folder_pools[fold_idx] = 2
+        
+
+
+
+
+        
+        
+        
     """ Scale Z to mesh """
     #m = np.max(input_im, axis=-1)
     print('scaling cell Z to mesh')
@@ -450,10 +539,70 @@ for fold_idx, input_path in enumerate(list_folder):
 
 
 
-
+zzz
 
 """ Also pool things from WITHIN the same experiment """
 folder_pools
+copy_pooled = np.copy(all_norm_tots)
+
+def pool_lists(all_norm_tots, folder_pools):
+    pooled_indices = []; pooled_lists = [];
+    for idx in range(1, int(np.max(folder_pools)) + 1, 1):
+        
+        to_pool = np.where(folder_pools == idx)[0]
+        pooled_indices.append(to_pool)
+        print(idx)
+        
+        
+        p_arr = all_norm_tots[int(to_pool[0])]
+        for p_idx in to_pool[1:len(to_pool)]:
+        
+            
+            add = p_arr[0:len(all_norm_tots[p_idx])] + all_norm_tots[p_idx]
+            
+            p_arr[0:len(all_norm_tots[p_idx])] = add
+            
+            
+            ### double the indices not pooled
+            if len(all_norm_tots[p_idx]) < len(p_arr): 
+                
+                p_arr[-1] = p_arr[-1] * 2
+               
+           
+        #print(p_arr)
+        p_arr = p_arr/len(to_pool)
+        
+        pooled_lists.append(p_arr)
+    
+    pooled_indices = np.unique(pooled_indices)
+        
+    ### then get the unpooled folders:
+    for idx, row in enumerate(all_norm_tots):
+        
+        if idx in pooled_indices:
+            continue;
+        else:
+            pooled_lists.append(row)
+            
+    return pooled_lists
+
+
+all_norm_tots = pool_lists(all_norm_tots, folder_pools)
+all_norm_new = pool_lists(all_norm_new, folder_pools)
+all_norm_t32 = pool_lists(all_norm_t32, folder_pools)
+all_norm_n32 = pool_lists(all_norm_n32, folder_pools)
+
+
+all_norm_t65 = pool_lists(all_norm_t65, folder_pools)
+all_norm_n65 = pool_lists(all_norm_n65, folder_pools)
+
+all_norm_t99 = pool_lists(all_norm_t99, folder_pools)
+all_norm_n99 = pool_lists(all_norm_n99, folder_pools)
+all_norm_t132 = pool_lists(all_norm_t132, folder_pools)
+all_norm_n132 = pool_lists(all_norm_n132, folder_pools)
+
+all_norm_t165 = pool_lists(all_norm_t165, folder_pools)
+all_norm_n165 = pool_lists(all_norm_n165, folder_pools)
 
 
 max_week = -1
@@ -515,7 +664,7 @@ if analyze == 1:
         Plot size decay for each frame STARTING from recovery
     """     
     plt.close('all'); 
-    plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=0, y_lim=8000, ax_title_size=ax_title_size)
+    plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=8000, ax_title_size=ax_title_size)
 
 
     """ Plot scatters of each type:
@@ -563,8 +712,31 @@ if analyze == 1:
                 
     
     """    
+
+    week_6_and_above_stable = []; z_6_week_above = []; 
+    min_survive_frames = 6;
+    start_frame = 3
+    end_frame = 10
     
-    probability_curves(sav_dir, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range, ax_title_size, leg_size)
+    for frame in range(start_frame, end_frame):
+        
+        all_sizes_frame_0, all_z = get_sizes_and_z_cur_frame(tracked_cells_df, frame=frame, use_scaled=1)
+
+        for idx, size in enumerate(all_sizes_frame_0):
+      
+            if len(size) >= min_survive_frames:
+                """ IS THIS DOUBLE COUNTING??? """
+            
+                week_6_and_above_stable.append(size[5:-1])
+                z_6_week_above.append(all_z[idx][5:-1])
+
+
+    week_6_and_above_stable = np.concatenate([np.array(i) for i in week_6_and_above_stable])
+    z_6_week_above = np.concatenate([np.array(i) for i in z_6_week_above])
+    
+    
+
+    probability_curves(sav_dir, week_6_and_above_stable, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range, ax_title_size, leg_size)
 
 
             

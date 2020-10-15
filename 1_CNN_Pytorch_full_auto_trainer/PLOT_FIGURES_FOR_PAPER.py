@@ -124,7 +124,7 @@ for input_path in list_folder:
          #truth_name = 'a1901128-r670_syGlass_20x.csv';    # gets hazy at the end
          truth_name = '680_syGlass_10x.csv'     
 
-         #truth_name = '235_syGlass_10x.csv';    ### CUPRIZONE
+         truth_name = '235_syGlass_10x.csv';    ### CUPRIZONE
 
          # truth_name = '264_syGlass_10x.csv'          
          
@@ -133,12 +133,14 @@ for input_path in list_folder:
          # truth_name = 'a2151201-r037_syGlass_20x.csv';
          
 
-         truth_name = 'a4151201-r033_syGlass_20x.csv';
+         #truth_name = 'a4151201-r033_syGlass_20x.csv';
 
          #truth_name = 'MOBPF_190106w_5_cuprBZA_10x.tif - T=0_650_syGlass_10x.csv'   # well registered and clean window except for single frame
          truth_cur_im, truth_array  = gen_truth_from_csv(frame_num=0, input_path=input_path, filename=truth_name, 
                             input_im=input_im, lowest_z_depth=lowest_z_depth, height_tmp=height_tmp, width_tmp=width_tmp, depth_tmp=depth_total, scale=scale)
          truth_output_df = pd.DataFrame(columns = {'SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z'})    
+         
+         
     
     
     

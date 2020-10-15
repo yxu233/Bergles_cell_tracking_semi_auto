@@ -267,45 +267,7 @@ def get_sizes_and_z_cur_frame(tracked_cells_df, frame, use_scaled=0):
     return all_sizes_cur_frame, all_z
 
 
-""" PROBABILITY CALCULATIONS given certain size"""
-def find_prob_given_size(cur_frame, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range=[0, 8000, 100]):
-    all_probs = []; all_sizes = []
-    #for size_thresh in range(500, 4100, 100):
-    for size_thresh in range(thresh_range[0], thresh_range[1], thresh_range[2]):   ### FOR RESCALED VOLUMES
-        all_cell_sizes = np.concatenate((first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week))
-        num_A = 0
-        total_num = len(all_cell_sizes)
-        for sizes in all_cell_sizes:
-            
-            #print(size_thresh)
-            if sizes > size_thresh:
-                num_A += 1
-                
-        if num_A > 0:
 
-            P_A = num_A/total_num;
-    
-            ### find P(B)
-            num_1_week_old = len(first_frame_1_week)
-            P_B = num_1_week_old/total_num
-                            
-            ### find P(A and B) *** NOT equal to P(A) * P(B) because are INDEPENDENT events!!!
-            ### so only way to find is to count # that are BOTH 1 week young AND > size thresh / num total
-            num_above_thresh_1_week = len(np.where(np.asarray(cur_frame) > size_thresh)[0])
-            ### SHOULD BE DIVIDED BY TOTAL # OF first frame cells??? i.e. total number of cells, not occurences
-            #len(np.unique(tracked_cells_df.SERIES))
-            
-            P_A_B = num_above_thresh_1_week/total_num;
-            #P_A_B = num_above_thresh_1_week/len(np.unique(tracked_cells_df.SERIES));
-            
-            PB_A = P_A_B/P_A
-            
-            #print(PB_A)
-            
-            all_probs.append(PB_A)
-            all_sizes.append(size_thresh)
-            
-    return all_probs, all_sizes
 
 
 
@@ -603,8 +565,48 @@ def plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end
     
         
     
+""" PROBABILITY CALCULATIONS given certain size"""
+def find_prob_given_size(cur_frame, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range=[0, 8000, 100]):
+    all_probs = []; all_sizes = []
+    #for size_thresh in range(500, 4100, 100):
+    for size_thresh in range(thresh_range[0], thresh_range[1], thresh_range[2]):   ### FOR RESCALED VOLUMES
+        all_cell_sizes = np.concatenate((first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week))
+        num_A = 0
+        total_num = len(all_cell_sizes)
+        for sizes in all_cell_sizes:
+            
+            #print(size_thresh)
+            if sizes > size_thresh:
+                num_A += 1
+                
+        if num_A > 0:
+
+            P_A = num_A/total_num;
     
-    
+            ### find P(B)
+            num_1_week_old = len(first_frame_1_week)
+            P_B = num_1_week_old/total_num
+                            
+            ### find P(A and B) *** NOT equal to P(A) * P(B) because are INDEPENDENT events!!!
+            ### so only way to find is to count # that are BOTH 1 week young AND > size thresh / num total
+            num_above_thresh_1_week = len(np.where(np.asarray(cur_frame) > size_thresh)[0])
+            ### SHOULD BE DIVIDED BY TOTAL # OF first frame cells??? i.e. total number of cells, not occurences
+            #len(np.unique(tracked_cells_df.SERIES))
+            
+            P_A_B = num_above_thresh_1_week/total_num;
+            #P_A_B = num_above_thresh_1_week/len(np.unique(tracked_cells_df.SERIES));
+            
+            PB_A = P_A_B/P_A
+            
+            #print(PB_A)
+            
+            all_probs.append(PB_A)
+            all_sizes.append(size_thresh)
+            
+    return all_probs, all_sizes
+
+
+
 """ Predict age based on size??? 
 
         what is probability that cell is 1 week old P(B) given that it is size X P(A) == P(B|A) == P(A and B) / P(A)
@@ -614,6 +616,8 @@ def plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end
 """
 """ DOUBLE CHECK THIS PROBABILITY CALCULATION!!!"""        
 def probability_curves(sav_dir, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range, ax_title_size, leg_size):
+
+
 
     all_probs, all_sizes = find_prob_given_size(first_frame_1_week, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week,
                                                 thresh_range=thresh_range)

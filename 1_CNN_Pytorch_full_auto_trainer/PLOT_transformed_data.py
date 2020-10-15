@@ -52,6 +52,7 @@ from torchio.transforms import (
    RandomBlur,
    RandomNoise,
    Interpolation,
+   Resample,
    Compose
 )
 from torchio import Image, Subject, ImagesDataset
@@ -180,28 +181,42 @@ if __name__ == '__main__':
  
         """ Plot for debug """    
         np_inputs = np.asarray(batch_x.numpy()[0], dtype=np.uint8)
-        m = plot_max(np_inputs[0], ax=0)
-        plot_max(np_inputs[1], ax=0, plot = 0)
+        m = plot_max(np_inputs[0], ax=0, plot=0)
+        #plot_max(np_inputs[1], ax=0, plot = 0)
         #plot_max(np_inputs[2], ax=0)
         
         crop_im = np_inputs[0]
         crop_cur_seg = np_inputs[1]
         crop_next_input = np_inputs[2]
+        m_next = plot_max(crop_next_input, ax=0, plot=0)
         
         
         np_labels = np.asarray(batch_y.numpy()[0], dtype=np.uint8)
         np_labels[np_labels > 0] = 255
-        #plot_max(np_labels, ax=0)
+        m_lab = plot_max(np_labels, ax=0, plot=0)
         
         """ save to find image you want """
-        #imsave(sav_dir + str(iterator) + '_input.tif', np.uint8(m))
-       
-        iterator += 1
-
+        imsave(sav_dir + str(iterator) + '_input.tif', np.uint8(m))
+        imsave(sav_dir + str(iterator) + '_NEXT_input.tif', np.uint8(m_next))
+        imsave(sav_dir + str(iterator) + '_TRUTH.tif', np.uint8(m_lab))
+        
+        if iterator == 71:
+            break;
+        
+        if iterator != 71:
+            
+            iterator += 1
+            continue;
+            
+        
+            
         p = 1 
         next_bool = 0
      
-
+        ### decide which image to run the transform on
+        transform_next = 0
+        
+        target_shape = [crop_im.shape[1], crop_im.shape[2], crop_im.shape[0]]
         """ Transforms to try:
                 (1) blur
                 (2) motion blur
@@ -210,6 +225,9 @@ if __name__ == '__main__':
                 
                 (5) affine deformation
                 (6) elastic deformation
+                
+                
+                (7) RESAMPLE/down and upsample???
              
         """      
 
@@ -217,67 +235,83 @@ if __name__ == '__main__':
         
         
         all_jacc = []
-        for val in range(10):
+        for val in range(2, 8, 2):
             transforms = define_transform(transform='blur', p=1, blur_std=val, motion_trans=10, biascoeff=0.5, noise_std=0.25, affine_deg=10, elastic_disp=7.5)
 
-            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+            jacc, X = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
                                   mean_arr, std_arr, device, sav_dir, transform_type='1_blur', val=val)
             all_jacc.append(jacc)
-
+            plot_max(X)
 
         all_jacc = []
-        for val in range(10):
+        
+
+        for val in range(4, 10, 2):
             transforms = define_transform(transform='motion', p=1, blur_std=4,
-                                          motion_trans=val, biascoeff=0.5, noise_std=0.25, affine_deg=10, elastic_disp=7.5)
+                                            motion_deg=val,motion_trans=val, motion_num=val, biascoeff=0.5, noise_std=0.25, affine_deg=10, elastic_disp=7.5)
 
-            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
-                                  mean_arr, std_arr, device, sav_dir, transform_type='2_motion', val=val)
+            jacc, X = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+                                  mean_arr, std_arr, device, sav_dir, transform_type='2_motion', val=val, transform_next=transform_next)
             all_jacc.append(jacc)
+            
+            plot_max(X)
             
             
         all_jacc = []
-        for val in range(4):
-            transforms = define_transform(transform='biasfield', p=1, blur_std=4, motion_trans=10, 
-                                          biascoeff=val, noise_std=0.25, affine_deg=10, elastic_disp=7.5)
+        for val in np.arange(0, 2, 0.5):
+            transforms = define_transform(transform='biasfield', p=1,
+                                          biascoeff=val)
 
-            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
-                                  mean_arr, std_arr, device, sav_dir, transform_type='3_biasfield', val=val)
+            jacc, X = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+                                  mean_arr, std_arr, device, sav_dir, transform_type='3_biasfield', val=val, transform_next=transform_next)
             all_jacc.append(jacc)
+            plot_max(X)
             
             
             
         all_jacc = []
-        for val in np.arange(0.1, 4, 0.2):
+        for val in np.arange(1, 50, 10):
             transforms = define_transform(transform='noise', p=1, blur_std=4, motion_trans=10, biascoeff=0.5, 
                                           noise_std=val, affine_deg=10, elastic_disp=7.5)
 
-            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
-                                  mean_arr, std_arr, device, sav_dir, transform_type='4_noise', val=val)
+            jacc, X = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+                                  mean_arr, std_arr, device, sav_dir, transform_type='4_noise', val=val, transform_next=transform_next)
             all_jacc.append(jacc)
+            plot_max(X)
             
             
             
-        all_jacc = []
-        for val in range(10):
-            transforms = define_transform(transform='affine', p=1, blur_std=val, motion_trans=10, biascoeff=0.5, noise_std=0.25,
-                                          affine_deg=val, elastic_disp=7.5)
+        # all_jacc = []
+        # for val in range(4, 10, 2):
+        #     transforms = define_transform(transform='affine', p=1, blur_std=4, motion_trans=10, biascoeff=0.5, noise_std=0.25,
+        #                                   affine_deg=val, affine_trans=val, elastic_disp=7.5)
 
-            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
-                                  mean_arr, std_arr, device, sav_dir, transform_type='5_affine', val=val)
-            all_jacc.append(jacc)
+        #     jacc, X = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+        #                           mean_arr, std_arr, device, sav_dir, transform_type='5_affine', val=val, transform_next=transform_next)
+        #     all_jacc.append(jacc)
+        #     plot_max(X)
             
             
         all_jacc = []
-        for val in range(10):
-            transforms = define_transform(transform='elastic', p=1, blur_std=val, motion_trans=10, biascoeff=0.5, noise_std=0.25, affine_deg=10, 
+        for val in range(8, 16, 2):
+            transforms = define_transform(transform='elastic', p=1, 
                                           elastic_disp=val)
 
-            jacc = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
-                                  mean_arr, std_arr, device, sav_dir, transform_type='6_elastic', val=val)
-            all_jacc.append(jacc)            
+            jacc, X = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+                                  mean_arr, std_arr, device, sav_dir, transform_type='6_elastic', val=val, transform_next=transform_next, resample=1)
+            all_jacc.append(jacc)     
+            plot_max(X)
             
 
+        all_jacc = []
+        for val in np.arange(0.5, 1.5, 0.25):
+            transforms = define_transform(transform='resample', p=1, blur_std=4, motion_trans=10, biascoeff=0.5, noise_std=0.25, affine_deg=10, 
+                                          elastic_disp=7.5, resample_size=val, target_shape=crop_im.shape)
 
+            jacc, X = test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, 
+                                  mean_arr, std_arr, device, sav_dir, transform_type='7_resample', val=val, transform_next=0, resample=1)
+            all_jacc.append(jacc)    
+            plot_max(X)
     
     
               

@@ -31,6 +31,18 @@ elseif contains(name,'260')
         0 0 118; dimJ(1) 0 134; ...
         0 dimJ(2) 113; dimJ(1) dimJ(2) 124];
     verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-7]; % for fine tuning
+    
+    
+    %% control:
+elseif contains(name,'056')
+    dimJ = [1245 1220 188];
+    centerJ = dimJ./2;
+    verticesJ = [0 0 10; dimJ(1) 0 12; ...
+        0 dimJ(2) 4; dimJ(1) dimJ(2) 8; ...
+        0 0 107; dimJ(1) 0 112; ...
+        0 dimJ(2) 104; dimJ(1) dimJ(2) 108];
+    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)+3]; % for fine tuning
+    
 elseif contains(name,'264')
     dimJ = [1088 1105 220];
     centerJ = dimJ./2;
@@ -39,6 +51,67 @@ elseif contains(name,'264')
         0 0 105; dimJ(1) 0 148; ...
         0 dimJ(2) 100; dimJ(1) dimJ(2) 132];
     verticesJ = [verticesJ(:,1:2) verticesJ(:,3)+6]; % for fine tuning
+    
+elseif contains(name,'089')
+    dimJ = [1052 1046 188];
+    centerJ = dimJ./2;
+    verticesJ = [0 0 2; dimJ(1) 0 2; ...
+        0 dimJ(2) 2; dimJ(1) dimJ(2) 2; ...
+        0 0 102; dimJ(1) 0 102; ...
+        0 dimJ(2) 102; dimJ(1) dimJ(2) 102];
+    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)+3]; % for fine tuning
+elseif contains(name,'115')
+    dimJ = [1072 1086 194];
+    centerJ = dimJ./2;
+    verticesJ = [0 0 11; dimJ(1) 0 7; ...
+        0 dimJ(2) 2; dimJ(1) dimJ(2) 6; ...
+        0 0 111; dimJ(1) 0 107; ...
+        0 dimJ(2) 102; dimJ(1) dimJ(2) 106];
+    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning
+elseif contains(name,'186')
+    dimJ = [1042 1053 189];
+    centerJ = dimJ./2;
+    verticesJ = [0 0 5; dimJ(1) 0 5; ...
+        0 dimJ(2) 5; dimJ(1) dimJ(2) 5; ...
+        0 0 105; dimJ(1) 0 105; ...
+        0 dimJ(2) 105; dimJ(1) dimJ(2) 105];
+    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)+3]; % for fine tuning
+    
+    
+elseif contains(name,'385')
+    dimJ = [1087 1071 196];
+    centerJ = dimJ./2;
+    verticesJ = [0 0 4; dimJ(1) 0 11; ...
+        0 dimJ(2) 4; dimJ(1) dimJ(2) 11; ...
+        0 0 104; dimJ(1) 0 111; ...
+        0 dimJ(2) 104; dimJ(1) dimJ(2) 111];
+    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning
+elseif contains(name,'420')
+    dimJ = [1109 1053 190];
+    centerJ = dimJ./2;
+    verticesJ = [0 0 4; dimJ(1) 0 6; ...
+        0 dimJ(2) 4; dimJ(1) dimJ(2) 6; ...
+        0 0 104; dimJ(1) 0 106; ...
+        0 dimJ(2) 104; dimJ(1) dimJ(2) 106];
+    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)+2]; % for fine tuning
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 elseif contains(name,'277')
     dimJ = [1082 1072 210];
     centerJ = dimJ./2;
@@ -112,30 +185,15 @@ elseif contains(name,'099')
         0 0 102; dimJ(1) 0 115; ...
         0 dimJ(2) 102; dimJ(1) dimJ(2) 115];
     verticesJ = [verticesJ(:,1:2) verticesJ(:,3)+3]; % for fine tuning
-elseif contains(name,'089')
-    dimJ = [1052 1046 188];
-    centerJ = dimJ./2;
-    verticesJ = [0 0 2; dimJ(1) 0 2; ...
-        0 dimJ(2) 2; dimJ(1) dimJ(2) 2; ...
-        0 0 102; dimJ(1) 0 102; ...
-        0 dimJ(2) 102; dimJ(1) dimJ(2) 102];
-    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)+3]; % for fine tuning
-elseif contains(name,'115')
-    dimJ = [1072 1086 194];
-    centerJ = dimJ./2;
-    verticesJ = [0 0 11; dimJ(1) 0 7; ...
-        0 dimJ(2) 2; dimJ(1) dimJ(2) 6; ...
-        0 0 111; dimJ(1) 0 107; ...
-        0 dimJ(2) 102; dimJ(1) dimJ(2) 106];
-    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning
-elseif contains(name,'186')
-    dimJ = [1042 1053 189];
-    centerJ = dimJ./2;
-    verticesJ = [0 0 5; dimJ(1) 0 5; ...
-        0 dimJ(2) 5; dimJ(1) dimJ(2) 5; ...
-        0 0 105; dimJ(1) 0 105; ...
-        0 dimJ(2) 105; dimJ(1) dimJ(2) 105];
-    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)+3]; % for fine tuning
+    
+    
+    
+    
+    
+    
+    
+    
+    
 elseif contains(name,'339')
     dimJ = [1076 1066 191];
     centerJ = dimJ./2;
@@ -152,30 +210,12 @@ elseif contains(name,'369')
         0 0 104; dimJ(1) 0 143; ...
         0 dimJ(2) 104; dimJ(1) dimJ(2) 143];
     verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-4]; % for fine tuning
-elseif contains(name,'385')
-    dimJ = [1087 1071 196];
-    centerJ = dimJ./2;
-    verticesJ = [0 0 4; dimJ(1) 0 11; ...
-        0 dimJ(2) 4; dimJ(1) dimJ(2) 11; ...
-        0 0 104; dimJ(1) 0 111; ...
-        0 dimJ(2) 104; dimJ(1) dimJ(2) 111];
-    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning
-elseif contains(name,'420')
-    dimJ = [1109 1053 190];
-    centerJ = dimJ./2;
-    verticesJ = [0 0 4; dimJ(1) 0 6; ...
-        0 dimJ(2) 4; dimJ(1) dimJ(2) 6; ...
-        0 0 104; dimJ(1) 0 106; ...
-        0 dimJ(2) 104; dimJ(1) dimJ(2) 106];
-    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)+2]; % for fine tuning
-elseif contains(name,'056')
-    dimJ = [1245 1220 188];
-    centerJ = dimJ./2;
-    verticesJ = [0 0 10; dimJ(1) 0 12; ...
-        0 dimJ(2) 4; dimJ(1) dimJ(2) 8; ...
-        0 0 107; dimJ(1) 0 112; ...
-        0 dimJ(2) 104; dimJ(1) dimJ(2) 108];
-    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)+3]; % for fine tuning
+    
+    
+    
+    
+    
+    
 elseif contains(name,'470')
     dimJ = [1047 1040 160];
     centerJ = dimJ./2;
@@ -271,7 +311,7 @@ elseif contains(name,'620')
         0 dimJ(2) 16; dimJ(1) dimJ(2) 19; ...
         0 0 102; dimJ(1) 0 104; ...
         0 dimJ(2) 116; dimJ(1) dimJ(2) 119];
-    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning  
+    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning
 elseif contains(name,'630')
     dimJ = [1065 1045 178];
     centerJ = dimJ./2;
@@ -287,7 +327,7 @@ elseif contains(name,'640')
         0 dimJ(2) 9; dimJ(1) dimJ(2) 23; ...
         0 0 123; dimJ(1) 0 143; ...
         0 dimJ(2) 109; dimJ(1) dimJ(2) 123];
-    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning    
+    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning
 elseif contains(name,'650')
     dimJ = [1052 1036 191];
     centerJ = dimJ./2;
@@ -295,7 +335,7 @@ elseif contains(name,'650')
         0 dimJ(2) 18; dimJ(1) dimJ(2) 18; ...
         0 0 100; dimJ(1) 0 100; ...
         0 dimJ(2) 118; dimJ(1) dimJ(2) 118];
-    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning  
+    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning
 elseif contains(name,'66') %660 quads created manually
     dimJ = [520 520 185];
     centerJ = dimJ./2;
@@ -303,7 +343,7 @@ elseif contains(name,'66') %660 quads created manually
         0 dimJ(2) 0; dimJ(1) dimJ(2) 0; ...
         0 0 100; dimJ(1) 0 100; ...
         0 dimJ(2) 100; dimJ(1) dimJ(2) 100];
-    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning  
+    verticesJ = [verticesJ(:,1:2) verticesJ(:,3)-0]; % for fine tuning
 elseif contains(name,'670')
     dimJ = [512 512 203];
     centerJ = dimJ./2;
@@ -416,7 +456,7 @@ elseif contains(name,'820')
         0 0 114; dimJ(1) 0 114; ...
         0 dimJ(2) 100; dimJ(1) dimJ(2) 100];
     verticesJ = [verticesJ(:,1:2) verticesJ(:,3)+0]; % for fine tuning
-%% MATN4 counts    
+    %% MATN4 counts
 elseif contains(name,'1R1')
     dimJ = [1024 1024 175];
     centerJ = dimJ./2;

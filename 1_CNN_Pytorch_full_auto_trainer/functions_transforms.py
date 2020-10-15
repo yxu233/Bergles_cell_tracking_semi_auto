@@ -49,6 +49,8 @@ from torchio.transforms import (
    RandomBlur,
    RandomNoise,
    Interpolation,
+   Resample,
+   CropOrPad,
    Compose
 )
 from torchio import Image, Subject, ImagesDataset
@@ -63,16 +65,18 @@ import torch
         
         (5) affine deformation
         (6) elastic deformation
+        
+        (7) Resample/downsample
      
 """        
-def define_transform(transform, p, blur_std=4, motion_trans=10, biascoeff=0.5, noise_std=0.25, affine_deg=10, elastic_disp=7.5):
+def define_transform(transform, p, blur_std=4, motion_trans=10, motion_deg=10, motion_num=2, biascoeff=0.5, noise_std=0.25, affine_trans=10, affine_deg=10, elastic_disp=7.5, resample_size=1, target_shape=0):
     ### (1) try with different blur
     if transform == 'blur':
         transforms = [RandomBlur(std = (blur_std, blur_std), p = p, seed=None)]; transforms = Compose(transforms)
    
     ### (2) try with different motion artifacts
     if transform == 'motion':
-        transforms = [RandomMotion(degrees = 10, translation = motion_trans, num_transforms = 2, image_interpolation = Interpolation.LINEAR,
+        transforms = [RandomMotion(degrees = motion_deg, translation = motion_trans, num_transforms = motion_num, image_interpolation = Interpolation.LINEAR,
                         p = p, seed = None),]; transforms = Compose(transforms)
     ### (3) with random bias fields
     if transform == 'biasfield':
@@ -80,37 +84,71 @@ def define_transform(transform, p, blur_std=4, motion_trans=10, biascoeff=0.5, n
 
     ### (4) try with different noise artifacts
     if transform == 'noise':
-        transforms = [RandomNoise(mean = 0, std = (0, noise_std), p = p, seed = None)]; transforms = Compose(transforms)
+        transforms = [RandomNoise(mean = 0, std = (noise_std, noise_std), p = p, seed = None)]; transforms = Compose(transforms)
 
    
     ### (5) try with different warp (affine transformatins)
     if transform == 'affine':
-        transforms = [RandomAffine(scales=(0.9, 1.1), degrees=(affine_deg), isotropic=False,
+        transforms = [RandomAffine(scales=(1, 1), degrees=(affine_deg), isotropic=False,
                             default_pad_value='otsu', image_interpolation=Interpolation.LINEAR,
                             p = p, seed=None)]; transforms = Compose(transforms)                    
 
     ### (6) try with different warp (elastic transformations)
     if transform == 'elastic':
-        transforms = [RandomElasticDeformation(num_control_points = 7, max_displacement = elastic_disp,
+        transforms = [RandomElasticDeformation(num_control_points = elastic_disp, max_displacement = 20,
                                         locked_borders = 2, image_interpolation = Interpolation.LINEAR,
                                         p = p, seed = None),]; transforms = Compose(transforms)
+        
+        
+    if transform == 'resample':
+        transforms = [Resample(target = resample_size, image_interpolation = Interpolation.LINEAR,
+                                        p = p),
+                      
+                      
+                      CropOrPad(target_shape = target_shape, p=1)
+                      ]; 
+        
+        
+        
+        transforms = Compose(transforms)
+        
+        
     return transforms
 
 
 
 """ Run an image with transform """
 
-def test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, mean_arr, std_arr, device, sav_dir, transform_type, val):
-    ### transforms to apply to crop_im                     
-    inputs = crop_im
+def test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next_input, mean_arr, std_arr, device, sav_dir, transform_type, val, transform_next=0, resample=0):
+    ### transforms to apply to crop_im 
+
+
+    if not transform_next:
+        inputs = crop_im
+        
+        
+    else:
+        inputs = crop_next_input
+            
     inputs = torch.tensor(inputs, dtype = torch.float,requires_grad=False)
+    
+    crop_cur_seg_tensor = torch.tensor(crop_cur_seg, dtype = torch.float,requires_grad=False)
+    crop_next_tensor = torch.tensor(crop_next_input, dtype = torch.float,requires_grad=False)
+    crop_im_tensor = torch.tensor(crop_im, dtype = torch.float,requires_grad=False)
+    
     #labels = torch.tensor(labels, dtype = torch.long, requires_grad=False)         
     labels = np_labels
     labels = torch.tensor(labels, dtype = torch.float,requires_grad=False)
    
     subject_a = Subject(
             one_image=Image(None,  torchio.INTENSITY, inputs),   # *** must be tensors!!!
-            a_segmentation=Image(None, torchio.LABEL, labels))
+            a_segmentation=Image(None, torchio.LABEL, labels),
+            a_cur_seg=Image(None, torchio.LABEL, crop_cur_seg_tensor),
+            a_next_im=Image(None, torchio.INTENSITY, crop_next_tensor),
+            a_cur_im=Image(None, torchio.INTENSITY, crop_im_tensor),
+            
+            
+            )
      
     subjects_list = [subject_a]
    
@@ -123,6 +161,18 @@ def test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next
     X = subject_sample['one_image']['data'].numpy()
     Y = subject_sample['a_segmentation']['data'].numpy()
     
+    
+    if resample:
+        np_labels = Y[0]
+        
+        
+        crop_cur_seg = subject_sample['a_cur_seg']['data'].numpy()[0]
+        if not transform_next:
+            crop_next_input = subject_sample['a_next_im']['data'].numpy()[0]
+        else:
+            crop_im = subject_sample['a_cur_im']['data'].numpy()[0]
+        
+    
     # if next_bool:
     #     batch_x = np.zeros((4, ) + np.shape(crop_im))
     #     batch_x[0,...] = X
@@ -133,14 +183,25 @@ def test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next
     #     batch_x = np.expand_dims(batch_x, axis=0)
    
     # else:
-    batch_x = np.zeros((3, ) + np.shape(crop_im))
-    batch_x[0,...] = X
-    batch_x[1,...] = crop_cur_seg
-    batch_x[2,...] = crop_next_input
-    #batch_x[3,...] = crop_next_seg
-    #batch_x = np.moveaxis(batch_x, -1, 1)
-    batch_x = np.expand_dims(batch_x, axis=0)
-   
+    if not transform_next:
+        batch_x = np.zeros((3, ) + np.shape(crop_im))
+        batch_x[0,...] = X
+        batch_x[1,...] = crop_cur_seg
+        batch_x[2,...] = crop_next_input
+        #batch_x[3,...] = crop_next_seg
+        #batch_x = np.moveaxis(batch_x, -1, 1)
+        batch_x = np.expand_dims(batch_x, axis=0)
+        
+    else:
+        batch_x = np.zeros((3, ) + np.shape(crop_im))
+        batch_x[0,...] = crop_im
+        batch_x[1,...] = crop_cur_seg
+        batch_x[2,...] = X
+        #batch_x[3,...] = crop_next_seg
+        #batch_x = np.moveaxis(batch_x, -1, 1)
+        batch_x = np.expand_dims(batch_x, axis=0)        
+        
+       
    
     ### NORMALIZE
     batch_x = normalize(batch_x, mean_arr, std_arr)                 
@@ -159,14 +220,19 @@ def test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next
     output_val = np.moveaxis(output_train.cpu().data.numpy(), 1, -1)      
     seg_train = np.moveaxis(np.argmax(output_val[0], axis=-1), 0, -1)
    
-    m_in = plot_max(X[0], ax=0, plot=0)
+    
+   
+    normalized = (X-np.min(X))/(np.max(X)-np.min(X))
+   
+    
+    m_in = plot_max(normalized[0], ax=0, plot=0)
     m_cur_s = plot_max(crop_cur_seg, ax=0, plot=0)
     m_next = plot_max(crop_next_input, ax=0, plot=0)
     m_labels = plot_max(np_labels[0], ax=0, plot=0)
     m_OUT = plot_max(seg_train, ax=-1, plot=0)
     
     
-    imsave(sav_dir + transform_type + '_val_' + str(val) + '_1_input.tif', np.uint8(m_in))
+    imsave(sav_dir + transform_type + '_val_' + str(val) + '_1_input.tif', np.uint8(m_in * 255))
     m_cur_s[m_cur_s == 50] = 255
     m_cur_s[m_cur_s == 10] = 50
     imsave(sav_dir + transform_type + '_val_' + str(val) + '_2_cur_seg.tif', np.uint8(m_cur_s))
@@ -186,4 +252,4 @@ def test_transform(unet, transforms, crop_im, np_labels, crop_cur_seg, crop_next
     jacc = jacc.cpu().data.numpy()
     print(jacc)
                                  
-    return jacc
+    return jacc, X[0]
