@@ -18,13 +18,13 @@ import seaborn as sns
 
 """ Plot """
 def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_lower=0, depth_lim_upper=100000, only_one_plot=0,ax_title_size=18, leg_size=14):
-    new_cells_per_frame =  np.zeros(len(np.arange(np.min(tracked_cells_df.FRAME), np.max(tracked_cells_df.FRAME))) + 1)
-    terminated_cells_per_frame =   np.zeros(len(np.arange(np.min(tracked_cells_df.FRAME), np.max(tracked_cells_df.FRAME))) + 1)
-    num_total_cells_per_frame = np.zeros(len(np.arange(np.min(tracked_cells_df.FRAME), np.max(tracked_cells_df.FRAME))) + 1)
+    new_cells_per_frame =  np.zeros(np.max(tracked_cells_df.FRAME) + 1)
+    terminated_cells_per_frame = np.zeros(np.max(tracked_cells_df.FRAME) + 1)
+    num_total_cells_per_frame = np.zeros(np.max(tracked_cells_df.FRAME) + 1)
     
     
-    num_baseline = np.zeros(len(np.arange(np.min(tracked_cells_df.FRAME), np.max(tracked_cells_df.FRAME))) + 1)
-    num_new = np.zeros(len(np.arange(np.min(tracked_cells_df.FRAME), np.max(tracked_cells_df.FRAME))) + 1)
+    num_baseline = np.zeros(np.max(tracked_cells_df.FRAME) + 1)
+    num_new = np.zeros(np.max(tracked_cells_df.FRAME) + 1)
     
     for cell_num in np.unique(tracked_cells_df.SERIES):
         
@@ -64,7 +64,7 @@ def plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_low
         
     #y_pos = np.arange(np.min(tracked_cells_df.FRAME), np.max(tracked_cells_df.FRAME))) + 1)
     
-    y_pos = np.arange(np.min(tracked_cells_df.FRAME), np.max(tracked_cells_df.FRAME) + 1)
+    y_pos = np.arange(0, np.max(tracked_cells_df.FRAME) + 1)
     if not only_one_plot:
         
         plt.figure(); plt.bar(y_pos, new_cells_per_frame, color='k')
@@ -410,19 +410,35 @@ def points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy):
 
 
 
+
+#correct if the population S.D. is expected to be equal for the two groups.
+
+""" 
+    Calculate effect size 
+    
+"""     
+from numpy import std, mean, sqrt
+def cohen_d(x,y):
+    nx = len(x)
+    ny = len(y)
+    dof = nx + ny - 2
+    return (np.nanmean(x) - np.nanmean(y)) / sqrt(((nx-1)*np.nanstd(x, ddof=1) ** 2 + (ny-1)*np.nanstd(y, ddof=1) ** 2) / dof)
+
+
+
 """ 
     Plot size decay for each frame STARTING from recovery then do paired t-test to compare
     subsequent frames and their sizes
 """     
-
-def plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=16):
+def plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[3, 8], min_survive_frames=3, use_scaled=1, y_lim=10000, last_plot_week=0, ax_title_size=16, x_label='Weeks after recovery', intial_week=1, figsize=(6, 5)):
     
-    plt.figure();
+    start_frame = start_end_NEW_cell[0]
+    end_frame = start_end_NEW_cell[1]
+    
+    plt.figure(figsize=figsize);
     list_arrs = []
     for frame in np.unique(tracked_cells_df.FRAME):
-        #if frame >= 4 and frame <= 6:
-            
-        ### if skipped week 2
+
         if frame >= start_frame and frame <= end_frame:
             all_sizes_cur_frame, all_z = get_sizes_and_z_cur_frame(tracked_cells_df, frame, use_scaled=use_scaled)
             for idx in range(len(all_sizes_cur_frame)):
@@ -433,10 +449,10 @@ def plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=3, end_fr
                     t = uniform(0.,2.)
                     col = (t/2.0, t/2.0, t/2.0)   # different gray colors
                     
-                    plt.plot(sizes_cur_cell, linewidth=0.5, color=col, alpha=0.2)
-                    plt.ylim(0, y_lim)
+                    plt.plot(np.arange(intial_week, len(sizes_cur_cell[:last_plot_week]) + intial_week), sizes_cur_cell[:last_plot_week], linewidth=0.5, color=col, alpha=0.2)
+                    plt.ylim(intial_week - 1, y_lim)
                     plt.tight_layout()
-                    list_arrs.append(list(sizes_cur_cell))
+                    list_arrs.append(list(sizes_cur_cell[:last_plot_week]))
                     
     
     ### sort list of lists so can be converted to array for mean and std
@@ -464,17 +480,19 @@ def plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=3, end_fr
     sem = std/np.sqrt(all_n)
     
     ### plot
-    plt.plot(np.arange(len(mean)), mean, color='r', linestyle='dotted', linewidth=2)
-    plt.scatter(np.arange(len(mean)), mean, color='r', marker='o', s=30)
-    plt.errorbar(np.arange(len(mean)), mean, yerr=sem, color='r', fmt='none', capsize=10, capthick=1)
+    plt.plot(np.arange(intial_week, len(mean) + intial_week), mean, color='r', linestyle='dotted', linewidth=2)
+    plt.scatter(np.arange(intial_week, len(mean) + intial_week), mean, color='r', marker='o', s=30)
+    plt.errorbar(np.arange(intial_week, len(mean) + intial_week), mean, yerr=sem, color='r', fmt='none', capsize=10, capthick=1)
 
-    plt.xlabel('Weeks after recovery', fontsize=ax_title_size)
+    plt.xlabel(x_label, fontsize=ax_title_size)
     plt.ylabel('Cell size ($\u03bcm^3$)', fontsize=ax_title_size)
     ax = plt.gca()
     rs = ax.spines["right"]; rs.set_visible(False)
     ts = ax.spines["top"]; ts.set_visible(False)  
+    from matplotlib.ticker import MaxNLocator   ### force integer tick sizes
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     plt.tight_layout()
-    plt.savefig(sav_dir + 'Cell sizes changing statistics.png')
+    plt.savefig(sav_dir + x_label + '_cell sizes changing statistics.png')
     
     """ STATISTICS """     
     ### PAIRED 2-tailed, assume equal variances
@@ -484,6 +502,15 @@ def plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=3, end_fr
         t_test = sp.stats.ttest_rel(week_1, week_2, nan_policy='omit')
         print('p-value for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(t_test.pvalue))
         
+        
+        effect_size = cohen_d(week_1, week_2)
+        print('Effect size for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(effect_size))
+        
+
+    return mean, sem, size_arr
+
+
+
 
 
 """ Plot scatters of each type:
@@ -495,7 +522,6 @@ def plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=3, end_fr
     
     """        
 def plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=16):
-    plt.figure()
     ### (0) baseline cells
     
     all_sizes_frame_0, all_z = get_sizes_and_z_cur_frame(tracked_cells_df, frame=0, use_scaled=use_scaled)
@@ -517,6 +543,7 @@ def plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end
         
         all_sizes_frame_0, all_z = get_sizes_and_z_cur_frame(tracked_cells_df, frame=frame, use_scaled=use_scaled)
 
+
         for idx, size in enumerate(all_sizes_frame_0):
       
             if len(size) >= min_survive_frames:
@@ -533,34 +560,7 @@ def plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end
                 if len(size) > 2:
                     first_frame_3_week.append(size[2])            
                     z_3_week.append(all_z[idx][2])
-     
-    
-    data = {'Baseline':first_frame_sizes, '1 week\nold cells':first_frame_1_week, '2 week\nold cells': first_frame_2_week, '3 week\nold cells': first_frame_3_week}
-    #df = pd.DataFrame(data=data)
-    
-    df = pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in data.items() ]))
-    
-    ax = sns.violinplot(data=df)
-    plt.ylim(-1500, y_lim)   ### leave room for significance!!!
-    
-    plt.ylabel('Cell size ($\u03bcm^3$)', fontsize=ax_title_size)
-    rs = ax.spines["right"]; rs.set_visible(False)
-    ts = ax.spines["top"]; ts.set_visible(False)  
-    plt.tight_layout()
-    plt.savefig(sav_dir + 'Cell sizes changing.png')
-
-
-    """ STATISTICS """
-    ### UNPAIRED 2-tailed, assume equal variances
-    t_test = sp.stats.ttest_ind(first_frame_sizes, first_frame_1_week, nan_policy='omit')
-    print('p-value for baseline vs. week 1 of recovery for size: ' + str(t_test.pvalue))
-    
-    t_test = sp.stats.ttest_ind(first_frame_sizes, first_frame_2_week, nan_policy='omit')
-    print('p-value for baseline vs. week 2 of recovery for size: ' + str(t_test.pvalue))        
-    
-    t_test = sp.stats.ttest_ind(first_frame_sizes, first_frame_3_week, nan_policy='omit')
-    print('p-value for baseline vs. week 3 of recovery for size: ' + str(t_test.pvalue))
-    
+         
     return first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week
     
         
@@ -584,8 +584,8 @@ def find_prob_given_size(cur_frame, first_frame_sizes, first_frame_1_week, first
             P_A = num_A/total_num;
     
             ### find P(B)
-            num_1_week_old = len(first_frame_1_week)
-            P_B = num_1_week_old/total_num
+            # num_1_week_old = len(first_frame_1_week)
+            # P_B = num_1_week_old/total_num
                             
             ### find P(A and B) *** NOT equal to P(A) * P(B) because are INDEPENDENT events!!!
             ### so only way to find is to count # that are BOTH 1 week young AND > size thresh / num total
@@ -615,13 +615,11 @@ def find_prob_given_size(cur_frame, first_frame_sizes, first_frame_1_week, first
         P(A and B) == prob cell is at least 1 week old AND above size X
 """
 """ DOUBLE CHECK THIS PROBABILITY CALCULATION!!!"""        
-def probability_curves(sav_dir, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range, ax_title_size, leg_size):
-
-
+def probability_curves(sav_dir, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range, ax_title_size, leg_size, figsize=(6, 5)):
 
     all_probs, all_sizes = find_prob_given_size(first_frame_1_week, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week,
                                                 thresh_range=thresh_range)
-    plt.figure(); plt.plot(all_sizes, all_probs)
+    plt.figure(figsize=figsize); plt.plot(all_sizes, all_probs)
     ax = plt.gca()
     plt.xlabel('Size threshold ($\u03bcm^3$)', fontsize=ax_title_size); plt.ylabel('Probability', fontsize=ax_title_size)
     rs = ax.spines["right"]; rs.set_visible(False)
@@ -650,84 +648,212 @@ def probability_curves(sav_dir, first_frame_sizes, first_frame_1_week, first_fra
 
 """ Plot density and volume of cells by depth per frame """
 
-def plot_density_and_volume(tracked_cells_df, new_cells_per_frame, terminated_cells_per_frame, scale_xy, scale_z, sav_dir, neighbors, ax_title_size, leg_size, scaled_vol=1):
+def plot_density_and_volume(tracked_cells_df, new_cells_per_frame, terminated_cells_per_frame, scale_xy, scale_z, sav_dir, neighbors, ax_title_size, leg_size, scaled_vol=1, name = '', figsize=(6,5), plot=1):
     plt.close('all')
+    all_total_dists = []
+    all_total_vols = []
+    all_total_z = []
+    all_new_dists = [] 
+    all_term_dists = []
+    all_new_vol = [] 
+    all_term_vol = [] 
+    all_new_z = [] 
+    all_term_z = []
+    
     for frame_num, cells in enumerate(new_cells_per_frame):
         
-        if len(new_cells_per_frame[frame_num]) == 0:
-            continue
-        
+        if len(np.where(tracked_cells_df.FRAME == frame_num)[0]) == 0:
+             continue
+         
         total_dists, total_z, new_dists, new_z  = get_sizes_and_z_from_cell_list(tracked_cells_df, cells, frame_num, scale_xy, scale_z, neighbors, density=1, scaled_vol=scaled_vol)
-        plt.figure(neighbors + frame_num); 
-        ax = plt.gca()
-        plt.scatter(total_z, total_dists, s=5, marker='o', color='k');
-        plt.scatter(new_z, new_dists, s=8, marker='o', color='limegreen');
-        plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('sparsity', fontsize=ax_title_size)
-        plt.title('frame num: ' + str(frame_num), fontsize=14) 
-        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        plt.xlim(0, 500); plt.ylim(30, 200) 
-        ax.legend(['stable', 'new'], fontsize=leg_size, loc='lower left')
-        plt.tight_layout()
-        plt.savefig(sav_dir + 'DENSITY_new_' + str(neighbors + frame_num) + '.png')            
+        
+        if plot:
+            plt.figure(neighbors + frame_num, figsize=figsize); 
+            ax = plt.gca()
+            plt.scatter(total_z, total_dists, s=5, marker='o', color='k');
+            plt.scatter(new_z, new_dists, s=8, marker='o', color='limegreen');
+            plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('sparsity', fontsize=ax_title_size)
+            plt.title('frame num: ' + str(frame_num), fontsize=14) 
+            rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+            plt.xlim(0, 400); plt.ylim(30, 200) 
+            ax.legend(['stable', 'new'], fontsize=leg_size, loc='upper right')
+            plt.tight_layout()
+            plt.savefig(sav_dir + name + '_DENSITY_new' + str(neighbors + frame_num) + '.png')     
+            
+        all_total_dists.append(total_dists)
+        all_total_z.append(total_z)
+        
+        all_new_dists.append(new_dists)
+        all_new_z.append(new_z)
+        
         
     """ Plt density of TERMINATED cells vs. depth """
     for frame_num, cells in enumerate(terminated_cells_per_frame):
-        if len(new_cells_per_frame[frame_num]) == 0:
-            continue
-
+        if len(np.where(tracked_cells_df.FRAME == frame_num)[0]) == 0:
+             continue
+         
         
         total_dists, total_z, term_dists, term_z  = get_sizes_and_z_from_cell_list(tracked_cells_df, cells, frame_num, scale_xy, scale_z, neighbors, density=1, scaled_vol=scaled_vol)
-        plt.figure(neighbors * 10 + frame_num); 
-        ax = plt.gca()
-        plt.scatter(total_z, total_dists, s=5, marker='o', color='k');
-        plt.scatter(term_z, term_dists, s=8, marker='o', color='r');
-        plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('sparsity', fontsize=ax_title_size)
-        plt.title('frame num: ' + str(frame_num), fontsize=14) 
-        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        plt.xlim(0, 500); plt.ylim(30, 200)
-        ax.legend(['stable', 'dying'], fontsize=leg_size, loc='lower left')
-        plt.tight_layout()
-        plt.savefig(sav_dir + 'DENSITY_term_' + str(neighbors + frame_num) + '.png')              
+        
+        if plot:
+            plt.figure(neighbors * 10 + frame_num, figsize=figsize); 
+            ax = plt.gca()
+            plt.scatter(total_z, total_dists, s=5, marker='o', color='k');
+            plt.scatter(term_z, term_dists, s=8, marker='o', color='r');
+            plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('sparsity', fontsize=ax_title_size)
+            plt.title('frame num: ' + str(frame_num), fontsize=14) 
+            rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+            plt.xlim(0, 400); plt.ylim(30, 200)
+            ax.legend(['stable', 'dying'], fontsize=leg_size, loc='upper right')
+            plt.tight_layout()
+            plt.savefig(sav_dir +  name + '_DENSITY_term' + str(neighbors + frame_num) + '.png')              
+    
+        all_term_dists.append(term_dists)
+        all_term_z.append(term_z)
 
 
     """ Plt VOLUME of NEW cells vs. depth """
     for frame_num, cells in enumerate(new_cells_per_frame):
 
-        if len(new_cells_per_frame[frame_num]) == 0:
-            continue            
-
-        total_dists, total_z, new_vols, new_z  = get_sizes_and_z_from_cell_list(tracked_cells_df, cells, frame_num, scale_xy, scale_z, neighbors, density=0, scaled_vol=scaled_vol)
-        plt.figure(neighbors * 100 + frame_num); 
-        ax = plt.gca()
-        plt.scatter(total_z, total_dists, s=5, marker='o', color='k');
-        plt.scatter(new_z, new_vols, s=8, marker='o', color='limegreen');
-        plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('volume ($um^3$)', fontsize=ax_title_size)
-        plt.title('frame num: ' + str(frame_num), fontsize=14) 
-        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        plt.xlim(0, 500); plt.ylim(30, 10000)
-        ax.legend(['stable', 'new'], fontsize=leg_size, loc='upper right')            
-        plt.tight_layout()
-        plt.savefig(sav_dir + 'VOLUME_new_' + str(neighbors + frame_num) + '.png')                
-    
-    
+        if len(np.where(tracked_cells_df.FRAME == frame_num)[0]) == 0:
+             continue
+         
+        total_vols, total_z, new_vols, new_z  = get_sizes_and_z_from_cell_list(tracked_cells_df, cells, frame_num, scale_xy, scale_z, neighbors, density=0, scaled_vol=scaled_vol)
+        
+        if plot:
+            plt.figure(neighbors * 100 + frame_num, figsize=figsize); 
+            ax = plt.gca()
+            plt.scatter(total_z, total_vols, s=5, marker='o', color='k');
+            plt.scatter(new_z, new_vols, s=8, marker='o', color='limegreen');
+            plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('volume ($um^3$)', fontsize=ax_title_size)
+            plt.title('frame num: ' + str(frame_num), fontsize=14) 
+            rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+            plt.xlim(0, 400); plt.ylim(30, 10000)
+            ax.legend(['stable', 'new'], fontsize=leg_size, loc='upper right')            
+            plt.tight_layout()
+            plt.savefig(sav_dir +  name + '_VOLUME_new' + str(neighbors + frame_num) + '.png')                
+        
+        all_total_vols.append(total_vols)
+        all_new_vol.append(new_vols) 
+           
     
     """ Plt VOLUME of TERMINATED cells vs. depth """
     for frame_num, cells in enumerate(terminated_cells_per_frame):
 
-        if len(new_cells_per_frame[frame_num]) == 0:
-            continue
+        if len(np.where(tracked_cells_df.FRAME == frame_num)[0]) == 0:
+             continue
+       
+        total_vols, total_z, term_vols, term_z  = get_sizes_and_z_from_cell_list(tracked_cells_df, cells, frame_num, scale_xy, scale_z, neighbors, density=0, scaled_vol=scaled_vol)
+ 
+        if plot:   
+            plt.figure(neighbors * 1000 + frame_num, figsize=figsize); 
+            ax = plt.gca()
+            plt.scatter(total_z, total_vols, s=5, marker='o', color='k');
+            plt.scatter(term_z, term_vols, s=8, marker='o', color='r');
+            plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('volume ($um^3$)', fontsize=ax_title_size)
+            plt.title('frame num: ' + str(frame_num), fontsize=14) 
+            rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+            ax.legend(['stable', 'dying'], fontsize=leg_size, loc='upper right')
+            plt.xlim(0, 400); plt.ylim(30, 8000)
+            plt.tight_layout()
+            plt.savefig(sav_dir +  name + '_VOLUME_term' + str(neighbors + frame_num) + '.png')              
+            
+        all_term_vol.append(term_vols)
+
+    return all_total_dists, all_total_vols, all_total_z, all_new_dists, all_term_dists, all_new_vol, all_term_vol, all_new_z, all_term_z
+            
+
+
+def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all_new_dists, all_term_dists, all_new_vol, all_term_vol, all_new_z, all_term_z, sav_dir, neighbors, ax_title_size, leg_size, name = '', figsize=(6,5)):
+    plt.close('all')
+    
+    """ Plot density of NEW cells """
+    for idx, total_dists in enumerate(all_total_dists):
         
-        total_dists, total_z, term_vols, term_z  = get_sizes_and_z_from_cell_list(tracked_cells_df, cells, frame_num, scale_xy, scale_z, neighbors, density=0, scaled_vol=scaled_vol)
-        plt.figure(neighbors * 1000 + frame_num); 
+        total_z = all_total_z[idx]
+        new_z = all_new_z[idx]
+        
+        new_dists = all_new_dists[idx]
+        
+        plt.figure(neighbors + idx, figsize=figsize); 
         ax = plt.gca()
         plt.scatter(total_z, total_dists, s=5, marker='o', color='k');
+        plt.scatter(new_z, new_dists, s=8, marker='o', color='limegreen');
+        plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('sparsity', fontsize=ax_title_size)
+        plt.title('frame num: ' + str(idx), fontsize=14) 
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        plt.xlim(0, 400); plt.ylim(30, 200) 
+        ax.legend(['stable', 'new'], fontsize=leg_size, loc='upper right')
+        plt.tight_layout()
+        plt.savefig(sav_dir + name + '_DENSITY_new_' + str(neighbors + idx) + '.png')     
+
+        
+        
+    """ Plt density of TERMINATED cells vs. depth """
+    for idx, total_dists in enumerate(all_total_dists):
+       
+        total_z = all_total_z[idx]
+        term_z = all_term_z[idx]
+        
+        term_dists = all_term_dists[idx]       
+       
+        plt.figure(neighbors * 10 + idx, figsize=figsize); 
+        ax = plt.gca()
+        plt.scatter(total_z, total_dists, s=5, marker='o', color='k');
+        plt.scatter(term_z, term_dists, s=8, marker='o', color='r');
+        plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('sparsity', fontsize=ax_title_size)
+        plt.title('frame num: ' + str(idx), fontsize=14) 
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        plt.xlim(0, 400); plt.ylim(30, 200)
+        ax.legend(['stable', 'dying'], fontsize=leg_size, loc='upper right')
+        plt.tight_layout()
+        plt.savefig(sav_dir +  name + '_DENSITY_term_' + str(neighbors + idx) + '.png')              
+
+  
+
+    """ Plt VOLUME of NEW cells vs. depth """
+    for idx, total_vols in enumerate(all_total_vols):
+ 
+        total_z = all_total_z[idx]
+        new_z = all_new_z[idx]
+        
+        new_vols = all_new_vol[idx]
+        
+        
+        plt.figure(neighbors * 100 + idx, figsize=figsize); 
+        ax = plt.gca()
+        plt.scatter(total_z, total_vols, s=5, marker='o', color='k');
+        plt.scatter(new_z, new_vols, s=8, marker='o', color='limegreen');
+        plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('volume ($um^3$)', fontsize=ax_title_size)
+        plt.title('frame num: ' + str(idx), fontsize=14) 
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        plt.xlim(0, 400); plt.ylim(30, 10000)
+        ax.legend(['stable', 'new'], fontsize=leg_size, loc='upper right')            
+        plt.tight_layout()
+        plt.savefig(sav_dir +  name + '_VOLUME_new_' + str(neighbors + idx) + '.png')                
+    
+
+    """ Plt VOLUME of TERMINATED cells vs. depth """
+    for idx, total_vols in enumerate(all_total_vols):
+
+        total_z = all_total_z[idx]
+        term_z = all_term_z[idx]
+        
+        term_vols = all_term_vol[idx]  
+        
+        
+        plt.figure(neighbors * 1000 + idx, figsize=figsize); 
+        ax = plt.gca()
+        plt.scatter(total_z, total_vols, s=5, marker='o', color='k');
         plt.scatter(term_z, term_vols, s=8, marker='o', color='r');
         plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('volume ($um^3$)', fontsize=ax_title_size)
-        plt.title('frame num: ' + str(frame_num), fontsize=14) 
+        plt.title('frame num: ' + str(idx), fontsize=14) 
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
         ax.legend(['stable', 'dying'], fontsize=leg_size, loc='upper right')
-        plt.xlim(0, 500); plt.ylim(30, 8000)
+        plt.xlim(0, 400); plt.ylim(30, 8000)
         plt.tight_layout()
-        plt.savefig(sav_dir + 'VOLUME_term_' + str(neighbors + frame_num) + '.png')              
-                
-            
+        plt.savefig(sav_dir +  name + '_VOLUME_term_' + str(neighbors + idx) + '.png')              
+
+
+
+    return all_total_dists, all_total_z, all_new_dists, all_term_dists, all_new_vol, all_term_vol, all_new_z, all_term_z

@@ -41,7 +41,14 @@ import scipy.stats as sp
 import seaborn as sns
 
 
-lowest_z_depth = 180;
+
+control = 0;
+
+if control:
+    lowest_z_depth = 120;
+else:
+    lowest_z_depth = 160;
+    
 crop_size = 160
 z_size = 32
 num_truth_class = 2
@@ -61,6 +68,9 @@ exclude_side_px = 40
 min_size = 100;
 upper_thresh = 800;
 
+
+
+
 """ Select multiple folders for analysis AND creates new subfolder for results output """
 root = tkinter.Tk()
 # get input folders
@@ -69,15 +79,6 @@ list_folder = []
 input_path = "./"
 
 
-all_norm_tots = []; all_norm_new = [];
-all_norm_t32 = []; all_norm_n32 = [];
-all_norm_t65 = []; all_norm_n65 = [];
-all_norm_t99 = []; all_norm_n99 = [];
-all_norm_t132 = []; all_norm_n132 = [];
-all_norm_t165 = []; all_norm_n165 = [];
-
-
-all_tracked_cells_df = [];
 
 
 initial_dir = '/media/user/storage/Data/'
@@ -98,7 +99,16 @@ while(another_folder == 'y'):
 
 ### TRACK WHICH FOLDERS TO POOL
 folder_pools = np.zeros(len(list_folder))
-    
+all_norm_tots = []; all_norm_new = [];
+all_norm_t32 = []; all_norm_n32 = [];
+all_norm_t65 = []; all_norm_n65 = [];
+all_norm_t99 = []; all_norm_n99 = [];
+all_norm_t132 = []; all_norm_n132 = [];
+all_norm_t165 = []; all_norm_n165 = [];
+
+
+all_tracked_cells_df = [];
+
 for fold_idx, input_path in enumerate(list_folder):
     foldername = input_path.split('/')[-2]
     sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_6'
@@ -268,7 +278,7 @@ for fold_idx, input_path in enumerate(list_folder):
             
                 
     """ If filename contains 235 or 246, then must +1 to timeframes after baseline, because week 2 skipped """
-    if '235' in foldername or '264' in foldername:
+    if '235' in foldername:
         
         for idx in range(len(tracked_cells_df)):
             
@@ -278,6 +288,19 @@ for fold_idx, input_path in enumerate(list_folder):
                 cell.FRAME = new_val
                 tracked_cells_df.iloc[idx] = cell
             
+    if '264' in foldername:
+        
+        for idx in range(len(tracked_cells_df)):
+            
+            cell = tracked_cells_df.iloc[idx]
+            if cell.FRAME >= 0:
+                new_val = cell.FRAME + 3
+                cell.FRAME = new_val
+                tracked_cells_df.iloc[idx] = cell
+            
+
+
+
 
     """ Normalize to 0 um using vertices """
     
@@ -287,6 +310,12 @@ for fold_idx, input_path in enumerate(list_folder):
         z_0 = 0; z_y = 27 - 2  ### upper right corner, y=0
         z_x = 0; z_xy = 31 - 2
         mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)
+        
+        
+        
+        two_thirty_tracked = tracked_cells_df.copy()
+        mesh_235 = np.copy(mesh)
+        
 
     elif '037' in foldername:
         x_0 = 0; y_lim = height_tmp
@@ -355,6 +384,7 @@ for fold_idx, input_path in enumerate(list_folder):
         z_x = 4 + 3; z_xy = 8 + 3
         mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)
         
+        control = 1;       
         
 
     elif '264' in foldername:
@@ -363,6 +393,8 @@ for fold_idx, input_path in enumerate(list_folder):
         z_0 = 5 + 6; z_y = 48 + 6   ### upper right corner, y=0
         z_x = 0 + 6; z_xy = 32 + 6
         mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)        
+        
+        control = 1;     
     
         ### pool 1
     elif '089' in foldername:
@@ -374,12 +406,16 @@ for fold_idx, input_path in enumerate(list_folder):
         
         folder_pools[fold_idx] = 1
         
+        control = 1;     
+        
     elif '115' in foldername:
         x_0 = 0; y_lim = height_tmp
         y_0 = 0; x_lim = width_tmp
         z_0 = 11; z_y = 7   ### upper right corner, y=0
         z_x = 2; z_xy = 6
         mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)       
+        
+        control = 1;     
         
         folder_pools[fold_idx] = 1
         
@@ -390,6 +426,7 @@ for fold_idx, input_path in enumerate(list_folder):
         z_x = 5 + 3; z_xy = 5 + 3
         mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)    
         
+        control = 1;     
         folder_pools[fold_idx] = 1
         
         
@@ -401,7 +438,8 @@ for fold_idx, input_path in enumerate(list_folder):
         z_x = 4; z_xy = 11
         mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)    
         
-        folder_pools[fold_idx] = 2
+        control = 1;     
+        folder_pools[fold_idx] = 0
         
     elif '420' in foldername:
         x_0 = 0; y_lim = height_tmp
@@ -410,12 +448,9 @@ for fold_idx, input_path in enumerate(list_folder):
         z_x = 4 + 2; z_xy = 6 + 2
         mesh = points_to_mesh(x_0, x_lim, y_0, y_lim, z_0, z_y, z_x, z_xy)    
         
+        control = 1;     
         folder_pools[fold_idx] = 2
         
-
-
-
-
         
         
         
@@ -441,9 +476,8 @@ for fold_idx, input_path in enumerate(list_folder):
         cell.Z = new_z
     
         tracked_cells_df.iloc[idx] = cell
-    
-    #plt.figure(); plt.imshow(m)        
-                
+
+
     """ Set globally """
     plt.rc('xtick',labelsize=16)
     plt.rc('ytick',labelsize=16)
@@ -504,9 +538,15 @@ for fold_idx, input_path in enumerate(list_folder):
         """ 
             Plot size decay for each frame STARTING from recovery
         """     
-        plt.close('all'); 
-        plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=4, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=8000, ax_title_size=ax_title_size)
+        plt.close('all');
+        if not control:
+            mean_recovery, sem_recovery, tracks_recovery = plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[4, 8],
+                                                                                       min_survive_frames=3, use_scaled=1, y_lim=8000, last_plot_week=len(np.unique(tracked_cells_df.FRAME)),
+                                                                                       ax_title_size=ax_title_size, x_label='Weeks of recovery')
     
+
+
+
 
 
         """ Plot scatters of each type:
@@ -517,9 +557,14 @@ for fold_idx, input_path in enumerate(list_folder):
                 - 3 weeks after cupr 
             
             """
-        first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=4, end_frame=8, 
+        if not control:
+            first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=4, end_frame=8, 
                                                                                                                        min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
-
+       
+        else:
+            first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=0, end_frame=0, 
+                                                                                                                       min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
+                   
         
         
         """ Predict age based on size??? 
@@ -539,7 +584,27 @@ for fold_idx, input_path in enumerate(list_folder):
 
 
 
-zzz
+
+
+if not control:
+    sav_dir = './OUTPUT_plots_pooled_data/'
+    try:
+        # Create target Directory
+        os.mkdir(sav_dir)
+        print("Directory " , sav_dir ,  " Created ") 
+    except FileExistsError:
+        print("Directory " , sav_dir ,  " already exists")
+        
+else:
+    sav_dir = './OUTPUT_plots_pooled_data_CONTROL/'
+    try:
+        # Create target Directory
+        os.mkdir(sav_dir)
+        print("Directory " , sav_dir ,  " Created ") 
+    except FileExistsError:
+        print("Directory " , sav_dir ,  " already exists")    
+        
+
 
 """ Also pool things from WITHIN the same experiment """
 folder_pools
@@ -605,8 +670,32 @@ all_norm_t165 = pool_lists(all_norm_t165, folder_pools)
 all_norm_n165 = pool_lists(all_norm_n165, folder_pools)
 
 
-max_week = -1
-plot_pooled_trends(all_norm_tots, all_norm_new, ax_title_size, sav_dir, add_name='OUTPUT_overall_')
+
+""" If week was skipped over in imaging, then set 0 to np.nan"""
+for row in all_norm_tots:    row[row == 0] = np.nan
+for row in all_norm_new:    row[row == 0] = np.nan
+for row in all_norm_t32:    row[row == 0] = np.nan
+for row in all_norm_n32:    row[row == 0] = np.nan
+for row in all_norm_t65:    row[row == 0] = np.nan
+for row in all_norm_n65:    row[row == 0] = np.nan
+for row in all_norm_t99:    row[row == 0] = np.nan
+for row in all_norm_n99:    row[row == 0] = np.nan
+for row in all_norm_t132:    row[row == 0] = np.nan
+for row in all_norm_n132:    row[row == 0] = np.nan
+for row in all_norm_t165:    row[row == 0] = np.nan
+for row in all_norm_n165:    row[row == 0] = np.nan
+
+
+
+lens = []; 
+for row in all_norm_n165: lens.append(len(row))
+
+if not control:
+    max_week = np.max(lens) - 2  ### stop at week 12
+else:
+    max_week = np.max(lens)
+
+plot_pooled_trends(all_norm_tots, all_norm_new, ax_title_size, sav_dir, add_name='OUTPUT_overall_', max_week=max_week)
 plot_pooled_trends(all_norm_t32, all_norm_n32, ax_title_size, sav_dir, add_name='OUTPUT_overall_0-32', max_week=max_week)
 plot_pooled_trends(all_norm_t65, all_norm_n65, ax_title_size, sav_dir, add_name='OUTPUT_overall_32-65', max_week=max_week)
 plot_pooled_trends(all_norm_t99, all_norm_n99, ax_title_size, sav_dir, add_name='OUTPUT_overall_65_99', max_week=max_week)
@@ -615,20 +704,29 @@ plot_pooled_trends(all_norm_t165, all_norm_n165, ax_title_size, sav_dir, add_nam
 
 
 
+
 """ Pool all tracked_cells_df and add np.max() so series numbers don't overlap! """
 pooled_tracks = all_tracked_cells_df[0]
 for idx, tracks in enumerate(all_tracked_cells_df):
     
-    max_series = np.max(pooled_tracks.SERIES)
-    
+    max_series = np.max(pooled_tracks.SERIES)    
     
     if idx > 0:
-    
         tracks.SERIES = tracks.SERIES + max_series    
         pooled_tracks = pd.concat([pooled_tracks, tracks])
     
     
 tracked_cells_df = pooled_tracks
+
+""" Save pooled: """
+if not control:
+    tracked_cells_df.to_pickle(sav_dir + 'tracked_cells_df_POOLED_CLEANED.pkl')
+else:
+    tracked_cells_df.to_pickle(sav_dir + 'tracked_cells_df_CONTROL_POOLED.pkl')
+
+
+if control:
+    zzz
 
 
 """ 
@@ -639,32 +737,246 @@ analyze = 1;
 if analyze == 1:
     neighbors = 10
     
-    new_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)) + 1)]
-    terminated_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)) + 1)]
-    for cell_num in np.unique(tracked_cells_df.SERIES):
+
+    ### ***MUST BE RUN LOADING IN FOLDER WITH LONGEST TIMESERIES FIRST!!! OTHERWISE WILL NOT COMPILE!!!
+    for idx, tracked in enumerate(all_tracked_cells_df):
+        new_cells_per_frame = [[] for _ in range(np.max(tracked.FRAME) + 1)]
+        terminated_cells_per_frame = [[] for _ in range(np.max(tracked.FRAME) + 1)]
         
-        frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
+        for cell_num in np.unique(tracked.SERIES):
         
-        beginning_frame = np.min(frames_cur_cell)
-        if beginning_frame > 0:   # skip the first frame
-            new_cells_per_frame[beginning_frame].append(cell_num)
-                    
-        term_frame = np.max(frames_cur_cell)
-        if term_frame < len(terminated_cells_per_frame) - 1:   # skip the last frame
-            terminated_cells_per_frame[term_frame].append(cell_num)
+            frames_cur_cell = tracked.iloc[np.where(tracked.SERIES == cell_num)].FRAME
+            
+            beginning_frame = np.min(frames_cur_cell)
+            if beginning_frame > 0:   # skip the first frame
+                new_cells_per_frame[beginning_frame].append(cell_num)
+                        
+            len_frames = len(np.unique(tracked.FRAME))
+            
+            
+            term_frame = np.max(frames_cur_cell)
+            if term_frame < len_frames - 1:   # skip the last frame
+                terminated_cells_per_frame[term_frame].append(cell_num)
+            
+
+        ### loop through each frame and all the new cells and find "i.... i + n" nearest neighbors        
+        """ Plt density of NEW cells vs. depth """
+        scaled_vol = 1
+        total_dists, total_vols, total_z, new_dists, term_dists, new_vol, term_vol, new_z, term_z = plot_density_and_volume(tracked, new_cells_per_frame, terminated_cells_per_frame, scale_xy, scale_z, sav_dir, neighbors, ax_title_size, leg_size, scaled_vol=scaled_vol, plot=0)
+
+
+        ### initialize if first time
+        if idx == 0:
+            all_total_dists = total_dists
+            all_total_vols = total_vols
+            all_total_z = total_z
+            all_new_dists = new_dists
+            all_term_dists = term_dists
+            all_new_vol = new_vol
+            all_term_vol = term_vol
+            all_new_z = new_z
+            all_term_z = term_z
+        else:  ### else concatenate new values
+            for idx, row in enumerate(total_dists): all_total_dists[idx] = np.concatenate((all_total_dists[idx], row))
+            for idx, row in enumerate(total_vols): all_total_vols[idx] = np.concatenate((all_total_vols[idx], row))
+            for idx, row in enumerate(total_z): all_total_z[idx] = np.concatenate((all_total_z[idx], row))
+            for idx, row in enumerate(new_dists): all_new_dists[idx] = np.concatenate((all_new_dists[idx], row))
+            for idx, row in enumerate(term_dists): all_term_dists[idx] = np.concatenate((all_term_dists[idx], row))
+            for idx, row in enumerate(new_vol): all_new_vol[idx] = np.concatenate((all_new_vol[idx], row))
+            for idx, row in enumerate(term_vol): all_term_vol[idx] = np.concatenate((all_term_vol[idx], row))
+            for idx, row in enumerate(new_z): all_new_z[idx] = np.concatenate((all_new_z[idx], row))
+            for idx, row in enumerate(term_z): all_term_z[idx] = np.concatenate((all_term_z[idx], row))
+            
+            print('append')
+   
+    plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all_new_dists, all_term_dists, all_new_vol, all_term_vol, all_new_z, all_term_z, sav_dir, neighbors, ax_title_size, leg_size, name = '', figsize=(6,5))         
+   
+    
+   
+    """ PLOT MIXED DENSITY VS. SIZE """
+    """ Plot density vs. size of NEW cells """
+    name = 'DENSITY_SIZE_MIX_'
+    figsize=(6,5)
+    for idx, total_dists in enumerate(all_total_dists):
+        
+        total_z = all_total_vols[idx]
+        new_z = all_new_vol[idx]
+        
+        new_dists = all_new_dists[idx]
+        
+        plt.figure(neighbors + idx, figsize=figsize); 
+        ax = plt.gca()
+        plt.scatter(total_z, total_dists, s=5, marker='o', color='k');
+        plt.scatter(new_z, new_dists, s=8, marker='o', color='limegreen');
+        plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('sparsity', fontsize=ax_title_size)
+        plt.title('frame num: ' + str(idx), fontsize=14) 
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        plt.xlim(0, 7000); plt.ylim(30, 200) 
+        ax.legend(['stable', 'new'], fontsize=leg_size, loc='upper right')
+        plt.tight_layout()
+        plt.savefig(sav_dir + name + '_DENSITY_new_' + str(neighbors + idx) + '.png')     
+
+        
+        
+    """ Plt density of TERMINATED cells vs. depth """
+    for idx, total_dists in enumerate(all_total_dists):
+       
+        total_z = all_total_vols[idx]
+        term_z = all_term_vol[idx]
+        
+        term_dists = all_term_dists[idx]       
+       
+        plt.figure(neighbors * 10 + idx, figsize=figsize); 
+        ax = plt.gca()
+        plt.scatter(total_z, total_dists, s=5, marker='o', color='k');
+        plt.scatter(term_z, term_dists, s=8, marker='o', color='r');
+        plt.xlabel('depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('sparsity', fontsize=ax_title_size)
+        plt.title('frame num: ' + str(idx), fontsize=14) 
+        rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
+        plt.xlim(0, 7000); plt.ylim(30, 200)
+        ax.legend(['stable', 'dying'], fontsize=leg_size, loc='upper right')
+        plt.tight_layout()
+        plt.savefig(sav_dir +  name + '_DENSITY_term_' + str(neighbors + idx) + '.png')              
+
+
+    """ 
+            LOAD IN CONTROL DATA: 
+        """
+    if not control:
+        load_dir = './OUTPUT_plots_pooled_data_CONTROL/'
+        tracked_cells_CONTROL = pd.read_pickle(load_dir + 'tracked_cells_df_CONTROL_POOLED.pkl')
+
+
+
         
 
-    ### loop through each frame and all the new cells and find "i.... i + n" nearest neighbors        
-    """ Plt density of NEW cells vs. depth """
-    scaled_vol = 1
-    plot_density_and_volume(tracked_cells_df, new_cells_per_frame, terminated_cells_per_frame, scale_xy, scale_z, sav_dir, neighbors, ax_title_size, leg_size, scaled_vol=scaled_vol)
-
-        
     """ 
         Plot size decay for each frame STARTING from recovery
+        
+        
+            ***add way to choose what frame to stop/start on
+            - return the averages
+            - change name to whatever is appropriate
     """     
-    plt.close('all'); 
-    plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=8000, ax_title_size=ax_title_size)
+    plt.close('all');
+    if not control:
+        mean_recovery, sem_recovery, tracks_recovery = plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[4, 8],
+                                                                                   min_survive_frames=3, use_scaled=1, y_lim=8000, last_plot_week=len(np.unique(tracked_cells_CONTROL.FRAME)),
+                                                                                   ax_title_size=ax_title_size, x_label='Weeks of recovery', figsize=(7, 5))
+        
+        
+        mean_cuprizone, sem_cuprizone, tracks_cuprizone = plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[0, 0],
+                                                                                   min_survive_frames=0, use_scaled=1, y_lim=8000, ax_title_size=ax_title_size,
+                                                                                   x_label='Weeks of cuprizone', intial_week=0, last_plot_week=5, figsize=(6, 5))        
+        
+        
+
+    """ get control values """
+    mean_control, sem_control, tracks_control = plot_size_decay_in_recovery(tracked_cells_CONTROL, sav_dir, start_end_NEW_cell=[0, 0],
+                                                                                   min_survive_frames=3, use_scaled=1, y_lim=8000, last_plot_week=len(np.unique(tracked_cells_CONTROL.FRAME)),
+                                                                                   ax_title_size=ax_title_size, x_label='Weeks no treatment', intial_week=0, figsize=(6, 5))
+
+
+    """ Plot: """
+    ### (1) control vs. recovery, starting at week 4
+    mean_c = mean_control[4:]
+    sem_c = sem_control[4:]
+    tracks_c = tracks_control[:, 4:]
+    
+    mean_r = mean_recovery[0:len(mean_c)]
+    sem_r = sem_recovery[0:len(sem_c)]
+    tracks_r = tracks_recovery[:, 0:len(sem_c)]
+
+
+    
+    plt.figure(figsize=(5, 5));
+    plt.plot(np.arange(1, len(mean_c) + 1), mean_c, color='k', linestyle='dotted', linewidth=2)
+    plt.scatter(np.arange(1, len(mean_c) + 1), mean_c, color='k', marker='o', s=30)
+    plt.errorbar(np.arange(1, len(mean_c) + 1), mean_c, yerr=sem_c, color='k', fmt='none', capsize=10, capthick=1)
+    
+    
+    plt.plot(np.arange(1, len(mean_r) + 1), mean_r, color='r', linestyle='dotted', linewidth=2)
+    plt.scatter(np.arange(1, len(mean_r) + 1), mean_r, color='r', marker='o', s=30)
+    plt.errorbar(np.arange(1, len(mean_r) + 1), mean_r, yerr=sem_r, color='r', fmt='none', capsize=10, capthick=1)    
+    
+
+    plt.ylim(0, 3500)
+    
+    plt.xlabel('Weeks of recovery', fontsize=ax_title_size)
+    plt.ylabel('Mean cell size ($\u03bcm^3$)', fontsize=ax_title_size)
+    ax = plt.gca()
+    
+    from matplotlib.ticker import MaxNLocator   ### force integer tick sizes
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    rs = ax.spines["right"]; rs.set_visible(False)
+    ts = ax.spines["top"]; ts.set_visible(False)  
+    plt.tight_layout()
+    plt.legend(['No treatment', 'New cells'], fontsize=leg_size)
+    plt.savefig(sav_dir + '_COMPARE recovery to control curves SIZE.png')
+
+    ### significance values    
+    ### UNPAIRED 2-tailed, assume equal variances
+    for col in range(len(tracks_c[0])):
+        week_1 = tracks_c[:, col]
+        week_2 = tracks_r[:, col]
+        t_test = sp.stats.ttest_ind(week_1, week_2, nan_policy='omit')
+        print('p-value for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(t_test.pvalue))
+        
+        
+        effect_size = cohen_d(week_1, week_2)
+        print('Effect size for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(effect_size))
+        
+
+
+
+    ### (2) control vs. recovery, starting at week 4
+    mean_c = mean_control[0:4]
+    sem_c = sem_control[0:4]
+    tracks_c = tracks_control[:, 0:4]
+    
+    mean_cup = mean_cuprizone[0:4]
+    sem_cup = sem_cuprizone[0:4]
+    tracks_cup = tracks_cuprizone[:, 0:4]
+
+    plt.figure(figsize=(5, 5));
+    plt.plot(np.arange(0, len(mean_c)), mean_c, color='k', linestyle='dotted', linewidth=2)
+    plt.scatter(np.arange(0, len(mean_c)), mean_c, color='k', marker='o', s=30)
+    plt.errorbar(np.arange(0, len(mean_c)), mean_c, yerr=sem_c, color='k', fmt='none', capsize=10, capthick=1)
+    
+    
+    plt.plot(np.arange(0, len(mean_cup)), mean_cup, color='r', linestyle='dotted', linewidth=2)
+    plt.scatter(np.arange(0, len(mean_cup)), mean_cup, color='r', marker='o', s=30)
+    plt.errorbar(np.arange(0, len(mean_cup)), mean_cup, yerr=sem_cup, color='r', fmt='none', capsize=10, capthick=1)    
+    
+
+    plt.ylim(0, 3500)
+    
+    plt.xlabel('Weeks of cuprizone', fontsize=ax_title_size)
+    plt.ylabel('Mean cell size ($\u03bcm^3$)', fontsize=ax_title_size)
+    ax = plt.gca()
+    
+    from matplotlib.ticker import MaxNLocator   ### force integer tick sizes
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    rs = ax.spines["right"]; rs.set_visible(False)
+    ts = ax.spines["top"]; ts.set_visible(False)  
+    plt.tight_layout()
+    plt.legend(['No treatment', 'Cuprizone treated cells'], fontsize=leg_size)
+    plt.savefig(sav_dir + '_COMPARE cuprizone to control curves SIZE.png')
+
+    ### significance values    
+    ### UNPAIRED 2-tailed, assume equal variances
+    for col in range(len(tracks_c[0])):
+        week_1 = tracks_c[:, col]
+        week_2 = tracks_cup[:, col]
+        t_test = sp.stats.ttest_ind(week_1, week_2, nan_policy='omit')
+        print('p-value for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(t_test.pvalue))
+        
+        
+        effect_size = cohen_d(week_1, week_2)
+        print('Effect size for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(effect_size))
+        
+
+
 
 
     """ Plot scatters of each type:
@@ -675,22 +987,77 @@ if analyze == 1:
             - 3 weeks after cupr 
         
         """
-    first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
+    if not control:
+        first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=4, end_frame=8, 
+                                                                                                                   min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
+   
+        ### compare to control cells pooled from the same timepoints
+        tracks_c = tracks_control[:, 4:]
+        tracks_c = tracks_c[~np.isnan(tracks_c)]
+        print('Number of control cells: ' + str(len(tracks_c)))
+        first_frame_sizes = np.transpose(tracks_c.flatten())
+    
+        data = {'Non-treated\ncells':first_frame_sizes, '1 week\nold cells':first_frame_1_week, '2 week\nold cells': first_frame_2_week, '3 week\nold cells': first_frame_3_week}
+        #df = pd.DataFrame(data=data)
+        
+        df = pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in data.items() ]))
+        
+        
+        plt.figure(figsize=(6.25,5))
+        x = sns.violinplot(data=df)
+        plt.ylim(-1500, 10000)   ### leave room for significance!!!
+        
+        plt.ylabel('Cell size ($\u03bcm^3$)', fontsize=ax_title_size)
+        ax = plt.gca()
+        rs = ax.spines["right"]; rs.set_visible(False)
+        ts = ax.spines["top"]; ts.set_visible(False)  
+        plt.tight_layout()
+        plt.savefig(sav_dir + 'Cell sizes changing.png')
+    
+    
+        """ STATISTICS """
+        ### UNPAIRED 2-tailed, assume equal variances
+        t_test = sp.stats.ttest_ind(first_frame_sizes, first_frame_1_week, nan_policy='omit')
+        print('p-value for baseline vs. week 1 of recovery for size: ' + str(t_test.pvalue))
+        
+        effect_size = cohen_d(first_frame_sizes, first_frame_1_week)
+        print('effect size for baseline vs. week 3 of recovery for size: ' + str(effect_size))
+        
+        t_test = sp.stats.ttest_ind(first_frame_sizes, first_frame_2_week, nan_policy='omit')
+        print('p-value for baseline vs. week 2 of recovery for size: ' + str(t_test.pvalue))        
+    
+        effect_size = cohen_d(first_frame_sizes, first_frame_2_week)
+        print('effect size for baseline vs. week 3 of recovery for size: ' + str(effect_size))
+    
+        
+        t_test = sp.stats.ttest_ind(first_frame_sizes, first_frame_3_week, nan_policy='omit')
+        print('p-value for baseline vs. week 3 of recovery for size: ' + str(t_test.pvalue))
+        
+        effect_size = cohen_d(first_frame_sizes, first_frame_3_week)
+        print('effect size for baseline vs. week 3 of recovery for size: ' + str(effect_size))
+         
 
-    
-    
     """ Predict age based on size??? 
     
             what is probability that cell is 1 week old P(B) given that it is size X P(A) == P(B|A) == P(A and B) / P(A)
             P(A) == prob cell is ABOVE size X
             P(B) == prob cell 1 week old
             P(A and B) == prob cell is at least 1 week old AND above size X
+            
+            
+            
+            ***PROBABILITY compared to time-point paired controls!!!
+                i.e. get control cells from 1 week, 2 weeks and 3 weeks after cuprizone treatment
+            
+            
+            
+            
     """
     """ DOUBLE CHECK THIS PROBABILITY CALCULATION!!!"""
     
-    upper_r = 8000
+    upper_r = 6000
     lower_r = 0
-    step = 100
+    step = 50
     thresh_range = [lower_r, upper_r, step]
     
     
@@ -699,81 +1066,294 @@ if analyze == 1:
     
                 ***compared with cells/themselves that have been around for > 8 weeks???
                 
-                
-                
                 ****RETROSPECTIVELY CAN SEE IF NEW CELLS ARE INJURED FASTER AT EARLIER TIMEPOINTS by cuprizone???
-                
-                
                 ***plot size vs. death time
-                
-                
                     ==> example in 030!!!
                 
-                
+    """    
+    probability_curves(sav_dir, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range, ax_title_size, leg_size, figsize=(7, 5))
+
+
+
+
+
+
+
+
+
+
+    """ Plot scatter for dying cells
     
+        and probability??? """
+
+    """ Must first get sizes of cell that die on frame 1, frame 2, frame 3"""
+    
+
+    
+    ### NEED 1 more frame to get row 4 deaths???
+    mean_cuprizone, sem_cuprizone, tracks_cuprizone = plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[0, 0],
+                                                                               min_survive_frames=0, use_scaled=1, y_lim=8000, ax_title_size=ax_title_size,
+                                                                               x_label='EXTRA WEEK CUPRIZONE', intial_week=0, last_plot_week=5, figsize=(6, 5))        
+    tracks_cup = tracks_cuprizone        
+
+    died_frame_1 = [];
+    died_frame_2 = [];
+    died_frame_3 = [];
+    died_frame_4 = [];    
+    for row in tracks_cup:
+        if np.isnan(row[1]):
+            died_frame_1.append(row[0])
+        elif np.isnan(row[2]):
+            died_frame_2.append(row[1])
+        elif np.isnan(row[3]):
+            died_frame_3.append(row[2])    
+        elif np.isnan(row[4]):
+            died_frame_4.append(row[3])
+
+
+    if not control:
+        # first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=0, end_frame=1, 
+        #                                                                                                            min_survive_frames=0, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
+   
+        ### compare to control cells pooled from the same timepoints
+        tracks_c = tracks_control[:, 0:4]
+        tracks_c = tracks_c[~np.isnan(tracks_c)]
+        print('Number of control cells: ' + str(len(tracks_c)))
+        first_frame_sizes = np.transpose(tracks_c.flatten())
+    
+        #data = {'Non-treated\ncells':first_frame_sizes, '1 week\ncuprizone':died_frame_2, '2 week\ncuprizone': died_frame_3, '3 week\ncuprizone': died_frame_4}
+        
+        data = {'Non-treated\ncells':first_frame_sizes, 'Size before\ndeath':np.concatenate((died_frame_2, died_frame_3, died_frame_4))}
+
+        df = pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in data.items() ]))
+        
+        plt.figure(figsize=(4.5,5))
+        ax = sns.violinplot(data=df)
+        plt.ylim(-1500, 10000)   ### leave room for significance!!!
+        
+        plt.ylabel('Cell size ($\u03bcm^3$)', fontsize=ax_title_size)
+        rs = ax.spines["right"]; rs.set_visible(False)
+        ts = ax.spines["top"]; ts.set_visible(False)  
+        plt.tight_layout()
+        plt.savefig(sav_dir + 'DYING CELLS size changing.png')
+    
+    
+        """ STATISTICS """
+        ### UNPAIRED 2-tailed, assume equal variances
+        t_test = sp.stats.ttest_ind(first_frame_sizes, died_frame_1, nan_policy='omit')
+        print('p-value for baseline vs. week 1 of recovery for size: ' + str(t_test.pvalue))
+        
+        effect_size = cohen_d(first_frame_sizes, died_frame_1)
+        print('effect size for baseline vs. week 3 of recovery for size: ' + str(effect_size))
+        
+        t_test = sp.stats.ttest_ind(first_frame_sizes, died_frame_2, nan_policy='omit')
+        print('p-value for baseline vs. week 2 of recovery for size: ' + str(t_test.pvalue))        
+    
+        effect_size = cohen_d(first_frame_sizes, died_frame_2)
+        print('effect size for baseline vs. week 3 of recovery for size: ' + str(effect_size))
+    
+        
+        t_test = sp.stats.ttest_ind(first_frame_sizes, died_frame_3, nan_policy='omit')
+        print('p-value for baseline vs. week 3 of recovery for size: ' + str(t_test.pvalue))
+        
+        effect_size = cohen_d(first_frame_sizes, died_frame_3)
+        print('effect size for baseline vs. week 3 of recovery for size: ' + str(effect_size))
+         
+        
+        
+        combined = np.concatenate((died_frame_2, died_frame_3, died_frame_4))
+        
+        t_test = sp.stats.ttest_ind(first_frame_sizes, combined, nan_policy='omit')
+        print('p-value for baseline vs. combined for size: ' + str(t_test.pvalue))
+        
+        effect_size = cohen_d(first_frame_sizes, combined)
+        print('effect size for baseline vs. combined for size: ' + str(effect_size))
+         
+                
+
+
+    """ Plot dying on first frame vs. cell size, to see if larger/newer cells die first? """
+    
+    thresh_range = [100, 2000, 50]
+    all_probs = []; all_sizes = []
+    #for size_thresh in range(500, 4100, 100):
+    cur_frame = np.concatenate((died_frame_2, died_frame_3, died_frame_4))
+        
+    for size_thresh in range(thresh_range[0], thresh_range[1], thresh_range[2]):   ### FOR RESCALED VOLUMES
+        all_cell_sizes = np.concatenate((first_frame_sizes, died_frame_2, died_frame_3, died_frame_4))
+        num_A = 0
+        total_num = len(all_cell_sizes)
+        for sizes in all_cell_sizes:
+            
+            #print(size_thresh)
+            if sizes < size_thresh:
+                num_A += 1
+                
+        if num_A > 0:
+
+            P_A = num_A/total_num;
+    
+       
+            ### find P(A and B) *** NOT equal to P(A) * P(B) because are INDEPENDENT events!!!
+            ### so only way to find is to count # that are BOTH 1 week young AND > size thresh / num total
+            num_below_thresh_1_week = len(np.where(np.asarray(cur_frame) < size_thresh)[0])
+            ### SHOULD BE DIVIDED BY TOTAL # OF first frame cells??? i.e. total number of cells, not occurences
+            #len(np.unique(tracked_cells_df.SERIES))
+            
+            P_A_B = num_below_thresh_1_week/total_num;
+            #P_A_B = num_above_thresh_1_week/len(np.unique(tracked_cells_df.SERIES));
+            
+            PB_A = P_A_B/P_A
+            
+            #print(PB_A)
+            
+            all_probs.append(PB_A)
+            all_sizes.append(size_thresh)
+    
+            
+            
+    plt.figure(figsize=(4.5,5)); plt.plot(all_sizes, all_probs, 'k')
+    ax = plt.gca()
+    plt.xlabel('Cell size ($\u03bcm^3$)', fontsize=ax_title_size); plt.ylabel('Probability death next week', fontsize=ax_title_size)
+    plt.ylim(0, 1)   ### leave room for significance!!!
+
+    rs = ax.spines["right"]; rs.set_visible(False)
+    ts = ax.spines["top"]; ts.set_visible(False)  
+    plt.tight_layout()
+    # prop_above_1st_frame = 
+    plt.savefig(sav_dir + 'DYING CELLS size probability.png')
+    
+        
+
+
+    """ Plot probability cells is dying compared to control population 
+    
+    """
+
+
+    
+
+
+
+
+
+
+
+
+
+
+    """
+        Plot density of ONLY v235 trial
     """    
 
-    week_6_and_above_stable = []; z_6_week_above = []; 
-    min_survive_frames = 6;
-    start_frame = 3
-    end_frame = 10
-    
-    for frame in range(start_frame, end_frame):
+    """ Scale Z to mesh """
+    #m = np.max(input_im, axis=-1)
+    # print('scaling cell Z to mesh')
+    # for idx in range(len(two_thirty_tracked)):
         
-        all_sizes_frame_0, all_z = get_sizes_and_z_cur_frame(tracked_cells_df, frame=frame, use_scaled=1)
-
-        for idx, size in enumerate(all_sizes_frame_0):
-      
-            if len(size) >= min_survive_frames:
-                """ IS THIS DOUBLE COUNTING??? """
-            
-                week_6_and_above_stable.append(size[5:-1])
-                z_6_week_above.append(all_z[idx][5:-1])
-
-
-    week_6_and_above_stable = np.concatenate([np.array(i) for i in week_6_and_above_stable])
-    z_6_week_above = np.concatenate([np.array(i) for i in z_6_week_above])
+    #     cell = two_thirty_tracked.iloc[idx]
     
-    
-
-    probability_curves(sav_dir, week_6_and_above_stable, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range, ax_title_size, leg_size)
-
-
-            
-    """ vs. cells in control condition???
-    
-    
-    
-    """
-            
+    #     x = cell.X
+    #     y = cell.Y
+    #     z = cell.Z
         
         
-   
+    #     ### ENSURE ORDER OF XY IS CORRECT HERE!!!
+    #     scale = mesh_235[int(y), int(x)]
+    
+    #     new_z = z - scale
+        
+    #     ### DEBUG
+    #     #m[int(y), int(x)] = 0
+    #     cell.Z = new_z
+    
+    #     two_thirty_tracked.iloc[idx] = cell
+
+    # neighbors = 10
+    
+    # new_cells_per_frame = [[] for _ in range(len(np.unique(two_thirty_tracked.FRAME)) + 1)]
+    # terminated_cells_per_frame = [[] for _ in range(len(np.unique(two_thirty_tracked.FRAME)) + 1)]
+    # for cell_num in np.unique(two_thirty_tracked.SERIES):
+        
+    #     frames_cur_cell = two_thirty_tracked.iloc[np.where(two_thirty_tracked.SERIES == cell_num)].FRAME
+        
+    #     beginning_frame = np.min(frames_cur_cell)
+    #     if beginning_frame > 0:   # skip the first frame
+    #         new_cells_per_frame[beginning_frame].append(cell_num)
+                    
+    #     term_frame = np.max(frames_cur_cell)
+    #     if term_frame < len(terminated_cells_per_frame) - 1:   # skip the last frame
+    #         terminated_cells_per_frame[term_frame].append(cell_num)
+
+    # plot_density_and_volume(two_thirty_tracked, new_cells_per_frame, terminated_cells_per_frame, scale_xy, scale_z, sav_dir, neighbors, 
+    #                         ax_title_size, leg_size, scaled_vol=0, name='only_235_')
+
+    
+
+
+
+
+
+
+    """
+        Density (histogram of cells) by depth on frame 0 (baseline)
+            using timeseries v235
+    """
+    input_path = list_folder[0]
+    foldername = input_path.split('/')[-2]
+    load_dir_hist = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_6/'
+    
+    tracked_cells_df_FULL = pd.read_pickle(load_dir_hist + 'tracked_cells_df_RAW_pickle.pkl')
     
     
-    """
-        Density (histogram of cells) by depth on frame 0 (baseline) 
-    """
-    plt.rcParams['figure.figsize'] = [12.0, 3.0]
+    """ Scale Z to mesh """
+    #m = np.max(input_im, axis=-1)
+    print('scaling cell Z to mesh')
+    for idx in range(len(tracked_cells_df_FULL)):
+        
+        cell = tracked_cells_df_FULL.iloc[idx]
+    
+        x = cell.X
+        y = cell.Y
+        z = cell.Z
+        
+        
+        ### ENSURE ORDER OF XY IS CORRECT HERE!!!
+        scale = mesh_235[int(y), int(x)]
+    
+        new_z = z - scale
+        
+        ### DEBUG
+        #m[int(y), int(x)] = 0
+        cell.Z = new_z
+    
+        tracked_cells_df_FULL.iloc[idx] = cell
+
+    
+    plt.figure(figsize = (13, 2))
     #plt.rcParams['figure.dpi'] = 140        
-    all_z_frame_0 = tracked_cells_df.loc[tracked_cells_df['FRAME'].isin([0])].Z
+    all_z_frame_0 = tracked_cells_df_FULL.loc[tracked_cells_df_FULL['FRAME'].isin([0])].Z
     
-    plt.figure();
-    plt.hist(all_z_frame_0 * scale_z, bins=50, color='gray')
+    all_z_scaled = all_z_frame_0 * scale_z
+    
+    
+    ### only get cells below 420 um
+    all_z_scaled = [x for x in all_z_scaled if x <= 420]
+    
+    plt.hist(all_z_scaled, bins=40, color='gray')
     plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size)
-    plt.ylabel('Number of cells', fontsize=ax_title_size)
+    plt.ylabel('Num cells', fontsize=ax_title_size)
     ax = plt.gca()
     rs = ax.spines["right"]; rs.set_visible(False)
     ts = ax.spines["top"]; ts.set_visible(False)  
     plt.tight_layout()        
     plt.savefig(sav_dir + 'density along depth.png')
     
-    mpl.rcParams['figure.figsize'] = [8.0, 6.0]   ### restores default size
-    
+    """ Set globally """
+    plt.rc('xtick',labelsize=16)
+    plt.rc('ytick',labelsize=16)
+    ax_title_size = 18
+    leg_size = 14
 
-        
-        
-        
-        
         
     

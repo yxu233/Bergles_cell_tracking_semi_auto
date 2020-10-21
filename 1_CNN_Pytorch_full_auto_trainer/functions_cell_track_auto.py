@@ -18,6 +18,148 @@ from UNet_functions_PYTORCH import *
 import time
 import progressbar
 
+""" Get an image from a dataframe """
+def gen_im_frame_from_array(tracked_cells_df, frame_num, input_im, color=0):
+    truth_im = np.zeros(np.shape(input_im))
+    
+    for idx_truth in np.where(tracked_cells_df.FRAME == frame_num)[0]:
+        if not color:
+            truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = tracked_cells_df.iloc[idx_truth].SERIES 
+        else:
+            rgb = tracked_cells_df.iloc[idx_truth].COLOR
+            if rgb == 'GREEN':
+                truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = 1
+            elif rgb == 'RED':
+                truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = 2
+            elif rgb == 'YELLOW':
+                truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = 3
+
+    
+    return truth_im
+     
+
+""" Get new cells and terminated cells ONLY from a dataframe """
+def gen_im_new_term_from_array(tracked_cells_df, frame_num, input_im, new=0):
+    truth_im = np.zeros(np.shape(input_im))
+    
+    for idx_truth in np.where(tracked_cells_df.FRAME == frame_num)[0]:
+        
+        ### to get only terminated cells
+        if not new and frame_num < np.max(tracked_cells_df.FRAME):  ### EXCLUDING LAST FRAME
+            if tracked_cells_df.iloc[idx_truth + 1].FRAME <= frame_num:   ### MEANS TERMINATED
+                truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = tracked_cells_df.iloc[idx_truth].SERIES 
+        
+        ### get only NEWLY FORMED cells, excluding if on 1st frame
+        elif frame_num > 0:
+            
+            cell = tracked_cells_df.iloc[idx_truth]
+            series = cell.SERIES
+            
+            prev_cell = np.where((tracked_cells_df.FRAME == frame_num - 1) & (tracked_cells_df.SERIES == series))[0]
+            
+
+            
+            if len(prev_cell) == 0:   ### MEANS NEWLY FORMED
+                print(tracked_cells_df.iloc[idx_truth].SERIES )
+                truth_im[tracked_cells_df.iloc[idx_truth].coords[:, 0], tracked_cells_df.iloc[idx_truth].coords[:, 1], tracked_cells_df.iloc[idx_truth].coords[:, 2]] = tracked_cells_df.iloc[idx_truth].SERIES 
+                
+    return truth_im
+    
+
+
+### to load from truth_array
+def gen_im_frame_from_TRUTH_array(truth_array, frame_num, input_im, lowest_z_depth, height_tmp, width_tmp, depth_tmp, scale=0):
+    truth_im = np.zeros(np.shape(input_im))
+    
+    """ SCALE EVERYTHING IF NEEDED """
+    # if scale:
+    #      im_x_size = width_tmp
+    #      im_y_size = height_tmp
+    #      im_z_size = depth_tmp
+         
+    #      x_scale = 1/0.8302662
+    #      y_scale = 1/0.8302662
+    #      z_scale = 1/3
+    #      truth_array.X = truth_array.X * x_scale;
+    #      truth_array.Y = truth_array.Y * y_scale;
+    #      # Normalize to first val 0 indexing
+    #      middle_val = im_x_size / 2;
+    #      truth_array.X = round(truth_array.X + middle_val);
+    #      middle_val = im_y_size / 2;
+    #      truth_array.Y = round(truth_array.Y + middle_val);
+         
+    #      #%% Scale Z
+    #      truth_array.Z = truth_array.Z * z_scale;
+    #      middle_val = im_z_size / 2;
+    #      truth_array.Z = round(truth_array.Z + middle_val);
+         
+    #      #%% Tiger - add row of index
+    #      #indices = 1:length(frame);    
+
+    for idx_truth in np.where(truth_array.FRAME == frame_num)[0]:
+         if idx_truth == 0:
+              continue
+         if truth_array.iloc[idx_truth].Z < lowest_z_depth and truth_array.iloc[idx_truth].Y < height_tmp and truth_array.iloc[idx_truth].X < width_tmp:
+              truth_im[int(truth_array.iloc[idx_truth].Y), int(truth_array.iloc[idx_truth].X), int(truth_array.iloc[idx_truth].Z)] = truth_array.iloc[idx_truth].SERIES
+              
+              
+    return truth_im
+
+     
+     
+     
+     
+   
+""" generate truth from csv """
+def gen_truth_from_csv(frame_num, input_path, filename, input_im, lowest_z_depth, height_tmp, width_tmp, depth_tmp, scale=0, swap=1):
+    truth_array = pd.read_csv(input_path + filename, sep=',')
+    #truth_array = truth_array.sort_values(by=['FRAME'])
+    
+    
+    """ SCALE EVERYTHING IF NEEDED """
+    if scale:
+         im_x_size = height_tmp
+         im_y_size = width_tmp
+         im_z_size = depth_tmp
+         
+         x_scale = 1/0.8302662
+         y_scale = 1/0.8302662
+         z_scale = 1/3
+         truth_array.X = truth_array.X * x_scale;
+         truth_array.Y = truth_array.Y * y_scale;
+         # Normalize to first val 0 indexing
+         middle_val = im_x_size / 2;
+         truth_array.X = round(truth_array.X + middle_val);
+         middle_val = im_y_size / 2;
+         truth_array.Y = round(truth_array.Y + middle_val);
+         
+         #%% Scale Z
+         truth_array.Z = truth_array.Z * z_scale;
+         middle_val = im_z_size / 2;
+         truth_array.Z = round(truth_array.Z + middle_val);
+         
+         #%% Tiger - add row of index
+         #indices = 1:length(frame);    
+    
+    
+    
+    truth_im = np.zeros(np.shape(input_im))
+    
+    for idx_truth in np.where(truth_array.FRAME == frame_num)[0]:
+         
+         if swap:
+              if truth_array.iloc[idx_truth].Z < lowest_z_depth and truth_array.iloc[idx_truth].Y < width_tmp and truth_array.iloc[idx_truth].X < height_tmp:
+                   truth_im[int(truth_array.iloc[idx_truth].Y), int(truth_array.iloc[idx_truth].X), int(truth_array.iloc[idx_truth].Z)] = truth_array.iloc[idx_truth].SERIES 
+                   
+         # else:   ### for MATLAB full auto output
+         #       if truth_array.Z[idx_truth] < lowest_z_depth and truth_array.X[idx_truth] < height_tmp and truth_array.Y[idx_truth] < width_tmp:
+         #            truth_im[int(truth_array.X[idx_truth]) + 1, int(truth_array.Y[idx_truth]) + 1, int(truth_array.Z[idx_truth]) + 1] = truth_array.SERIES[idx_truth]               
+              
+
+    return truth_im, truth_array
+
+
+
 
 """ Crop and prep input to prepare for CNN 
 
@@ -207,6 +349,9 @@ def sort_double_linked(tracked_cells_df, next_centroid, frame_num):
         
         if any((next_centroid == x).all() for x in coords):
               dup_series.append(series)
+              
+    
+              
     return tracked_cells_df, dup_series
 
 
@@ -311,7 +456,7 @@ def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_d
             ... or maybe binary is better    
     """
     
-   # bw_next_seg[bw_next_seg > 0] = 1
+    bw_next_seg[bw_next_seg > 0] = 1
     
     labelled = measure.label(bw_next_seg)
     next_cc = measure.regionprops(labelled)
@@ -333,8 +478,8 @@ def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_d
        
        
        if not np.any(next_seg[coords[:, 0], coords[:, 1], coords[:, 2]] == 250) and len(coords) > min_size:   ### 250 means already has been visited
-            series = np.max(tracked_cells_df.SERIES) + 1        
-
+            series = np.max(tracked_cells_df.SERIES) + 1   
+            
             if debug:
                 print(len(coords))
                 
@@ -344,14 +489,16 @@ def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_d
                 batch_x, crop_im, crop_cur_seg, crop_seed, crop_next_input, crop_next_seg, crop_next_seg_non_bin, box_xyz, box_over = prep_input_for_CNN(cell, next_input, input_im, next_seg,
                                                                                                           cur_seg_LINKED, mean_arr, std_arr, centroid[0], centroid[1], centroid[2], crop_size, z_size,
                                                                                                           height_tmp, width_tmp, depth_tmp, next_bool=next_bool)
-                # plot_max(crop_im, ax=-1)
-                # plot_max(crop_cur_seg, ax=-1)
+                plot_max(crop_im, ax=-1)
+                plot_max(crop_cur_seg, ax=-1)
                 
                 debug_empty[coords[:, 0], coords[:, 1], coords[:, 2]] = debug_empty[coords[:, 0], coords[:, 1], coords[:, 2]] + 1
                 plot_max(debug_empty, ax=-1)
-
-
-        
+                
+                
+                crop_debug, empty, empty, empty = crop_around_centroid_with_pads(debug_empty, int(coords[0][1]), int(coords[0][0]), int(coords[0][2]), crop_size/2, z_size, height_tmp, width_tmp, depth_tmp)      
+                
+            
             """ SKIP IF HAVE TO MOVE THE CROPPING BOX IN THE BOTTOM Z-dimension """
             # if int(centroid[2]) + z_size/2 >= lowest_z_depth:
             #       continue                        
@@ -384,28 +531,7 @@ def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_d
     print('num new cells: ' + str(num_new))
                     
     return tracked_cells_df, truth_output_df, truth_next_im, truth_array
-
-
-
-# ### find series that matched current coords
-# checker = coords[10]
-# cur_frame_cells = np.where(tracked_cells_df.FRAME == frame_num)[0]
-# for idx in cur_frame_cells:
-    
-#     cell = tracked_cells_df.iloc[idx]
-#     coor = cell.coords
-    
-#     if np.any((coords[:, None] == coor).all(-1).any(-1)):
-
-#     #if coords == coor:      
-        
-#     #if checker.tolist() in coor:
-
-#         zzz
-        
-        
-    
-    
+   
     
     
     
@@ -580,6 +706,8 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
         
         cur_cell_coords = getattr(cell, 'coords')
        
+        # if series == 763:
+        #     zzz
         #print(series)             
         
         ### DEBUG: when debugging get next cell too and plot it
@@ -645,10 +773,10 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
         """
         if unassociated_bool:
             if len(next_coords) > 0:
-                print('unassociated, check size'); print(len(cur_cell_coords)); print(len(next_coords));
-                #if len(cur_cell_coords) < 500 and len(next_coords) > 1000:
-                if (len(cur_cell_coords) > 300 or len(next_coords)  > 300) and len(next_coords) > len(cur_cell_coords) * 2:
-                    not_changed += 1
+                # print('unassociated, check size'); print(len(cur_cell_coords)); print(len(next_coords));
+                # #if len(cur_cell_coords) < 500 and len(next_coords) > 1000:
+                # if (len(cur_cell_coords) > 500 or len(next_coords)  > 800) and len(next_coords) > len(cur_cell_coords) * 2:
+                #     not_changed += 1
                     
                     # plot_max(crop_im, ax=-1)
                     # plot_max(crop_cur_seg, ax=-1)
@@ -663,9 +791,10 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                     # crop_seg_out, box_xyz, box_over, boundaries_crop  = crop_around_centroid_with_pads(im, y, x, z, crop_size/2, z_size, height_tmp, width_tmp, depth_tmp)       
                     # plot_max(crop_seg_out, ax=-1)                    
                         
-                    continue;
-                    #next_coords = []
-                    print('skip since size difference is too big to be certain')
+                #     continue;
+                #     #next_coords = []
+                     #print('skip since size difference is too big to be certain')
+                     a = 1
         
 
         """ Change next coord only if something close was found
@@ -698,26 +827,35 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                     
                     """
                 found = 0
-                for row_tup_check in tracked_cells_df.loc[tracked_locs_in_crop].itertuples():
+                # while not found:
+                #     empty, empty, empty, empty, tracked_locs_in_crop = predict_next_xyz(tracked_cells_df, x, y, z, crop_size + crop_size * scale, z_size + z_size * scale, frame_num)
                     
+                #     scale += 0.25 
+ 
+                for row_tup_check in tracked_cells_df.loc[tracked_locs_in_crop].itertuples():
+                
                     cell_check_cur = row_tup_check    
                     series_check = getattr(cell_check_cur, 'SERIES')
                     #                    
                     next_cell_check = tracked_cells_df.loc[tracked_cells_df['FRAME'].isin([frame_num]) & tracked_cells_df['SERIES'].isin([series_check])]
                     index_next_c = next_cell_check.index
                                   
-                    ### SKIP BECAUSE DONT WANT TO TEST OWN CELL!!!
+                    """ SKIP BECAUSE if own cell is the closest, then do nothing!"""
                     ### i.e. upon re-testing, will come here often
                     if series == series_check:
                         if len(next_cell_check.coords) > 0:
                             x_c = int(next_cell_check.X); y_c = int(next_cell_check.Y); z_c = int(next_cell_check.Z); 
                             if len(np.where((next_coords == (x_c, y_c, z_c)).all(axis=1))[0]) > 0:
                                 print('matched self only')
-                        continue;
+                                
+                        found = 1
+                        break;
                     
                     
                     """ If matched a different cell """
                     if len(next_cell_check.coords) > 0:
+                        
+                       
                         
                         ### check if matched
                         x_c = int(next_cell_check.X); y_c = int(next_cell_check.Y); z_c = int(next_cell_check.Z); 
@@ -725,8 +863,20 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                         
                         ### find if row matches row in next_coords
                         if len(np.where((next_coords == (x_c, y_c, z_c)).all(axis=1))[0]) > 0:
+                            
+                            
+                            #print(series_check)
                             #print('matched')
                             found += 1
+                            # if series == 930:
+                            #     zzz
+                            
+                            
+                            ### HACK: rare case where cells on first frame will double hit 2 cells very near to each other. In this case, just assess one of them for now???
+                            if found == 2:
+                                break;
+                            
+
                                                         
                             """ Predict where this cell is going and see which is closer """                                    
                             x_c_cur = getattr(cell_check_cur, 'X'); y_c_cur = getattr(cell_check_cur, 'Y'); z_c_cur = getattr(cell_check_cur, 'Z'); 
@@ -801,6 +951,7 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                     
                 if found == 0:
                     not_assoc += 1
+                    print('NOT FOUND')
                     #print(not_assoc)
                     """ change the pointer of the old cell OR ADD CELL  
                                 ***also must update "next_seg"
@@ -809,6 +960,8 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                     #print('huh')
                     #zzz
                     
+        
+ 
         """   CASE #3: none matched, set as eliminated and remove cell_next """
                                 
         if len(next_coords) == 0 or term_bool:

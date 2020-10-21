@@ -41,7 +41,7 @@ min_size = 10
 both = 0
 
 
-MATLAB = 0
+MATLAB = 1
 
 scale_xy = 0.83
 scale_z = 3
@@ -82,7 +82,7 @@ net_two_tested = 0;
     
 for input_path in list_folder:
     foldername = input_path.split('/')[-2]
-    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762'
+    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_6'
 
 
     """ For testing ILASTIK images """
@@ -124,7 +124,7 @@ for input_path in list_folder:
          #truth_name = 'a1901128-r670_syGlass_20x.csv';    # gets hazy at the end
          truth_name = '680_syGlass_10x.csv'     
 
-         truth_name = '235_syGlass_10x.csv';    ### CUPRIZONE
+         #truth_name = '235_syGlass_10x.csv';    ### CUPRIZONE
 
          # truth_name = '264_syGlass_10x.csv'          
          
@@ -150,6 +150,7 @@ for input_path in list_folder:
     
     ### (2) remove everything only on a single frame, except for very first frame
     singles = []
+    deleted = 0
     for cell_num in np.unique(tracked_cells_df.SERIES):
           
                track_length_SEG = len(np.unique(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME))         
@@ -157,18 +158,20 @@ for input_path in list_folder:
                """ excluding if that timeframe is the very first one OR the very last one"""
         
                if len(np.where(np.asarray(track_length_SEG) == 1)[0]) and not np.any(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME == 0) and not np.any(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME == np.max(tracked_cells_df.FRAME)):
-               
-               #if len(np.where(np.asarray(track_length_SEG) == 1)[0]) and not np.any(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME == np.max(tracked_cells_df.FRAME)):
                            singles.append(cell_num)
                            tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[np.where(tracked_cells_df.SERIES == cell_num)])
                            #print(cell_num)
+                           
+                           deleted += 1
                            continue;
-
-    
+                           
+                           
+                           
     """ (3) ALSO clean up bottom of image so that no new cell can appear in the last 20 stacks
                 also maybe remove cells on edges as well???
     """
     num_edges = 0;
+    num_bottom = 0;
     
     for cell_num in np.unique(tracked_cells_df.SERIES):
         idx = np.where(tracked_cells_df.SERIES == cell_num)[0]
@@ -178,6 +181,9 @@ for input_path in list_folder:
 
         if np.any(Z_cur_cell > lowest_z_depth - 20):
             tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[idx])
+            
+            num_bottom += 1
+            
         elif np.any(X_cur_cell > width_tmp - exclude_side_px) or np.any(X_cur_cell < exclude_side_px):
             tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[idx])
             num_edges += 1
@@ -189,8 +195,13 @@ for input_path in list_folder:
             num_edges += 1
                 
 
-    """ Also remove by min_size """
-    num_small = 0; real_saved = 0;
+    """ Also remove by min_size 
+    
+    
+                ***ONLY IF SMALL WITHIN FIRST FEW FRAMES???
+    
+    """
+    num_small = 0; real_saved = 0; upper_thresh = 500;   small_start = 0;
     for cell_num in np.unique(tracked_cells_df.SERIES):
                 
         idx = np.where(tracked_cells_df.SERIES == cell_num)
@@ -198,11 +209,16 @@ for input_path in list_folder:
         small_bool = 0;
         for iter_idx, cell_obj in enumerate(tracked_cells_df.iloc[idx].coords):
             if len(cell_obj) < min_size:  
-                
                 small_bool = 1
+
+
+            ### if start is super small, then also delete
+            if len(cell_obj) < 200 and iter_idx == 0:  
+                small_bool = 1
+                small_start += 1
             
-            ### exception, spare if large cell at any point
-            if len(cell_obj) > upper_thresh:  
+            ### exception, spare if large cell within first 2 frames
+            if len(cell_obj) > upper_thresh and iter_idx < 1:  
                 small_bool = 0
                 real_saved += 1
                 break;
@@ -210,6 +226,35 @@ for input_path in list_folder:
         if small_bool:
             tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[idx])   ### DROPS ENTIRE CELL SERIES
             num_small += 1
+
+                
+    """  Save images in output """
+    input_name = examples[0]['input']
+    filename = input_name.split('/')[-1]
+    filename = filename.split('.')[0:-1]
+    filename = '.'.join(filename)
+    
+    for frame_num, im_dict in enumerate(examples):
+         
+            output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im)
+            im = convert_matrix_to_multipage_tiff(output_frame)
+            imsave(sav_dir + filename + '_' + str(frame_num) + '_output_CLEANED.tif', im)
+         
+         
+              # output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, color=1)
+              # im = convert_matrix_to_multipage_tiff(output_frame)
+              # imsave(sav_dir + filename + '_' + str(frame_num) + '_output_COLOR.tif', im)
+    
+
+            # output_frame = gen_im_new_term_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, new=0)
+            # im = convert_matrix_to_multipage_tiff(output_frame)
+            # imsave(sav_dir + filename + '_' + str(frame_num) + '_output_TERMINATED.tif', im)
+
+
+            output_frame = gen_im_new_term_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, new=1)
+            im = convert_matrix_to_multipage_tiff(output_frame)
+            imsave(sav_dir + filename + '_' + str(frame_num) + '_output_NEW.tif', im)
+         
       
                         
       
