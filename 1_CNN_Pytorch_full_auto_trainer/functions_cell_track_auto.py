@@ -773,7 +773,7 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
         """
         if unassociated_bool:
             if len(next_coords) > 0:
-                print('unassociated, check size'); print(len(cur_cell_coords)); print(len(next_coords));
+                #print('unassociated, check size'); print(len(cur_cell_coords)); print(len(next_coords));
                 # #if len(cur_cell_coords) < 500 and len(next_coords) > 1000:
                 if (len(cur_cell_coords) > 500 or len(next_coords)  > 800) and len(next_coords) > len(cur_cell_coords) * 2:
                     not_changed += 1

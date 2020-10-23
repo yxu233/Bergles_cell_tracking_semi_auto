@@ -402,20 +402,20 @@ for input_path in list_folder:
                           #next_coords = []
                           #print('unassociated, check size'); print(len(cell.coords)); print(len(cc_seg_train[0].coords));  print(len(prior_cc[0]['coords']))
                               
-                            plot_max(crop_im, ax=-1)
-                            plot_max(crop_cur_seg, ax=-1)
-                            plot_max(crop_next_input, ax=-1)
+                            # plot_max(crop_im, ax=-1)
+                            # plot_max(crop_cur_seg, ax=-1)
+                            # plot_max(crop_next_input, ax=-1)
                          
-                            crop_next_seg_non_bin[crop_next_seg_non_bin == 250] = 1
-                            crop_next_seg_non_bin[crop_next_seg_non_bin == 255] = 2
+                            # crop_next_seg_non_bin[crop_next_seg_non_bin == 250] = 1
+                            # crop_next_seg_non_bin[crop_next_seg_non_bin == 255] = 2
                           
-                            plot_max(crop_next_seg_non_bin, ax=-1)
-                            plot_max(seg_train, ax=-1)
+                            # plot_max(crop_next_seg_non_bin, ax=-1)
+                            # plot_max(seg_train, ax=-1)
                            
                             #plot_max(prior_seg_train, ax=-1)
                               
                             cc_seg_train = []
-                            print('yo, initial smaller than next by a lot, dont use')
+                            #print('yo, initial smaller than next by a lot, dont use')
         
        
                      """ Find coords of identified cell and scale back up, later find which ones in next_seg have NOT been already identified
@@ -1221,5 +1221,25 @@ for input_path in list_folder:
             
             
             
+            
+
+    """ Set globally """
+    plt.rc('xtick',labelsize=16)
+    plt.rc('ytick',labelsize=16)
+    ax_title_size = 18
+    leg_size = 14
+
+    """ plot timeframes """
+    norm_tots_ALL, norm_new_ALL = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_lower=0, depth_lim_upper=120, ax_title_size=ax_title_size, leg_size=leg_size)
+    
+    """ 
+        Also split by depths
+    """
+    norm_tots_32, norm_new_32 = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_0-32', depth_lim_lower=0, depth_lim_upper=32, only_one_plot=1, ax_title_size=ax_title_size, leg_size=leg_size)
+    norm_tots_65, norm_new_65 = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_33-65', depth_lim_lower=33, depth_lim_upper=65, only_one_plot=1, ax_title_size=ax_title_size, leg_size=leg_size)
+    norm_tots_99, norm_new_99 = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_66-99', depth_lim_lower=66, depth_lim_upper=99, only_one_plot=1, ax_title_size=ax_title_size, leg_size=leg_size)
+    norm_tots_132, norm_new_132 = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_100-132', depth_lim_lower=100, depth_lim_upper=132, only_one_plot=1, ax_title_size=ax_title_size, leg_size=leg_size)
+    norm_tots_165, norm_new_165 = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_133-165', depth_lim_lower=133, depth_lim_upper=165, only_one_plot=1, ax_title_size=ax_title_size, leg_size=leg_size)
+                
             
          
