@@ -773,10 +773,10 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
         """
         if unassociated_bool:
             if len(next_coords) > 0:
-                # print('unassociated, check size'); print(len(cur_cell_coords)); print(len(next_coords));
+                print('unassociated, check size'); print(len(cur_cell_coords)); print(len(next_coords));
                 # #if len(cur_cell_coords) < 500 and len(next_coords) > 1000:
-                # if (len(cur_cell_coords) > 500 or len(next_coords)  > 800) and len(next_coords) > len(cur_cell_coords) * 2:
-                #     not_changed += 1
+                if (len(cur_cell_coords) > 500 or len(next_coords)  > 800) and len(next_coords) > len(cur_cell_coords) * 2:
+                    not_changed += 1
                     
                     # plot_max(crop_im, ax=-1)
                     # plot_max(crop_cur_seg, ax=-1)
@@ -790,11 +790,13 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                     # im[next_coords[:, 0], next_coords[:, 1], next_coords[:, 2]] = 3
                     # crop_seg_out, box_xyz, box_over, boundaries_crop  = crop_around_centroid_with_pads(im, y, x, z, crop_size/2, z_size, height_tmp, width_tmp, depth_tmp)       
                     # plot_max(crop_seg_out, ax=-1)                    
-                        
-                #     continue;
-                #     #next_coords = []
-                     #print('skip since size difference is too big to be certain')
-                     a = 1
+                    
+                    
+                    #print('skip since size difference is too big to be certain')
+                    continue;
+                    #next_coords = []
+                    
+                    #a = 1
         
 
         """ Change next coord only if something close was found

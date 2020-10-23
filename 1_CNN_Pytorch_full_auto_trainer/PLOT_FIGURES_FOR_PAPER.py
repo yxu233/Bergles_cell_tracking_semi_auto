@@ -48,7 +48,7 @@ scale_z = 3
 truth = 1
 
 
-exclude_side_px = 10
+exclude_side_px = 40
 
 min_size = 100;
 upper_thresh = 800;
@@ -201,7 +201,7 @@ for input_path in list_folder:
                 ***ONLY IF SMALL WITHIN FIRST FEW FRAMES???
     
     """
-    num_small = 0; real_saved = 0; upper_thresh = 500;   small_start = 0;
+    num_small = 0; real_saved = 0; upper_thresh = 500;  lower_thresh = 400; small_start = 0;
     for cell_num in np.unique(tracked_cells_df.SERIES):
                 
         idx = np.where(tracked_cells_df.SERIES == cell_num)
@@ -213,11 +213,11 @@ for input_path in list_folder:
 
 
             ### if start is super small, then also delete
-            if len(cell_obj) < 200 and iter_idx == 0:  
+            if len(cell_obj) < lower_thresh and iter_idx == 0:  
                 small_bool = 1
                 small_start += 1
             
-            ### exception, spare if large cell within first 2 frames
+            ### exception, spare if large cell within first frame
             if len(cell_obj) > upper_thresh and iter_idx < 1:  
                 small_bool = 0
                 real_saved += 1
@@ -226,6 +226,7 @@ for input_path in list_folder:
         if small_bool:
             tracked_cells_df = tracked_cells_df.drop(tracked_cells_df.index[idx])   ### DROPS ENTIRE CELL SERIES
             num_small += 1
+
 
                 
     """  Save images in output """
@@ -254,9 +255,7 @@ for input_path in list_folder:
             output_frame = gen_im_new_term_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, new=1)
             im = convert_matrix_to_multipage_tiff(output_frame)
             imsave(sav_dir + filename + '_' + str(frame_num) + '_output_NEW.tif', im)
-         
-      
-                        
+            
       
         
       
@@ -457,171 +456,171 @@ for input_path in list_folder:
 
 
 
-    """ SCALE CELL COORDS to true volume 
-    """
-    tmp = np.zeros(np.shape(input_im))
-    tracked_cells_df['vol_rescaled'] = np.nan
-    print('scaling cell coords')
-    for idx in range(len(tracked_cells_df)):
+    # """ SCALE CELL COORDS to true volume 
+    # """
+    # tmp = np.zeros(np.shape(input_im))
+    # tracked_cells_df['vol_rescaled'] = np.nan
+    # print('scaling cell coords')
+    # for idx in range(len(tracked_cells_df)):
         
-        cell = tracked_cells_df.iloc[idx]
+    #     cell = tracked_cells_df.iloc[idx]
         
-        coords = cell.coords   
-        tmp[coords[:, 0], coords[:, 1], coords[:, 2]] = 1
+    #     coords = cell.coords   
+    #     tmp[coords[:, 0], coords[:, 1], coords[:, 2]] = 1
         
-        crop, box_xyz, box_over, boundaries_crop = crop_around_centroid_with_pads(tmp, cell.X, cell.Y, cell.Z, 50/2, z_size, height_tmp, width_tmp, depth_tmp)                                                      
+    #     crop, box_xyz, box_over, boundaries_crop = crop_around_centroid_with_pads(tmp, cell.X, cell.Y, cell.Z, 50/2, z_size, height_tmp, width_tmp, depth_tmp)                                                      
    
-        crop_rescale = resize(crop, (crop.shape[0] * scale_xy, crop.shape[1] * scale_xy, crop.shape[2] * scale_z), order=0, anti_aliasing=True)
+    #     crop_rescale = resize(crop, (crop.shape[0] * scale_xy, crop.shape[1] * scale_xy, crop.shape[2] * scale_z), order=0, anti_aliasing=True)
         
-        label = measure.label(crop_rescale)       
-        cc = measure.regionprops(label)
-        new_coords = cc[0]['coords']
-        tracked_cells_df.iloc[idx, tracked_cells_df.columns.get_loc('vol_rescaled')] = len(new_coords)
+    #     label = measure.label(crop_rescale)       
+    #     cc = measure.regionprops(label)
+    #     new_coords = cc[0]['coords']
+    #     tracked_cells_df.iloc[idx, tracked_cells_df.columns.get_loc('vol_rescaled')] = len(new_coords)
    
-        tmp[tmp > 0] = 0  # reset
+    #    tmp[tmp > 0] = 0  # reset
         
         # import napari
         # with napari.gui_qt():
         #     viewer = napari.view_image(crop)
             
     
-    """ 
-        Also do density analysis of where new cells pop-up???
+    # """ 
+    #     Also do density analysis of where new cells pop-up???
     
-    """        
-    analyze = 1;    
-    if analyze == 1:
-        neighbors = 10
+    # """        
+    # analyze = 1;    
+    # if analyze == 1:
+    #     neighbors = 10
         
-        new_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)))]
-        terminated_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)))]
-        for cell_num in np.unique(tracked_cells_df.SERIES):
+    #     new_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)))]
+    #     terminated_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)))]
+    #     for cell_num in np.unique(tracked_cells_df.SERIES):
             
-            frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
+    #         frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
             
-            beginning_frame = np.min(frames_cur_cell)
-            if beginning_frame > 0:   # skip the first frame
-                new_cells_per_frame[beginning_frame].append(cell_num)
+    #         beginning_frame = np.min(frames_cur_cell)
+    #         if beginning_frame > 0:   # skip the first frame
+    #             new_cells_per_frame[beginning_frame].append(cell_num)
                         
-            term_frame = np.max(frames_cur_cell)
-            if term_frame < len(terminated_cells_per_frame) - 1:   # skip the last frame
-                terminated_cells_per_frame[term_frame].append(cell_num)
+    #         term_frame = np.max(frames_cur_cell)
+    #         if term_frame < len(terminated_cells_per_frame) - 1:   # skip the last frame
+    #             terminated_cells_per_frame[term_frame].append(cell_num)
             
     
-        ### loop through each frame and all the new cells and find "i.... i + n" nearest neighbors        
-        """ Plt density of NEW cells vs. depth """
-        scaled_vol = 1
-        plot_density_and_volume(tracked_cells_df, new_cells_per_frame, terminated_cells_per_frame, scale_xy, scale_z, sav_dir, neighbors, ax_title_size, leg_size, scaled_vol=scaled_vol)
+    #     ### loop through each frame and all the new cells and find "i.... i + n" nearest neighbors        
+    #     """ Plt density of NEW cells vs. depth """
+    #     scaled_vol = 1
+    #     plot_density_and_volume(tracked_cells_df, new_cells_per_frame, terminated_cells_per_frame, scale_xy, scale_z, sav_dir, neighbors, ax_title_size, leg_size, scaled_vol=scaled_vol)
     
             
-        """ 
-            Plot size decay for each frame STARTING from recovery
-        """     
-        # plt.close('all')
-        # for frame in range(len(np.unique(tracked_cells_df.FRAME))):
-        #     all_sizes_cur_frame, all_z = get_sizes_and_z_cur_frame(tracked_cells_df, frame, use_scaled=1)
+    #     """ 
+    #         Plot size decay for each frame STARTING from recovery
+    #     """     
+    #     # plt.close('all')
+    #     # for frame in range(len(np.unique(tracked_cells_df.FRAME))):
+    #     #     all_sizes_cur_frame, all_z = get_sizes_and_z_cur_frame(tracked_cells_df, frame, use_scaled=1)
                     
-        #     plt.figure();
-        #     for idx in range(len(all_sizes_cur_frame)):
+    #     #     plt.figure();
+    #     #     for idx in range(len(all_sizes_cur_frame)):
                 
-        #         size = all_sizes_cur_frame[idx]
-        #         z = all_z[idx]
-        #         if len(size) == len(np.unique(tracked_cells_df.FRAME)) - frame:
-        #             plt.plot(z, size, linewidth=1)
-        #             plt.ylim(0, 10000)   
-        #             plt.tight_layout()
+    #     #         size = all_sizes_cur_frame[idx]
+    #     #         z = all_z[idx]
+    #     #         if len(size) == len(np.unique(tracked_cells_df.FRAME)) - frame:
+    #     #             plt.plot(z, size, linewidth=1)
+    #     #             plt.ylim(0, 10000)   
+    #     #             plt.tight_layout()
                 
          
-        """ 
-            Plot size decay for each frame STARTING from recovery
-        """     
-        plt.close('all'); 
-        plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=0, y_lim=8000, ax_title_size=ax_title_size)
+    #     """ 
+    #         Plot size decay for each frame STARTING from recovery
+    #     """     
+    #     plt.close('all'); 
+    #     plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=0, y_lim=8000, ax_title_size=ax_title_size)
     
     
     
-        """ Plot scatters of each type:
-                - control/baseline day 1 ==> frame 0
-                        ***cuprizone ==> frame 4
-                - 1 week after cupr
-                - 2 weeks after cupr
-                - 3 weeks after cupr 
+    #     """ Plot scatters of each type:
+    #             - control/baseline day 1 ==> frame 0
+    #                     ***cuprizone ==> frame 4
+    #             - 1 week after cupr
+    #             - 2 weeks after cupr
+    #             - 3 weeks after cupr 
             
-            """
-        first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
+    #         """
+    #     first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
     
         
         
-        """ Predict age based on size??? 
+    #     """ Predict age based on size??? 
         
-                what is probability that cell is 1 week old P(B) given that it is size X P(A) == P(B|A) == P(A and B) / P(A)
-                P(A) == prob cell is ABOVE size X
-                P(B) == prob cell 1 week old
-                P(A and B) == prob cell is at least 1 week old AND above size X
-        """
-        """ DOUBLE CHECK THIS PROBABILITY CALCULATION!!!"""
+    #             what is probability that cell is 1 week old P(B) given that it is size X P(A) == P(B|A) == P(A and B) / P(A)
+    #             P(A) == prob cell is ABOVE size X
+    #             P(B) == prob cell 1 week old
+    #             P(A and B) == prob cell is at least 1 week old AND above size X
+    #     """
+    #     """ DOUBLE CHECK THIS PROBABILITY CALCULATION!!!"""
         
-        upper_r = 8000
-        lower_r = 0
-        step = 100
-        thresh_range = [lower_r, upper_r, step]
-        probability_curves(sav_dir, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range, ax_title_size, leg_size)
+    #     upper_r = 8000
+    #     lower_r = 0
+    #     step = 100
+    #     thresh_range = [lower_r, upper_r, step]
+    #     probability_curves(sav_dir, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range, ax_title_size, leg_size)
                     
-        """ vs. cells in control condition???
+    #     """ vs. cells in control condition???
         
         
         
-        """
+    #     """
                 
             
             
        
         
         
-        """
-            Density (histogram of cells) by depth on frame 0 (baseline) 
-        """
-        plt.rcParams['figure.figsize'] = [12.0, 2.0]
-        #plt.rcParams['figure.dpi'] = 140        
-        all_z_frame_0 = tracked_cells_df.loc[tracked_cells_df['FRAME'].isin([0])].Z
+    #     """
+    #         Density (histogram of cells) by depth on frame 0 (baseline) 
+    #     """
+    #     plt.rcParams['figure.figsize'] = [12.0, 2.0]
+    #     #plt.rcParams['figure.dpi'] = 140        
+    #     all_z_frame_0 = tracked_cells_df.loc[tracked_cells_df['FRAME'].isin([0])].Z
         
-        plt.figure();
-        plt.hist(all_z_frame_0 * scale_z, bins=50, color='gray')
-        plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size)
-        plt.ylabel('Number of cells', fontsize=ax_title_size)
-        ax = plt.gca()
-        rs = ax.spines["right"]; rs.set_visible(False)
-        ts = ax.spines["top"]; ts.set_visible(False)  
-        plt.tight_layout()        
-        plt.savefig(sav_dir + 'density along depth.png')
+    #     plt.figure();
+    #     plt.hist(all_z_frame_0 * scale_z, bins=50, color='gray')
+    #     plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size)
+    #     plt.ylabel('Number of cells', fontsize=ax_title_size)
+    #     ax = plt.gca()
+    #     rs = ax.spines["right"]; rs.set_visible(False)
+    #     ts = ax.spines["top"]; ts.set_visible(False)  
+    #     plt.tight_layout()        
+    #     plt.savefig(sav_dir + 'density along depth.png')
         
-        mpl.rcParams['figure.figsize'] = [8.0, 6.0]   ### restores default size
+    #     mpl.rcParams['figure.figsize'] = [8.0, 6.0]   ### restores default size
         
 
-        """
-            Test a good looking cell and introduce noise:
-                    - degrees of warping
-                    - degrees of noise
-                    - degrees of intensity changes
+    #     """
+    #         Test a good looking cell and introduce noise:
+    #                 - degrees of warping
+    #                 - degrees of noise
+    #                 - degrees of intensity changes
                     
-                    - random translations of the second image???
+    #                 - random translations of the second image???
                     
-            ALSO TRAIN NEURAL NETWORK WITH THESE PERTURBATIONS???
-                - translate the second image randomly???
+    #         ALSO TRAIN NEURAL NETWORK WITH THESE PERTURBATIONS???
+    #             - translate the second image randomly???
             
         
-        """
+    #     """
             
         
         
         
         
-        """ 
+    #     """ 
         
-            Also get fluorescence values??? ==> probably correlate strongly with size??? 
+    #         Also get fluorescence values??? ==> probably correlate strongly with size??? 
         
         
-        """
+    #     """
         
         
             

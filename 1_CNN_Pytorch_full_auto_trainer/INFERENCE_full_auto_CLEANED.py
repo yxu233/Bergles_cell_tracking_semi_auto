@@ -170,7 +170,7 @@ net_two_tested = 0;
     
 for input_path in list_folder:
     foldername = input_path.split('/')[-2]
-    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_6'
+    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_7'
 
 
     """ For testing ILASTIK images """
@@ -1049,15 +1049,42 @@ for input_path in list_folder:
             
         ### Mark all new cells on SINGLE FRAME as 'YELLOW'
         if len(color_arr) == 1:
-            tracked_cells_df["COLOR"][index] = 'YELLOW'
+            tracked_cells_df["COLOR"][index] = 'BLUE'
             num_new_color += 1
             #print(color_arr)
-     
-
+            
+            
+    
     tracked_cells_df.COLOR[tracked_cells_df['COLOR'] == 'YELLOW'] = 'Yellow' 
     tracked_cells_df.COLOR[tracked_cells_df['COLOR'] == 'RED'] = 'Red' 
 
+
     
+    """ Get new cells and terminated cells ONLY from a dataframe """
+    """ Mark all new cells as BLUE """
+    
+    
+    ### CANT DO THIS BECAUSE EVERY CELL MUST HAVE ONLY 1 color
+    # for frame_num, im_dict in enumerate(examples):
+    #     for idx_truth in np.where(tracked_cells_df.FRAME == frame_num)[0]:
+            
+    #         ### get only NEWLY FORMED cells, excluding if on 1st frame
+    #         if frame_num > 0:
+    #             cell = tracked_cells_df.iloc[idx_truth]
+    #             series = cell.SERIES
+                
+    #             prev_cell = np.where((tracked_cells_df.FRAME == frame_num - 1) & (tracked_cells_df.SERIES == series))[0]
+
+                
+    #             if len(prev_cell) == 0:   ### MEANS NEWLY FORMED
+    #                 #print(tracked_cells_df.iloc[idx_truth].SERIES)
+    #                 print(frame_num)
+    #                 zzz
+                    
+
+    
+    
+        
 
     ### (4) re-name X and Y columns
     tracked_cells_df = tracked_cells_df.rename(columns={'X': 'Y', 'Y': 'X'})
@@ -1125,7 +1152,7 @@ for input_path in list_folder:
                 ***ONLY IF SMALL WITHIN FIRST FEW FRAMES???
     
     """
-    num_small = 0; real_saved = 0; upper_thresh = 500;   small_start = 0;
+    num_small = 0; real_saved = 0; upper_thresh = 500;  lower_thresh = 400; small_start = 0;
     for cell_num in np.unique(tracked_cells_df.SERIES):
                 
         idx = np.where(tracked_cells_df.SERIES == cell_num)
@@ -1137,11 +1164,11 @@ for input_path in list_folder:
 
 
             ### if start is super small, then also delete
-            if len(cell_obj) < 200 and iter_idx == 0:  
+            if len(cell_obj) < lower_thresh and iter_idx == 0:  
                 small_bool = 1
                 small_start += 1
             
-            ### exception, spare if large cell within first 2 frames
+            ### exception, spare if large cell within first frame
             if len(cell_obj) > upper_thresh and iter_idx < 1:  
                 small_bool = 0
                 real_saved += 1
@@ -1182,8 +1209,14 @@ for input_path in list_folder:
             
             
             
+    """ Drop unsaveable stuff and re-order the axis"""
+    tracked_cells_df = tracked_cells_df.drop(['coords', 'visited'], axis=1)
+   
+    cols = ['SERIES', 'COLOR', 'FRAME', 'X', 'Y', 'Z']
+           
+    tracked_cells_df = tracked_cells_df[cols]
             
-            
+    tracked_cells_df.to_csv(sav_dir + 'tracked_cells_df_clean.csv', index=False)            
             
             
             
