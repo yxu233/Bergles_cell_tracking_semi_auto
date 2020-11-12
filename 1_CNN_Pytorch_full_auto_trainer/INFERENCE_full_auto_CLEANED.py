@@ -1159,12 +1159,16 @@ for input_path in list_folder:
         all_lengths = []
         small_bool = 0;
         for iter_idx, cell_obj in enumerate(tracked_cells_df.iloc[idx].coords):
+            
+            
+            start_frame = np.asarray(tracked_cells_df.iloc[idx].FRAME)[0]
+            
             if len(cell_obj) < min_size:  
                 small_bool = 1
 
 
             ### if start is super small, then also delete
-            if len(cell_obj) < lower_thresh and iter_idx == 0:  
+            if len(cell_obj) < lower_thresh and iter_idx == 0 and start_frame != 0:  
                 small_bool = 1
                 small_start += 1
             
@@ -1226,6 +1230,7 @@ for input_path in list_folder:
     """ Set globally """
     plt.rc('xtick',labelsize=16)
     plt.rc('ytick',labelsize=16)
+    plt.rcParams['figure.dpi'] = 300
     ax_title_size = 18
     leg_size = 14
 

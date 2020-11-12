@@ -394,7 +394,7 @@ def plot_cost_fun(plot_cost, plot_cost_val, mov_avg_loss=None, plot_cost_val_NO=
      
 """ Plots any metric with moving average
 """
-def plot_metric_fun(plot_jaccard, plot_jaccard_val=False, class_name='', metric_name='Jaccard', plot_num=30, location='upper left'):
+def plot_metric_fun(plot_jaccard, plot_jaccard_val=False, class_name='', metric_name='Jaccard', plot_num=30, location='upper left', leg_size=14):
       
      avg_window_size = 40
  
@@ -424,7 +424,7 @@ def plot_metric_fun(plot_jaccard, plot_jaccard_val=False, class_name='', metric_
          plt.plot(mov_avg_jacc_val, color='tab:orange');
 
      plt.ylabel(metric_name); plt.xlabel('Epochs');            
-     plt.legend(loc=location);    #plt.pause(0.05)
+     plt.legend(loc=location, fontsize=leg_size);    #plt.pause(0.05)
      
      ax = plt.gca()
      rs = ax.spines["right"]; rs.set_visible(False)

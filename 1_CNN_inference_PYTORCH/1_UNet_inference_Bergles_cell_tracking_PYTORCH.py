@@ -206,6 +206,7 @@ for input_path in list_folder:
          with torch.set_grad_enabled(False):  # saves GPU RAM            
             input_name = examples[i]['input']            
             input_im = open_image_sequence_to_3D(input_name, width_max='default', height_max='default', depth='default')
+
    
             """ Analyze each block with offset in all directions """
             
@@ -215,6 +216,8 @@ for input_path in list_folder:
             print('Starting inference on volume: ' + str(i) + ' of total: ' + str(len(examples)))
             #plot_max(input_im)
             
+
+
             segmentation = UNet_inference_by_subparts_PYTORCH(unet, device, input_im, overlap_percent, quad_size=input_size, quad_depth=depth,
                                                       mean_arr=mean_arr, std_arr=std_arr, num_truth_class=num_truth_class,
                                                       skip_top=1)

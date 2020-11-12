@@ -82,7 +82,7 @@ net_two_tested = 0;
     
 for input_path in list_folder:
     foldername = input_path.split('/')[-2]
-    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_6'
+    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_7'
 
 
     """ For testing ILASTIK images """
@@ -211,9 +211,10 @@ for input_path in list_folder:
             if len(cell_obj) < min_size:  
                 small_bool = 1
 
-
+            start_frame = np.asarray(tracked_cells_df.iloc[idx].FRAME)[0]
+            
             ### if start is super small, then also delete
-            if len(cell_obj) < lower_thresh and iter_idx == 0:  
+            if len(cell_obj) < lower_thresh and iter_idx == 0 and start_frame != 0:  
                 small_bool = 1
                 small_start += 1
             
@@ -272,11 +273,14 @@ for input_path in list_folder:
     """ Set globally """
     plt.rc('xtick',labelsize=16)
     plt.rc('ytick',labelsize=16)
+    plt.rcParams['figure.dpi'] = 300
     ax_title_size = 18
-    leg_size = 14
+    leg_size = 16
+    
 
     """ plot timeframes """
-    norm_tots_ALL, norm_new_ALL = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_lower=0, depth_lim_upper=120, ax_title_size=ax_title_size, leg_size=leg_size)
+    norm_tots_ALL, norm_new_ALL = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_lower=0, depth_lim_upper=120, ax_title_size=ax_title_size,
+                                                  leg_size=leg_size, figsize=(5.5, 3.5))
     
     """ 
         Also split by depths
@@ -311,17 +315,22 @@ for input_path in list_folder:
     """ Also plot rate of loss??? """
     """ Show that truth predicitions are accurate! """
     if truth:
+         
          distances = []
          for frame_num in range(len(examples)):
         
             empty, all_dist, dist_check, check_series = check_predicted_distances(truth_array, frame_num, crop_size, z_size, dist_error_thresh=10)
                 
             if frame_num == 1:
-                plt.figure(); plt.hist(all_dist, color='k')
+                plt.figure(figsize=(5, 4)); plt.hist(all_dist, color='k')
                 ax = plt.gca()
-                plt.xlabel('distance of prediction to truth (px)', fontsize=ax_title_size); plt.ylabel('number of cells', fontsize=ax_title_size)
+                plt.xlabel('distance prediction to truth (px)', fontsize=ax_title_size); plt.ylabel('number of cells', fontsize=ax_title_size)
                 rs = ax.spines["right"]; rs.set_visible(False)
                 ts = ax.spines["top"]; ts.set_visible(False)
+
+                top = my_ceil(np.max(all_dist), precision=1)
+                bottom = my_floor(np.min(all_dist), precision=1)
+                plt.ylim([0, 200])
 
                 plt.tight_layout()
                 
@@ -377,25 +386,26 @@ for input_path in list_folder:
             track_diff.append(num)
             track_diff.append(num)
             
-        plt.figure(); plt.plot(prop, track_diff)
+        plt.figure(figsize=(9, 4)); plt.plot(prop, track_diff)
+        plt.ylim([-9, 10])
         ax = plt.gca(); rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
         ax.margins(x=0); ax.margins(y=0.02)
                 
         
         """ Load .csv from MATLAB run and plot it
         """
-        all_lengths_MATLAB = load_and_compare_csvs_to_truth(input_path, MATLAB_name, examples, 
-                                                            lowest_z_depth, truth_array, truth_name, truth_path=input_path,
-                                                            input_im=input_im, height_tmp=height_tmp, width_tmp=width_tmp, depth_total=depth_total,
-                                                            scale=scale)
-        errs_CNN_under = len(np.where(np.asarray(all_lengths_MATLAB) > 0)[0])
-        errs_CNN_under_2 = len(np.where(np.asarray(all_lengths_MATLAB) > 1)[0])
+        # all_lengths_MATLAB = load_and_compare_csvs_to_truth(input_path, MATLAB_name, examples, 
+        #                                                     lowest_z_depth, truth_array, truth_name, truth_path=input_path,
+        #                                                     input_im=input_im, height_tmp=height_tmp, width_tmp=width_tmp, depth_total=depth_total,
+        #                                                     scale=scale)
+        # errs_CNN_under = len(np.where(np.asarray(all_lengths_MATLAB) > 0)[0])
+        # errs_CNN_under_2 = len(np.where(np.asarray(all_lengths_MATLAB) > 1)[0])
         
-        errs_CNN_over = len(np.where(np.asarray(all_lengths_MATLAB) < 0)[0])
-        errs_CNN_over_2 = len(np.where(np.asarray(all_lengths_MATLAB) < -1)[0])
+        # errs_CNN_over = len(np.where(np.asarray(all_lengths_MATLAB) < 0)[0])
+        # errs_CNN_over_2 = len(np.where(np.asarray(all_lengths_MATLAB) < -1)[0])
         
-        perc_errs_MATLAB = (errs_CNN_under + errs_CNN_over) / len(all_lengths_MATLAB) * 100
-        perc_errs_over_2_MATLAB = (errs_CNN_under_2 + errs_CNN_over_2) / len(all_lengths_MATLAB) * 100
+        # perc_errs_MATLAB = (errs_CNN_under + errs_CNN_over) / len(all_lengths_MATLAB) * 100
+        # perc_errs_over_2_MATLAB = (errs_CNN_under_2 + errs_CNN_over_2) / len(all_lengths_MATLAB) * 100
 
 
         ### Figure out proportions
@@ -416,10 +426,10 @@ for input_path in list_folder:
             track_diff.append(num)
             
         plt.plot(prop, track_diff)        
-        plt.xlabel("proportion of tracks", fontsize=ax_title_size)
-        plt.ylabel("track difference (# frames)", fontsize=ax_title_size)
+        plt.xlabel("Proportion of tracks", fontsize=ax_title_size)
+        plt.ylabel("Track difference \n(Number of weeks)", fontsize=ax_title_size)
         
-        ax.legend(['CNN tracker', 'Heuristic'], fontsize=leg_size, loc='upper left')
+        ax.legend(['CNN tracker', 'Heuristic'], fontsize=leg_size, frameon=False, loc='upper left')
         plt.tight_layout()
         plt.savefig(sav_dir + 'plot.png')
 
@@ -429,7 +439,7 @@ for input_path in list_folder:
         MATLAB_auto_array.iloc[np.where(MATLAB_auto_array.duplicated(subset=['X', 'Y', 'Z',  'FRAME'], keep=False))[0]]
         
         """ Plot errors  """
-        fig = plt.figure(); ax = plt.gca()
+        fig = plt.figure(figsize=(5, 4)); ax = plt.gca()
         
         errs = [perc_errs, perc_errs_MATLAB]
         errs_over_2 = [perc_errs_over_2, perc_errs_over_2_MATLAB]
@@ -442,13 +452,14 @@ for input_path in list_folder:
         width = 0.25
         ax.set_xticks(ind + width / 2)
         ax.set_xticklabels(('CNN tracker', 'Heuristic'))
-        ax.legend(['All errors', 'Errors > 1 frame'], fontsize=leg_size)
+        ax.legend(['All errors', 'Errors > 1 frame'], frameon=False, fontsize=leg_size, loc= 'upper left')
 
         #plt.xlabel("proportion of tracks", fontsize=14)
         plt.ylabel("% cells tracked with errors", fontsize=ax_title_size)
-        plt.yticks(np.arange(0, max(errs)+1, 5))
+        #plt.yticks(np.arange(0, max(errs) + 1, 5))
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
         plt.tight_layout()
+        plt.ylim([0, 20])
         plt.savefig(sav_dir + 'cell_tracking_errors' + '.png')
 
 
@@ -492,25 +503,25 @@ for input_path in list_folder:
     # if analyze == 1:
     #     neighbors = 10
         
-    #     new_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)))]
-    #     terminated_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)))]
-    #     for cell_num in np.unique(tracked_cells_df.SERIES):
+        new_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)))]
+        terminated_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)))]
+        for cell_num in np.unique(tracked_cells_df.SERIES):
             
-    #         frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
+            frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
             
-    #         beginning_frame = np.min(frames_cur_cell)
-    #         if beginning_frame > 0:   # skip the first frame
-    #             new_cells_per_frame[beginning_frame].append(cell_num)
+            beginning_frame = np.min(frames_cur_cell)
+            if beginning_frame > 0:   # skip the first frame
+                new_cells_per_frame[beginning_frame].append(cell_num)
                         
-    #         term_frame = np.max(frames_cur_cell)
-    #         if term_frame < len(terminated_cells_per_frame) - 1:   # skip the last frame
-    #             terminated_cells_per_frame[term_frame].append(cell_num)
+            term_frame = np.max(frames_cur_cell)
+            if term_frame < len(terminated_cells_per_frame) - 1:   # skip the last frame
+                terminated_cells_per_frame[term_frame].append(cell_num)
             
     
-    #     ### loop through each frame and all the new cells and find "i.... i + n" nearest neighbors        
-    #     """ Plt density of NEW cells vs. depth """
-    #     scaled_vol = 1
-    #     plot_density_and_volume(tracked_cells_df, new_cells_per_frame, terminated_cells_per_frame, scale_xy, scale_z, sav_dir, neighbors, ax_title_size, leg_size, scaled_vol=scaled_vol)
+        ### loop through each frame and all the new cells and find "i.... i + n" nearest neighbors        
+        """ Plt density of NEW cells vs. depth """
+        scaled_vol = 1
+        plot_density_and_volume(tracked_cells_df, new_cells_per_frame, terminated_cells_per_frame, scale_xy, scale_z, sav_dir, neighbors, ax_title_size, leg_size, scaled_vol=scaled_vol)
     
             
     #     """ 
