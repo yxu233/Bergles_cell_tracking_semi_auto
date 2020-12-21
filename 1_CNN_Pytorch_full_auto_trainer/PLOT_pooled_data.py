@@ -111,7 +111,10 @@ all_tracked_cells_df = [];
 
 for fold_idx, input_path in enumerate(list_folder):
     foldername = input_path.split('/')[-2]
-    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_6'
+    #sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_6'
+
+    sav_dir = input_path + '/' + foldername + '_output_FULL_AUTO_no_next_10_125762_TEST_8_INTENSITY'
+
 
 
     """ For testing ILASTIK images """
@@ -511,85 +514,6 @@ for fold_idx, input_path in enumerate(list_folder):
     all_norm_t165.append(norm_tots_165); all_norm_n165.append(norm_new_165);
 
 
-    
-    # """ Per-timeseries analysis """
-    # """ 
-    #     Also do density analysis of where new cells pop-up???
-    # """        
-    # analyze = 1;    
-    # if analyze == 1:
-    #     neighbors = 10
-        
-    #     new_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)) + 1)]
-    #     terminated_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)) + 1)]
-    #     for cell_num in np.unique(tracked_cells_df.SERIES):
-            
-    #         frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
-            
-    #         beginning_frame = np.min(frames_cur_cell)
-    #         if beginning_frame > 0:   # skip the first frame
-    #             new_cells_per_frame[beginning_frame].append(cell_num)
-                        
-    #         term_frame = np.max(frames_cur_cell)
-    #         if term_frame < len(terminated_cells_per_frame) - 1:   # skip the last frame
-    #             terminated_cells_per_frame[term_frame].append(cell_num)
-            
-    
-    #     ### loop through each frame and all the new cells and find "i.... i + n" nearest neighbors        
-    #     """ Plt density of NEW cells vs. depth """
-    #     scaled_vol = 1
-    #     plot_density_and_volume(tracked_cells_df, new_cells_per_frame, terminated_cells_per_frame, scale_xy, scale_z, sav_dir, neighbors, ax_title_size, leg_size, scaled_vol=scaled_vol)
-
-       
-    #     """ 
-    #         Plot size decay for each frame STARTING from recovery
-    #     """     
-    #     plt.close('all');
-    #     if not control:
-    #         mean_recovery, sem_recovery, tracks_recovery = plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[4, 8],
-    #                                                                                    min_survive_frames=2, use_scaled=1, y_lim=8000, last_plot_week=len(np.unique(tracked_cells_df.FRAME)),
-    #                                                                                    ax_title_size=ax_title_size, x_label='Weeks of recovery')
-    
-
-
-
-
-
-    #     """ Plot scatters of each type:
-    #             - control/baseline day 1 ==> frame 0
-    #                     ***cuprizone ==> frame 4
-    #             - 1 week after cupr
-    #             - 2 weeks after cupr
-    #             - 3 weeks after cupr 
-            
-    #         """
-    #     if not control:
-    #         first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=4, end_frame=8, 
-    #                                                                                                                    min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
-       
-    #     else:
-    #         first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=0, end_frame=0, 
-    #                                                                                                                    min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
-                   
-        
-        
-    #     """ Predict age based on size??? 
-        
-    #             what is probability that cell is 1 week old P(B) given that it is size X P(A) == P(B|A) == P(A and B) / P(A)
-    #             P(A) == prob cell is ABOVE size X
-    #             P(B) == prob cell 1 week old
-    #             P(A and B) == prob cell is at least 1 week old AND above size X
-    #     """
-    #     """ DOUBLE CHECK THIS PROBABILITY CALCULATION!!!"""
-        
-    #     upper_r = 8000
-    #     lower_r = 0
-    #     step = 100
-    #     thresh_range = [lower_r, upper_r, step]
-    #     probability_curves(sav_dir, first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week, thresh_range, ax_title_size, leg_size)
-
-
-
 
 
 if not control:
@@ -711,15 +635,36 @@ plot_pooled_trends(all_norm_t165, all_norm_n165, ax_title_size, sav_dir, add_nam
 
 
 
+""" Pool all tracked_cells_df and add np.max() so series numbers don't overlap! """
+if control:
+    #scales = [5.5, 10.6, 9.3, 10.64, 8.7, 11.6]
+    scales = [6.74, 11.12, 9.43, 11.12, 9, 11.83]
+    
+    
+    scales = [6.311, 9.6, 8.87, 7.59, 10.9]
+    
+else:
+    #scales = [11.12, 13.92, 11.42, 7.41, 17.6, 17.25]
+    scales = [10, 13.67, 12.23, 7.9, 15.16, 15.53]
+    
+    scales = [11.25, 13.7, 12.3, 7.76, 16.36, 15.46]
+    
+    
+    
+    
 
 """ Pool all tracked_cells_df and add np.max() so series numbers don't overlap! """
 pooled_tracks = all_tracked_cells_df[0]
+pooled_tracks['scale'] = scales[0]
 for idx, tracks in enumerate(all_tracked_cells_df):
     
     max_series = np.max(pooled_tracks.SERIES)    
     
     if idx > 0:
         tracks.SERIES = tracks.SERIES + max_series    
+        
+        tracks['scale'] = scales[idx]
+        
         pooled_tracks = pd.concat([pooled_tracks, tracks])
     
     
@@ -747,9 +692,12 @@ if analyze == 1:
 
     ### ***MUST BE RUN LOADING IN FOLDER WITH LONGEST TIMESERIES FIRST!!! OTHERWISE WILL NOT COMPILE!!!
     for idx, tracked in enumerate(all_tracked_cells_df):
+
         new_cells_per_frame = [[] for _ in range(np.max(tracked.FRAME) + 1)]
         terminated_cells_per_frame = [[] for _ in range(np.max(tracked.FRAME) + 1)]
-        
+ 
+ 
+ 
         for cell_num in np.unique(tracked.SERIES):
         
             frames_cur_cell = tracked.iloc[np.where(tracked.SERIES == cell_num)].FRAME
@@ -765,6 +713,7 @@ if analyze == 1:
             if term_frame < len_frames - 1:   # skip the last frame
                 terminated_cells_per_frame[term_frame].append(cell_num)
         
+
 
         ### loop through each frame and all the new cells and find "i.... i + n" nearest neighbors        
         """ Plt density of NEW cells vs. depth """
@@ -815,86 +764,6 @@ if analyze == 1:
     plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all_new_dists, all_term_dists, all_new_vol, all_term_vol, all_new_z, all_term_z, sav_dir, neighbors, ax_title_size, leg_size, name = '', figsize=(6,5))         
    
     
-   
-    
-    # """ Compare total mean all new and term vs. stable """
-    # for frame in range(len(all_new_EXCLUDE)):
-    #     new_EXCLUDE = all_new_EXCLUDE[frame]
-    #     new_EX_z = all_new_EXCLUDE_z[frame]
-        
-    #     new = all_new_dists[frame]
-    #     new_z = all_new_z[frame]
-        
-    #     if len(new) == 0:
-    #         continue
-        
-    #     ### DEBUG:
-    #     # plt.figure(); plt.title(str(frame))
-    #     # plt.scatter(new_EX_z, new_EXCLUDE, color='k', s=4)
-    #     # plt.scatter(new_z, new, color='g', s=10)
-            
-        
-    #     p, D = ks2d2s(new_EX_z, new_EXCLUDE, new_z, new, nboot=None, extra=True)
-        
-    #     print('For frame num: ' +  str(frame) + ' p-value: ' + str(p) + ' D is: ' + str(D))
-    #     zzz
-        
-
-
-    # for frame in range(len(all_term_EXCLUDE)):
-    #     term_EXCLUDE = all_term_EXCLUDE[frame]
-    #     term_EX_z = all_term_EXCLUDE_z[frame]
-        
-    #     term = all_term_dists[frame]
-    #     term_z = all_term_z[frame]
-        
-    #     if len(term) == 0:
-    #         continue
-        
-    #     ### DEBUG:
-    #     # plt.figure(); plt.title(str(frame))
-    #     # plt.scatter(term_EX_z, term_EXCLUDE, color='k', s=4)
-    #     # plt.scatter(term_z, term, color='r', s=10)
-            
-    #     print(np.mean(term_EXCLUDE))
-    #     print(np.mean(term))
-        
-    #     p, D = ks2d2s(term_EX_z, term_EXCLUDE, term_z, term, nboot=None, extra=True)
-        
-    #     print('For frame num: ' +  str(frame) + ' p-value: ' + str(p) + ' D is: ' + str(D))
-        
-        
-    #     import statsmodels.api as sm
-    #     from statsmodels.formula.api import ols
-   
-    #     term_EX_df = pd.DataFrame(data=np.transpose([term_EXCLUDE, term_EX_z, np.zeros(len(term_EX_z))]), columns=['density', 'z', 'condition'])
-
-    #     # stacked_data = term_df.stack().reset_index()
-    #     # stacked_data_control = stacked_data.rename(columns={'level_0': 'id',
-    #     #                                             'level_1': 'depth or z',
-    #     #                                             0:'density'})
-    #     # stacked_data_control.condition = 0
-        
-        
-    #     term_df = pd.DataFrame(data=np.transpose([term, term_z, np.ones(len(term_z))]), columns=['density', 'z', 'condition'])
-      
-        
-    #     # stacked_data = all_tracks_df.stack().reset_index()
-    #     # stacked_data_rec = stacked_data.rename(columns={'level_0': 'condition',
-    #     #                                             'level_1': 'week',
-    #     #                                             0:'size'})
-    #     # stacked_data_rec.condition = 1
-        
-        
-    #     concat_df = pd.concat([term_EX_df, term_df])
-
-    #     # zzz
-    #     # #perform two-way ANOVA
-    #     # model = ols('condition ~ C(density) + C(z) + C(density):C(z)', data=concat_df).fit()
-    #     # sm.stats.anova_lm(model, typ=2)
-
-
-
     """ 
             LOAD IN CONTROL DATA: 
         """
@@ -902,9 +771,26 @@ if analyze == 1:
         load_dir = './OUTPUT_plots_pooled_data_CONTROL/'
         tracked_cells_CONTROL = pd.read_pickle(load_dir + 'tracked_cells_df_CONTROL_POOLED.pkl')
 
+        """ get new cells from control """
+        mean_control_new, sem_control_new, tracks_control_new, z_control_new, list_indices = plot_size_decay_in_recovery(tracked_cells_CONTROL, sav_dir, start_end_NEW_cell=[1, len(np.unique(tracked_cells_CONTROL.FRAME))],
+                                                                                       min_survive_frames=3, use_scaled=1, y_lim=8000, last_plot_week=len(np.unique(tracked_cells_CONTROL.FRAME)),
+                                                                                       ax_title_size=ax_title_size, x_label='Weeks no treatment', intial_week=0, figsize=(6, 5))
 
+        """ After cleaning, these are the rows to delete: """
+        #zzz
 
-        
+        to_del = [1,2,3,4,5,6,8,10,13,15,27,31,44,56,58,59,60,64,69,70]
+        tracks_control_new = np.delete(tracks_control_new, to_del, axis=0)
+        mean_control_new = np.nanmedian(tracks_control_new, axis=0)
+        std = np.nanstd(tracks_control_new, axis=0)
+
+        ### find sem
+        all_n = []
+        for col_idx in range(len(tracks_control_new[0, :])):
+            all_n.append(len(np.where(~np.isnan(tracks_control_new[:,col_idx]))[0]))
+            
+        sem_control_new = std/np.sqrt(all_n)
+                    
 
     """ 
         Plot size decay for each frame STARTING from recovery
@@ -916,34 +802,50 @@ if analyze == 1:
     """     
     plt.close('all');
     if not control:
-        mean_recovery, sem_recovery, tracks_recovery = plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[4, 8],
+        
+        """ Only plot those below 300 um """
+        tracked_below_100 = tracked_cells_df.iloc[np.where(tracked_cells_df.Z < 100)[0]]
+        
+        mean_recovery, sem_recovery, tracks_recovery, z_recovery, list_indices = plot_size_decay_in_recovery(tracked_below_100, sav_dir, start_end_NEW_cell=[4, 8],
                                                                                    min_survive_frames=3, use_scaled=1, y_lim=8000, last_plot_week=len(np.unique(tracked_cells_CONTROL.FRAME)),
                                                                                    ax_title_size=ax_title_size, x_label='Weeks of recovery', figsize=(7, 5))
+
+
+        """ Also plot for cells that were just on very first frame """
+        mean_recovery_short, sem_recovery_short, tracks_recovery_short, z_recovery_short, list_indices = plot_size_decay_in_recovery(tracked_below_100, sav_dir, start_end_NEW_cell=[0, 0],
+                                                                           min_survive_frames=3, use_scaled=1, y_lim=8000, last_plot_week=len(np.unique(tracked_cells_CONTROL.FRAME)),
+                                                                           ax_title_size=ax_title_size, x_label='Weeks of recovery continued', figsize=(7, 5))
+        
+
+        """ Also plot for cells that make it PAST cuprizone and keep going """
+        mean_recovery_long, sem_recovery_long, tracks_recovery_long, z_recovery_long, list_indices = plot_size_decay_in_recovery(tracked_below_100, sav_dir, start_end_NEW_cell=[0, 0],
+                                                                           min_survive_frames=12, use_scaled=1, y_lim=8000, last_plot_week=len(np.unique(tracked_cells_CONTROL.FRAME)),
+                                                                           ax_title_size=ax_title_size, x_label='Weeks of recovery continued', figsize=(7, 5))
         
         """ get decay constant of recovery size change """
-        from scipy.optimize import curve_fit
-        # define type of function to search
-        def model_func(x, a, b, c):
-            return a*np.exp(-b*x)+c
+        # from scipy.optimize import curve_fit
+        # # define type of function to search
+        # def model_func(x, a, b, c):
+        #     return a*np.exp(-b*x)+c
 
-        x = np.asarray(np.arange(len(mean_recovery)))
-        y = mean_recovery        
+        # x = np.asarray(np.arange(len(mean_recovery)))
+        # y = mean_recovery        
        
-        # curve fit
-        p0 = (1.,1.e-5,1.) # starting search koefs
+        # # curve fit
+        # p0 = (1.,1.e-5,1.) # starting search koefs
         
-        p0=[500,10,0]
+        # p0=[500,10,0]
         
-        opt, pcov = curve_fit(model_func, x, y, p0, maxfev=1000)
-        a, k, b = opt
-        # test result
-        x2 = np.linspace(0, 8, 100)
-        y2 = model_func(x2, a, k, b)
-        fig, ax = plt.subplots()
-        ax.plot(x2, y2, color='r', label='Fit. func: $f(x) = %.3f e^{%.3f x} %+.3f$' % (a,k,b))
-        ax.plot(x, y, 'bo', label='data with noise')
-        ax.legend(loc='best')
-        plt.show()              
+        # opt, pcov = curve_fit(model_func, x, y, p0, maxfev=1000)
+        # a, k, b = opt
+        # # test result
+        # x2 = np.linspace(0, 8, 100)
+        # y2 = model_func(x2, a, k, b)
+        # fig, ax = plt.subplots()
+        # ax.plot(x2, y2, color='r', label='Fit. func: $f(x) = %.3f e^{%.3f x} %+.3f$' % (a,k,b))
+        # ax.plot(x, y, 'bo', label='data with noise')
+        # ax.legend(loc='best')
+        # plt.show()              
         
         
         """ Anova stats """
@@ -987,7 +889,7 @@ if analyze == 1:
         """ Do for cuprizone """
                         
                 
-        mean_cuprizone, sem_cuprizone, tracks_cuprizone = plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[0, 0],
+        mean_cuprizone, sem_cuprizone, tracks_cuprizone, z_cuprizone, list_indices = plot_size_decay_in_recovery(tracked_below_100, sav_dir, start_end_NEW_cell=[0, 0],
                                                                                    min_survive_frames=0, use_scaled=1, y_lim=8000, ax_title_size=ax_title_size,
                                                                                    x_label='Weeks of cuprizone', intial_week=0, last_plot_week=4, figsize=(6, 5))        
         
@@ -1014,7 +916,7 @@ if analyze == 1:
                 
 
     """ get control values """
-    mean_control, sem_control, tracks_control = plot_size_decay_in_recovery(tracked_cells_CONTROL, sav_dir, start_end_NEW_cell=[0, 0],
+    mean_control, sem_control, tracks_control, tracks_control_unscaled, list_indices = plot_size_decay_in_recovery(tracked_cells_CONTROL, sav_dir, start_end_NEW_cell=[0, 0],
                                                                                    min_survive_frames=3, use_scaled=1, y_lim=8000, last_plot_week=len(np.unique(tracked_cells_CONTROL.FRAME)),
                                                                                    ax_title_size=ax_title_size, x_label='Weeks no treatment', intial_week=0, figsize=(6, 5))
 
@@ -1038,31 +940,28 @@ if analyze == 1:
     
     mc = statsmodels.stats.multicomp.MultiComparison(stacked_data['size'],stacked_data['week'])
     
-    
-
     mc_results = mc.tukeyhsd()
     
     ### WITH BONFERRI correction
     # mc_results = mc.allpairtest(stats.ttest_rel, method='Holm')
     
     
-    print(mc_results[0])        
+    #print(mc_results[0])        
                         
-        
-        
-        
-    
 
     """ Plot: """
     ### (1) control vs. recovery, starting at week 4
-    mean_c = mean_control[4:]
-    sem_c = sem_control[4:]
-    tracks_c = tracks_control[:, 4:]
+    mean_c = mean_control[1:5]
+    sem_c = sem_control[1:5]
+    tracks_c = tracks_control[:, 1:5]
     
     mean_r = mean_recovery[0:len(mean_c)]
     sem_r = sem_recovery[0:len(sem_c)]
     tracks_r = tracks_recovery[:, 0:len(sem_c)]
 
+
+    ### also get new cells in CONTROL
+    tracks_c_NEW = tracks_control_new[:, :4]
 
 
     """ Setup 2-way ANOVA for 
@@ -1070,6 +969,8 @@ if analyze == 1:
             Size ==> dependent variable
             Week & treatment ==> independent variable
     """
+    
+    ### setup control
     all_tracks = np.vstack(tracks_c)
     all_tracks_df = pd.DataFrame(data=all_tracks)
     all_tracks_df = all_tracks_df.dropna()        
@@ -1081,6 +982,7 @@ if analyze == 1:
     stacked_data_control.condition = 0
     
     
+    ### setup recovery
     all_tracks = np.vstack(tracks_r)
     all_tracks_df = pd.DataFrame(data=all_tracks)
     all_tracks_df = all_tracks_df.dropna()        
@@ -1092,7 +994,23 @@ if analyze == 1:
     stacked_data_rec.condition = 1
     
     
-    concat_df = pd.concat([stacked_data_control, stacked_data_rec])
+    
+    ### setup control NEW cells
+    
+    all_tracks = np.vstack(tracks_c_NEW)
+    all_tracks_df = pd.DataFrame(data=all_tracks)
+    all_tracks_df = all_tracks_df.dropna()        
+    
+    stacked_data = all_tracks_df.stack().reset_index()
+    stacked_data_control_NEW = stacked_data.rename(columns={'level_0': 'condition',
+                                                'level_1': 'week',
+                                                0:'size'})
+    stacked_data_control_NEW.condition = 2
+    
+    
+    
+    
+    concat_df = pd.concat([stacked_data_control, stacked_data_rec, stacked_data_control_NEW])
     
     # mc = statsmodels.stats.multicomp.MultiComparison(concat_df['size'], np.asarray(concat_df[['condition', 'week']]))
     # mc_results = mc.tukeyhsd()
@@ -1102,6 +1020,15 @@ if analyze == 1:
     from statsmodels.stats.multicomp import pairwise_tukeyhsd
     for name, grouped_df in concat_df.groupby('week'):
         print('Name {}'.format(name), pairwise_tukeyhsd(grouped_df['size'], grouped_df['condition']))
+
+
+
+
+    # concat_df = pd.concat([stacked_data_control, stacked_data_control_NEW])
+    # from statsmodels.stats.multicomp import pairwise_tukeyhsd
+    # for name, grouped_df in concat_df.groupby('week'):
+    #     print('Name {}'.format(name), pairwise_tukeyhsd(grouped_df['size'], grouped_df['condition']))
+        
         
     
 
@@ -1118,7 +1045,13 @@ if analyze == 1:
     plt.errorbar(np.arange(1, len(mean_r) + 1), mean_r, yerr=sem_r, color='r', fmt='none', capsize=10, capthick=1)    
     
 
-    plt.ylim(0, 3500)
+    ### ALSO PLOT NEW CELLS IN CONTROL
+    plt.plot(np.arange(1, len(mean_control_new[:4]) + 1), mean_control_new[:4], color='royalblue', linestyle='dotted', linewidth=2)
+    plt.scatter(np.arange(1, len(mean_control_new[:4]) + 1), mean_control_new[:4], color='royalblue', marker='o', s=30)
+    plt.errorbar(np.arange(1, len(mean_control_new[:4]) + 1), mean_control_new[:4], yerr=sem_control_new[:4], color='royalblue', fmt='none', capsize=10, capthick=1)    
+    
+
+    plt.ylim(0, 300)
     
     plt.xlabel('Weeks', fontsize=ax_title_size)
     plt.ylabel('Mean cell size ($\u03bcm^3$)', fontsize=ax_title_size)
@@ -1129,28 +1062,15 @@ if analyze == 1:
     rs = ax.spines["right"]; rs.set_visible(False)
     ts = ax.spines["top"]; ts.set_visible(False)  
     plt.tight_layout()
-    plt.legend(['Control', 'Recovery'], frameon=False, fontsize=leg_size, loc='lower right')
+    plt.legend(['Control stable', 'Recovery', 'Control new'], frameon=False, fontsize=leg_size, loc='lower right')
     plt.savefig(sav_dir + '_COMPARE recovery to control curves SIZE.png')
-
-    ### significance values    
-    ### UNPAIRED 2-tailed, assume equal variances
-    # for col in range(len(tracks_c[0])):
-    #     week_1 = tracks_c[:, col]
-    #     week_2 = tracks_r[:, col]
-    #     t_test = sp.stats.ttest_ind(week_1, week_2, nan_policy='omit')
-    #     print('p-value for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(t_test.pvalue))
-        
-        
-    #     effect_size = cohen_d(week_1, week_2)
-    #     print('Effect size for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(effect_size))
-        
 
 
 
     ### (2) control vs. cuprizone, starting at week 4
-    mean_c = mean_control[0:4]
-    sem_c = sem_control[0:4]
-    tracks_c = tracks_control[:, 0:4]
+    mean_c = mean_control[1:5]
+    sem_c = sem_control[1:5]
+    tracks_c = tracks_control[:, 1:5]
     
     mean_cup = mean_cuprizone[0:4]
     sem_cup = sem_cuprizone[0:4]
@@ -1167,7 +1087,7 @@ if analyze == 1:
     plt.errorbar(np.arange(0, len(mean_cup)), mean_cup, yerr=sem_cup, color='r', fmt='none', capsize=10, capthick=1)    
     
 
-    plt.ylim(0, 3500)
+    plt.ylim(0, 300)
     
     plt.xlabel('Weeks', fontsize=ax_title_size)
     plt.ylabel('Mean cell size ($\u03bcm^3$)', fontsize=ax_title_size)
@@ -1181,21 +1101,9 @@ if analyze == 1:
     plt.legend(['Control', 'Cuprizone'], frameon=False, fontsize=leg_size)
     plt.savefig(sav_dir + '_COMPARE cuprizone to control curves SIZE.png')
 
-    ### significance values    
-    ### UNPAIRED 2-tailed, assume equal variances
-    # for col in range(len(tracks_c[0])):
-    #     week_1 = tracks_c[:, col]
-    #     week_2 = tracks_cup[:, col]
-    #     t_test = sp.stats.ttest_ind(week_1, week_2, nan_policy='omit')
-    #     print('p-value for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(t_test.pvalue))
-        
-        
-    #     effect_size = cohen_d(week_1, week_2)
-    #     print('Effect size for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(effect_size))
-        
+
 
     """ Setup 2-way ANOVA for 
-    
             Size ==> dependent variable
             Week & treatment ==> independent variable
     """
@@ -1223,11 +1131,6 @@ if analyze == 1:
     
     concat_df = pd.concat([stacked_data_control, stacked_data_rec])
     
-    # mc = statsmodels.stats.multicomp.MultiComparison(concat_df['size'], np.asarray(concat_df[['condition', 'week']]))
-    # mc_results = mc.tukeyhsd()
-    # print(mc_results)        
-                            
-
     from statsmodels.stats.multicomp import pairwise_tukeyhsd
     for name, grouped_df in concat_df.groupby('week'):
         print('Name {}'.format(name), pairwise_tukeyhsd(grouped_df['size'], grouped_df['condition']))
@@ -1243,11 +1146,11 @@ if analyze == 1:
         
         """
     if not control:
-        first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=4, end_frame=8, 
+        first_frame_sizes, first_frame_1_week, first_frame_2_week, first_frame_3_week = plot_size_scatters_by_recovery(tracked_below_100, sav_dir, start_frame=4, end_frame=8, 
                                                                                                                    min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
    
         ### compare to control cells pooled from the same timepoints
-        tracks_c = tracks_control[:, 4:]
+        tracks_c = tracks_control_unscaled[:, 4:]
         tracks_c = tracks_c[~np.isnan(tracks_c)]
         print('Number of control cells: ' + str(len(tracks_c)))
         first_frame_sizes = np.transpose(tracks_c.flatten())
@@ -1268,29 +1171,7 @@ if analyze == 1:
         ts = ax.spines["top"]; ts.set_visible(False)  
         plt.tight_layout()
         plt.savefig(sav_dir + 'Cell sizes changing.png')
-    
-    
-        """ STATISTICS """
-        # ### UNPAIRED 2-tailed, assume equal variances
-        # t_test = sp.stats.ttest_ind(first_frame_sizes, first_frame_1_week, nan_policy='omit')
-        # print('p-value for baseline vs. week 1 of recovery for size: ' + str(t_test.pvalue))
-        
-        # effect_size = cohen_d(first_frame_sizes, first_frame_1_week)
-        # print('effect size for baseline vs. week 3 of recovery for size: ' + str(effect_size))
-        
-        # t_test = sp.stats.ttest_ind(first_frame_sizes, first_frame_2_week, nan_policy='omit')
-        # print('p-value for baseline vs. week 2 of recovery for size: ' + str(t_test.pvalue))        
-    
-        # effect_size = cohen_d(first_frame_sizes, first_frame_2_week)
-        # print('effect size for baseline vs. week 3 of recovery for size: ' + str(effect_size))
-    
-        
-        # t_test = sp.stats.ttest_ind(first_frame_sizes, first_frame_3_week, nan_policy='omit')
-        # print('p-value for baseline vs. week 3 of recovery for size: ' + str(t_test.pvalue))
-        
-        # effect_size = cohen_d(first_frame_sizes, first_frame_3_week)
-        # print('effect size for baseline vs. week 3 of recovery for size: ' + str(effect_size))
-        
+           
         
         """ ANOVA """
         df = df.dropna()
@@ -1362,10 +1243,10 @@ if analyze == 1:
 
     
     ### NEED 1 more frame to get row 4 deaths???
-    mean_cuprizone, sem_cuprizone, tracks_cuprizone = plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[0, 0],
+    mean_cuprizone, sem_cuprizone, tracks_cuprizone, unscaled_cuprizone, list_indices = plot_size_decay_in_recovery(tracked_below_100, sav_dir, start_end_NEW_cell=[0, 0],
                                                                                min_survive_frames=0, use_scaled=1, y_lim=8000, ax_title_size=ax_title_size,
                                                                                x_label='EXTRA WEEK CUPRIZONE', intial_week=0, last_plot_week=5, figsize=(6, 5))        
-    tracks_cup = tracks_cuprizone        
+    tracks_cup = unscaled_cuprizone        
 
     died_frame_1 = [];
     died_frame_2 = [];
@@ -1387,7 +1268,7 @@ if analyze == 1:
         #                                                                                                            min_survive_frames=0, use_scaled=1, y_lim=10000, ax_title_size=ax_title_size)
    
         ### compare to control cells pooled from the same timepoints
-        tracks_c = tracks_control[:, 0:4]
+        tracks_c = tracks_control_unscaled[:, 0:4]
         tracks_c = tracks_c[~np.isnan(tracks_c)]
         print('Number of control cells: ' + str(len(tracks_c)))
         first_frame_sizes = np.transpose(tracks_c.flatten())

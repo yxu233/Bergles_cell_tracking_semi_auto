@@ -26,73 +26,73 @@ def jacc_eval_GPU_torch(output, truth, ax_labels=-1, argmax_truth=1):
       return jaccard
 
 """ Define transforms"""
-import torchio
-from torchio.transforms import (
-    RescaleIntensity,
-    RandomFlip,
-    RandomAffine,
-    RandomElasticDeformation,
-    RandomMotion,
-    RandomBiasField,
-    RandomBlur,
-    RandomNoise,
-    Interpolation,
-    Compose
-)
-from torchio import Image, Subject, ImagesDataset
+# import torchio
+# from torchio.transforms import (
+#     RescaleIntensity,
+#     RandomFlip,
+#     RandomAffine,
+#     RandomElasticDeformation,
+#     RandomMotion,
+#     RandomBiasField,
+#     RandomBlur,
+#     RandomNoise,
+#     Interpolation,
+#     Compose
+# )
+# from torchio import Image, Subject, ImagesDataset
 
-def initialize_transforms(p=0.5):
-     transforms = [
-           RandomFlip(axes = 0, flip_probability = 0.5, p = p, seed = None),
+# def initialize_transforms(p=0.5):
+#      transforms = [
+#            RandomFlip(axes = 0, flip_probability = 0.5, p = p, seed = None),
            
-           RandomAffine(scales=(0.9, 1.1), degrees=(10), isotropic=False,
-                        default_pad_value='otsu', image_interpolation=Interpolation.LINEAR,
-                        p = p, seed=None),
+#            RandomAffine(scales=(0.9, 1.1), degrees=(10), isotropic=False,
+#                         default_pad_value='otsu', image_interpolation=Interpolation.LINEAR,
+#                         p = p, seed=None),
            
-           # *** SLOWS DOWN DATALOADER ***
-           #RandomElasticDeformation(num_control_points = 7, max_displacement = 7.5,
-           #                         locked_borders = 2, image_interpolation = Interpolation.LINEAR,
-           #                         p = 0.5, seed = None),
-           RandomMotion(degrees = 10, translation = 10, num_transforms = 2, image_interpolation = Interpolation.LINEAR,
-                        p = p, seed = None),
+#            # *** SLOWS DOWN DATALOADER ***
+#            #RandomElasticDeformation(num_control_points = 7, max_displacement = 7.5,
+#            #                         locked_borders = 2, image_interpolation = Interpolation.LINEAR,
+#            #                         p = 0.5, seed = None),
+#            RandomMotion(degrees = 10, translation = 10, num_transforms = 2, image_interpolation = Interpolation.LINEAR,
+#                         p = p, seed = None),
            
-           RandomBiasField(coefficients=0.5, order = 3, p = p, seed = None),
+#            RandomBiasField(coefficients=0.5, order = 3, p = p, seed = None),
            
-           RandomBlur(std = (0, 4), p = p, seed=None),
+#            RandomBlur(std = (0, 4), p = p, seed=None),
            
-           RandomNoise(mean = 0, std = (0, 0.25), p = p, seed = None),
-           #RescaleIntensity((0, 255))
+#            RandomNoise(mean = 0, std = (0, 0.25), p = p, seed = None),
+#            #RescaleIntensity((0, 255))
            
-     ]
-     transform = Compose(transforms)
-     return transform
+#      ]
+#      transform = Compose(transforms)
+#      return transform
 
 
-def initialize_transforms_simple(p=0.5):
-     transforms = [
-           RandomFlip(axes = 0, flip_probability = 0.5, p = p, seed = None),
+# def initialize_transforms_simple(p=0.5):
+#      transforms = [
+#            RandomFlip(axes = 0, flip_probability = 0.5, p = p, seed = None),
            
-           #RandomAffine(scales=(0.9, 1.1), degrees=(10), isotropic=False,
-           #             default_pad_value='otsu', image_interpolation=Interpolation.LINEAR,
-           #             p = p, seed=None),
+#            #RandomAffine(scales=(0.9, 1.1), degrees=(10), isotropic=False,
+#            #             default_pad_value='otsu', image_interpolation=Interpolation.LINEAR,
+#            #             p = p, seed=None),
            
-           # *** SLOWS DOWN DATALOADER ***
-           #RandomElasticDeformation(num_control_points = 7, max_displacement = 7.5,
-           #                         locked_borders = 2, image_interpolation = Interpolation.LINEAR,
-           #                         p = 0.5, seed = None),
-           RandomMotion(degrees = 5, translation = 5, num_transforms = 3, image_interpolation = Interpolation.LINEAR,
-                        p = p, seed = None),
+#            # *** SLOWS DOWN DATALOADER ***
+#            #RandomElasticDeformation(num_control_points = 7, max_displacement = 7.5,
+#            #                         locked_borders = 2, image_interpolation = Interpolation.LINEAR,
+#            #                         p = 0.5, seed = None),
+#            RandomMotion(degrees = 5, translation = 5, num_transforms = 3, image_interpolation = Interpolation.LINEAR,
+#                         p = p, seed = None),
            
-           RandomBiasField(coefficients=0.5, order = 3, p = p, seed = None),
+#            RandomBiasField(coefficients=0.5, order = 3, p = p, seed = None),
            
-           RandomBlur(std = (0, 2), p = p, seed=None),
+#            RandomBlur(std = (0, 2), p = p, seed=None),
            
-           RandomNoise(mean = 0, std = (0, 0.25), p = p, seed = None),
-           RescaleIntensity((0, 255))
+#            RandomNoise(mean = 0, std = (0, 0.25), p = p, seed = None),
+#            RescaleIntensity((0, 255))
            
-     ]
-     transform = Compose(transforms)
-     return transform
+#      ]
+#      transform = Compose(transforms)
+#      return transform
 
 
 

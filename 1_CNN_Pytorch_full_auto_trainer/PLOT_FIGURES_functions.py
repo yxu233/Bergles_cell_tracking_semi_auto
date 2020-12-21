@@ -259,7 +259,9 @@ def get_sizes_and_z_from_cell_list(tracked_cells_df, cells, frame_num, scale_xy,
 """
 def get_sizes_and_z_cur_frame(tracked_cells_df, frame, use_scaled=0):      
     all_sizes_cur_frame = []
+    all_sizes_scaled = []
     all_z = []
+    all_indices = []
     for cell_num in np.unique(tracked_cells_df.SERIES):
         
         frames_cur_cell = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].FRAME
@@ -267,8 +269,18 @@ def get_sizes_and_z_cur_frame(tracked_cells_df, frame, use_scaled=0):
         
         track_z = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].Z
         
+        ### get mean intensity instead
+        #track_z = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].mean_intensity
+        
+        
+        ### get scale too
+        track_scale = tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].scale
+        
+        
+        
         
         beginning_frame = np.min(frames_cur_cell)
+        
         if beginning_frame == frame:   # skip during cuprizone treatment
             cur_sizes = [] 
             
@@ -279,9 +291,15 @@ def get_sizes_and_z_cur_frame(tracked_cells_df, frame, use_scaled=0):
             else:
                 cur_sizes = np.asarray(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].vol_rescaled)
             
-                    
-                    
+                """ SCALE THE SIZES!!! """
+                cur_scaled =  cur_sizes/np.asarray(tracked_cells_df.iloc[np.where(tracked_cells_df.SERIES == cell_num)].scale)
+                
+            """ Also get index of cell in tracked_cells_df so can troubleshoot afterwards """
+            all_indices.append(np.where(tracked_cells_df.SERIES == cell_num))
+                
+                
             all_sizes_cur_frame.append(cur_sizes)
+            all_sizes_scaled.append(cur_scaled)
             
             
             cur_zs = []                
@@ -289,7 +307,7 @@ def get_sizes_and_z_cur_frame(tracked_cells_df, frame, use_scaled=0):
                 cur_zs.append(cc)
             all_z.append(cur_zs)
             
-    return all_sizes_cur_frame, all_z
+    return all_sizes_cur_frame, all_sizes_scaled, all_z, all_indices
 
 
 
@@ -340,7 +358,7 @@ def plot_pooled_trends(all_norm_tots, all_norm_new, ax_title_size, sav_dir, add_
     
     
     width = 0.35       # the width of the bars: can also be len(x) sequence
-    plt.figure()
+    plt.figure(figsize=(5.5,4))
     p1 = plt.bar(np.arange(len(mean_tots)), mean_tots, yerr=0, color='k')
     plt.errorbar(np.arange(len(mean_tots)), mean_tots, yerr=sem_tots, color='r', fmt='none', capsize=1, capthick=1)
     
@@ -461,14 +479,19 @@ def plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[3
     end_frame = start_end_NEW_cell[1]
     
     plt.figure(figsize=figsize);
-    list_arrs = []
+    list_arrs = []; list_arrs_unscaled = []; list_z = []; list_indices = [];
     for frame in np.unique(tracked_cells_df.FRAME):
 
         if frame >= start_frame and frame <= end_frame:
-            all_sizes_cur_frame, all_z = get_sizes_and_z_cur_frame(tracked_cells_df, frame, use_scaled=use_scaled)
+            all_sizes_cur_frame, all_sizes_scaled, all_z, all_indices = get_sizes_and_z_cur_frame(tracked_cells_df, frame, use_scaled=use_scaled)
             for idx in range(len(all_sizes_cur_frame)):
                 
                 sizes_cur_cell = all_sizes_cur_frame[idx]
+                sizes_scaled = all_sizes_scaled[idx]
+                z_cur_cell = all_z[idx]
+                
+                cur_indices = all_indices[idx]
+                
                 if len(sizes_cur_cell) >= min_survive_frames:   ### MUST BE ALIVE FOR AT LEAST 4 frames
                     from random import uniform
                     t = uniform(0.,2.)
@@ -477,26 +500,32 @@ def plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[3
                     plt.plot(np.arange(intial_week, len(sizes_cur_cell[:last_plot_week]) + intial_week), sizes_cur_cell[:last_plot_week], linewidth=0.5, color=col, alpha=0.2)
                     plt.ylim(intial_week - 1, y_lim)
                     plt.tight_layout()
-                    list_arrs.append(list(sizes_cur_cell[:last_plot_week]))
+                    list_arrs.append(list(sizes_scaled[:last_plot_week]))
+                    list_arrs_unscaled.append(list(sizes_cur_cell[:last_plot_week]))
+                    list_z.append(list(z_cur_cell[:last_plot_week]))
                     
-    
-    ### sort list of lists so can be converted to array for mean and std
+                    list_indices.append(list(cur_indices[:last_plot_week]))
+                    
+ 
+    ###  sort z dist as well
     row_lengths = []
-    for row in list_arrs:
+    for row in list_arrs_unscaled:
         row_lengths.append(len(row))
     max_length = max(row_lengths)  
     
-    for row in list_arrs:       
+    for row in list_arrs_unscaled:       
         while len(row) < max_length:      
             row.append(np.nan)       
-    balanced_array = np.array(list_arrs)          
+    balanced_array = np.array(list_arrs_unscaled)          
             
     
     ### find mean and std of sizes
-    size_arr = np.stack(balanced_array)
-    mean = np.nanmean(size_arr, axis=0)
-    std = np.nanstd(size_arr, axis=0)
+    size_arr_unscaled = np.stack(balanced_array)
     
+    ### find mean and std of sizes
+    mean = np.nanmedian(size_arr_unscaled, axis=0)
+    std = np.nanstd(size_arr_unscaled, axis=0)
+
     ### find sem
     all_n = []
     for col_idx in range(len(balanced_array[0, :])):
@@ -518,21 +547,34 @@ def plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[3
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     plt.tight_layout()
     plt.savefig(sav_dir + x_label + '_cell sizes changing statistics.png')
-    
-    """ STATISTICS """     
-    ### PAIRED 2-tailed, assume equal variances
-    # for col in range(len(size_arr[0]) - 1):
-    #     week_1 = size_arr[:, col]
-    #     week_2 = size_arr[:, col + 1]
-    #     t_test = sp.stats.ttest_rel(week_1, week_2, nan_policy='omit')
-    #     print('p-value for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(t_test.pvalue))
-        
-        
-    #     effect_size = cohen_d(week_1, week_2)
-    #     print('Effect size for week ' +  str(col) + ' vs. ' + str(col + 1) + ' of recovery for size: ' + str(effect_size))
-        
 
-    return mean, sem, size_arr
+
+
+    ### sort list of lists so can be converted to array for mean and std
+    row_lengths = []
+    for row in list_arrs:
+        row_lengths.append(len(row))
+    max_length = max(row_lengths)  
+    
+    for row in list_arrs:       
+        while len(row) < max_length:      
+            row.append(np.nan)       
+    balanced_array = np.array(list_arrs)          
+            
+    
+    ### find mean and std of sizes
+    size_arr = np.stack(balanced_array)
+    mean = np.nanmedian(size_arr, axis=0)
+    std = np.nanstd(size_arr, axis=0)
+    
+    ### find sem
+    all_n = []
+    for col_idx in range(len(balanced_array[0, :])):
+        all_n.append(len(np.where(~np.isnan(balanced_array[:,col_idx]))[0]))
+        
+    sem = std/np.sqrt(all_n)
+    
+    return mean, sem, size_arr, size_arr_unscaled, list_indices
 
 
 
@@ -549,10 +591,10 @@ def plot_size_decay_in_recovery(tracked_cells_df, sav_dir, start_end_NEW_cell=[3
 def plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end_frame=8, min_survive_frames=3, use_scaled=1, y_lim=10000, ax_title_size=16):
     ### (0) baseline cells
     
-    all_sizes_frame_0, all_z = get_sizes_and_z_cur_frame(tracked_cells_df, frame=0, use_scaled=use_scaled)
+    all_sizes_cur_frame, all_sizes_scaled, all_z, all_indices = get_sizes_and_z_cur_frame(tracked_cells_df, frame=0, use_scaled=use_scaled)
     first_frame_sizes = []
     first_z = []
-    for idx, size in enumerate(all_sizes_frame_0):
+    for idx, size in enumerate(all_sizes_cur_frame):
         first_frame_sizes.append(size[0])
         first_z.append(all_z[idx][0])
         
@@ -566,10 +608,10 @@ def plot_size_scatters_by_recovery(tracked_cells_df, sav_dir, start_frame=3, end
     
     for frame in range(start_frame, end_frame):
         
-        all_sizes_frame_0, all_z = get_sizes_and_z_cur_frame(tracked_cells_df, frame=frame, use_scaled=use_scaled)
+        all_sizes_cur_frame, all_sizes_scaled, all_z, all_indices = get_sizes_and_z_cur_frame(tracked_cells_df, frame=frame, use_scaled=use_scaled)
 
 
-        for idx, size in enumerate(all_sizes_frame_0):
+        for idx, size in enumerate(all_sizes_cur_frame):
       
             if len(size) >= min_survive_frames:
                 first_frame_1_week.append(size[0])
@@ -809,6 +851,7 @@ def plot_density_and_volume(tracked_cells_df, new_cells_per_frame, terminated_ce
 
 def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all_new_dists, all_term_dists, all_new_vol, all_term_vol, all_new_z, all_term_z, sav_dir, neighbors, ax_title_size, leg_size, name = '', figsize=(6,5)):
     plt.close('all')
+    z_thresh = 300
     
     """ Plot density of NEW cells """
     for idx, total_dists in enumerate(all_total_dists):
@@ -818,15 +861,21 @@ def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all
         
         new_dists = all_new_dists[idx]
         
+
         plt.figure(neighbors + idx, figsize=figsize); 
         ax = plt.gca()
-        plt.scatter(total_z, total_dists, s=5, marker='o', color='k');
-        plt.scatter(new_z, new_dists, s=8, marker='o', color='limegreen');
+        plt.scatter(total_z[np.where(total_z < z_thresh)], total_dists[np.where(total_z < z_thresh)], s=5, marker='o', color='k');
+        plt.scatter(new_z[np.where(new_z < z_thresh)], new_dists[np.where(new_z < z_thresh)], s=8, marker='o', color='limegreen');
         plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Sparsity', fontsize=ax_title_size)
         plt.title('Week ' + str(idx), fontsize=ax_title_size) 
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        plt.xlim(0, 400); plt.ylim(30, 200) 
-        ax.legend(['stable', 'new'], fontsize=leg_size, frameon=False, loc='upper right')
+        plt.xlim(0, 300); plt.ylim(0, 200) 
+        #ax.legend(['stable', 'new'], fontsize=leg_size, frameon=False, loc='upper right')
+        
+        lgnd = plt.legend(['stable', 'new'], fontsize=leg_size, frameon=False, loc='lower left')
+        lgnd.legendHandles[0]._sizes = [40]
+        lgnd.legendHandles[1]._sizes = [40]
+            
         plt.tight_layout()
         plt.savefig(sav_dir + name + '_DENSITY_new_' + str(neighbors + idx) + '.png')     
 
@@ -838,17 +887,24 @@ def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all
         total_z = all_total_z[idx]
         term_z = all_term_z[idx]
         
+       
+        
         term_dists = all_term_dists[idx]       
        
         plt.figure(neighbors * 10 + idx, figsize=figsize); 
         ax = plt.gca()
-        plt.scatter(total_z, total_dists, s=5, marker='o', color='k');
-        plt.scatter(term_z, term_dists, s=8, marker='o', color='r');
+        plt.scatter(total_z[np.where(total_z < z_thresh)], total_dists[np.where(total_z < z_thresh)], s=5, marker='o', color='k');
+        if len(term_z) > 0:
+             plt.scatter(term_z[np.where(term_z < z_thresh)], term_dists[np.where(term_z < z_thresh)], s=8, marker='o', color='r');
         plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Sparsity', fontsize=ax_title_size)
         plt.title('Week ' + str(idx), fontsize=ax_title_size) 
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        plt.xlim(0, 400); plt.ylim(30, 200)
-        ax.legend(['stable', 'dying'], fontsize=leg_size, frameon=False, loc='upper right')
+        plt.xlim(0, 300); plt.ylim(0, 200)
+        lgnd = plt.legend(['stable', 'dying'], fontsize=leg_size, frameon=False, loc='lower left')
+        lgnd.legendHandles[0]._sizes = [40]
+        if len(term_z) > 0:
+            lgnd.legendHandles[1]._sizes = [40]
+        
         plt.tight_layout()
         plt.savefig(sav_dir +  name + '_DENSITY_term_' + str(neighbors + idx) + '.png')              
 
@@ -865,13 +921,16 @@ def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all
         
         plt.figure(neighbors * 100 + idx, figsize=figsize); 
         ax = plt.gca()
-        plt.scatter(total_z, total_vols, s=5, marker='o', color='k');
-        plt.scatter(new_z, new_vols, s=8, marker='o', color='limegreen');
+        plt.scatter(total_z[np.where(total_z < z_thresh)], total_vols[np.where(total_z < z_thresh)], s=5, marker='o', color='k');
+        plt.scatter(new_z[np.where(new_z < z_thresh)], new_vols[np.where(new_z < z_thresh)], s=8, marker='o', color='limegreen');
         plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Volume ($\u03bcm^3$)', fontsize=ax_title_size)
         plt.title('Week ' + str(idx), fontsize=ax_title_size) 
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        plt.xlim(0, 400); plt.ylim(30, 10000)
-        ax.legend(['stable', 'new'], fontsize=leg_size, frameon=False, loc='upper right')            
+        plt.xlim(0, 300); plt.ylim(30, 10000)
+        lgnd = plt.legend(['stable', 'new'], fontsize=leg_size, frameon=False, loc='upper right')    
+        lgnd.legendHandles[0]._sizes = [40]
+        lgnd.legendHandles[1]._sizes = [40]
+        
         plt.tight_layout()
         plt.savefig(sav_dir +  name + '_VOLUME_new_' + str(neighbors + idx) + '.png')                
     
@@ -887,13 +946,18 @@ def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all
         
         plt.figure(neighbors * 1000 + idx, figsize=figsize); 
         ax = plt.gca()
-        plt.scatter(total_z, total_vols, s=5, marker='o', color='k');
-        plt.scatter(term_z, term_vols, s=8, marker='o', color='r');
+        plt.scatter(total_z[np.where(total_z < z_thresh)], total_vols[np.where(total_z < z_thresh)], s=5, marker='o', color='k');
+        if len(term_z) > 0:
+            plt.scatter(term_z[np.where(term_z < z_thresh)], term_vols[np.where(term_z < z_thresh)], s=8, marker='o', color='r');
         plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Volume ($\u03bcm^3$)', fontsize=ax_title_size)
         plt.title('Week ' + str(idx), fontsize=ax_title_size) 
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        ax.legend(['stable', 'dying'], fontsize=leg_size, frameon=False, loc='upper right')
-        plt.xlim(0, 400); plt.ylim(30, 8000)
+        lgnd = plt.legend(['stable', 'dying'], fontsize=leg_size, frameon=False, loc='upper right')
+        lgnd.legendHandles[0]._sizes = [40]
+        if len(term_z) > 0:
+            lgnd.legendHandles[1]._sizes = [40]
+        
+        plt.xlim(0, 300); plt.ylim(30, 8000)
         plt.tight_layout()
         plt.savefig(sav_dir +  name + '_VOLUME_term_' + str(neighbors + idx) + '.png')              
 

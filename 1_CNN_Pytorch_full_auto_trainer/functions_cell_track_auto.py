@@ -235,9 +235,9 @@ def prep_input_for_CNN(cell, input_im, next_input, cur_seg, next_seg, mean_arr, 
 """ When there is more than one cell/object identified in next frame,
         need to associate the one that is BEST MATCHED with the original frame
 """
-def select_one_from_excess(seg_train, crop_next_seg):
+def select_one_from_excess(seg_train, crop_next_seg, crop_next_input):
     label = measure.label(seg_train)
-    cc_seg_train = measure.regionprops(label)
+    cc_seg_train = measure.regionprops(label, intensity_image=crop_next_input)
     if len(cc_seg_train) > 1:
          #doubles += 1
          #print('multi objects in seg')
@@ -285,7 +285,7 @@ def select_one_from_excess(seg_train, crop_next_seg):
 
          seg_train = best
          label = measure.label(seg_train)
-         cc_seg_train = measure.regionprops(label)      
+         cc_seg_train = measure.regionprops(label, intensity_image=crop_next_input)      
          
          
     return cc_seg_train, seg_train
@@ -448,7 +448,7 @@ def parse_truth(truth_cur_im, truth_array, truth_output_df, truth_next_im, seg_t
 
 
 """ Associate remainder as newly segmented cells """
-def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_depth, z_size, min_size=0, truth=0, truth_output_df=0, truth_next_im=0, truth_array=0):
+def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_depth, z_size, next_input, min_size=0, truth=0, truth_output_df=0, truth_next_im=0, truth_array=0):
     bw_next_seg = np.copy(next_seg)
     
     """ DON'T USE BINARY, b/c actually if touchs a larger new cell, might set it to be old cell!!!
@@ -459,7 +459,7 @@ def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_d
     bw_next_seg[bw_next_seg > 0] = 1
     
     labelled = measure.label(bw_next_seg)
-    next_cc = measure.regionprops(labelled)
+    next_cc = measure.regionprops(labelled, intensity_image=next_input)
 
     debug = 0
     if debug:
@@ -475,6 +475,7 @@ def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_d
     for idx, cell in enumerate(next_cc):
        coords = cell['coords']
        centroid = cell['centroid']
+       intensity = cell['mean_intensity']
        
        
        if not np.any(next_seg[coords[:, 0], coords[:, 1], coords[:, 2]] == 250) and len(coords) > min_size:   ### 250 means already has been visited
@@ -503,7 +504,8 @@ def associate_remainder_as_new(tracked_cells_df, next_seg, frame_num, lowest_z_d
             # if int(centroid[2]) + z_size/2 >= lowest_z_depth:
             #       continue                        
             
-            row = {'SERIES': series, 'COLOR': 'BLANK', 'FRAME': frame_num, 'X': int(centroid[0]), 'Y':int(centroid[1]), 'Z': int(centroid[2]), 'coords':coords, 'visited': 0}
+            row = {'SERIES': series, 'COLOR': 'BLANK', 'FRAME': frame_num, 'X': int(centroid[0]), 'Y':int(centroid[1]), 'Z': int(centroid[2]), 
+                   'coords':coords, 'mean_intensity':intensity, 'visited': 0}
             tracked_cells_df = tracked_cells_df.append(row, ignore_index=True)
                                   
             """ Add to TRUTH as well """
@@ -562,7 +564,7 @@ def associate_to_closest(tracked_cells_df, cc, x, y, z, box_xyz, box_over, cur_i
    
     #print(closest_dist)
    
-    next_coords = []; next_centroid = []; cell_next = [];
+    next_coords = []; next_centroid = []; cell_next = []; next_intensity = [];
     if closest_dist <= min_dist:
         index_next = np.where((tracked_cells_df["SERIES"] == cur_idx) & (tracked_cells_df["FRAME"] == frame_num))[0]
 
@@ -571,6 +573,8 @@ def associate_to_closest(tracked_cells_df, cc, x, y, z, box_xyz, box_over, cur_i
         
         if len(index_next) > 0:        
             cell_next = tracked_cells_df.loc[index_next[0]]
+        
+        next_intensity = np.asarray(closest_obj['mean_intensity'])
         
         next_coords = np.asarray(closest_obj['coords'])
         #seg_train = np.zeros(np.shape(seg_train))
@@ -587,7 +591,7 @@ def associate_to_closest(tracked_cells_df, cc, x, y, z, box_xyz, box_over, cur_i
         next_centroid = check_limits_single([next_centroid], width_tmp, height_tmp, depth_tmp)[0]       
         
             
-    return cell_next, next_coords, next_centroid, closest_dist
+    return cell_next, next_coords, next_centroid, closest_dist, next_intensity
 
 
 
@@ -651,7 +655,7 @@ def predict_next_xyz(tracked_cells_df, x, y, z, crop_size, z_size, frame_num):
 
 
 """ Help with changing the pointer of the old cell or adding a new cell"""
-def change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, series, frame_num, next_coords, next_centroid, moved_old, new):
+def change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, cell, frame_num, next_coords, next_centroid, moved_old, new, next_intensity):
 
     ### change pointer of old cell
     if len(cell_next) > 0:
@@ -671,9 +675,10 @@ def change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, series, fr
         
     ### or add new cell
     else:
-        row = {'SERIES': series, 'COLOR': 'GREEN', 'FRAME': frame_num, 'X': int(next_centroid[0]), 'Y':int(next_centroid[1]), 'Z': int(next_centroid[2]), 'coords':next_coords, 'visited': 0}
+        row = {'SERIES': cell.SERIES, 'COLOR': 'GREEN', 'FRAME': frame_num, 'X': int(next_centroid[0]), 'Y':int(next_centroid[1]), 'Z': int(next_centroid[2]), 
+               'coords':next_coords, 'mean_intensity': next_intensity, 'visited': 0}
         #tracked_cells_df = tracked_cells_df.append(row, ignore_index=True)     ### THIS WILL RE-ARRANGE ALL INDICES!!!
-        tracked_cells_df.loc[np.max(tracked_cells_df.index) + 1] = row
+        tracked_cells_df.loc[np.max(np.asarray(tracked_cells_df.index)) + 1] = row
 
 
         """ Change next coord """
@@ -751,7 +756,7 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
         ### use predicted xyz only if num_tracked > 5:
         bw = crop_next_seg; bw[bw > 0] = 1
         label = measure.label(crop_next_seg)
-        cc = measure.regionprops(label)
+        cc = measure.regionprops(label, intensity_image=crop_next_input)
         next_coords = []
         if len(cc) > 0:
         
@@ -763,7 +768,7 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                  
             ### Try to associate with nearest cell in crop_next_seg        
             if num_tracked >= 4:
-                empty, next_coords, next_centroid, closest_dist = associate_to_closest(tracked_cells_df, cc, pred_x, pred_y, pred_z, box_xyz, box_over, series, 
+                empty, next_coords, next_centroid, closest_dist, next_intensity = associate_to_closest(tracked_cells_df, cc, pred_x, pred_y, pred_z, box_xyz, box_over, series, 
                                                                                                  frame_num, width_tmp, height_tmp, depth_tmp, min_dist=min_dist)       
             
             
@@ -818,7 +823,7 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                 """ change the pointer of the old cell OR ADD CELL  
                             ***also must update "next_seg"
                     """
-                tracked_cells_df, next_seg, moved_old, new = change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, cell.SERIES, frame_num, next_coords, next_centroid, moved_old, new)
+                tracked_cells_df, next_seg, moved_old, new = change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, cell, frame_num, next_coords, next_centroid, moved_old, new, next_intensity)
                   
                 #print('hello')
                 #zzz
@@ -917,7 +922,7 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                                             ***also must update "next_seg"
                                     """
                                 
-                                tracked_cells_df, next_seg, moved_old, new = change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, cell.SERIES, frame_num, next_coords, next_centroid, moved_old, new)
+                                tracked_cells_df, next_seg, moved_old, new = change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, cell, frame_num, next_coords, next_centroid, moved_old, new, next_intensity)
                                 
                                 #print('yee')
                                 # print(moved_old); print(new)
@@ -958,7 +963,7 @@ def clean_with_predictions(tracked_cells_df, candidate_series, next_seg, crop_si
                     """ change the pointer of the old cell OR ADD CELL  
                                 ***also must update "next_seg"
                     """                    
-                    tracked_cells_df, next_seg, moved_old, new = change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, series, frame_num, next_coords, next_centroid, moved_old, new)
+                    tracked_cells_df, next_seg, moved_old, new = change_pointer_or_add_cell(tracked_cells_df, next_seg, cell_next, cell, frame_num, next_coords, next_centroid, moved_old, new, next_intensity)
                     #print('huh')
                     #zzz
                     

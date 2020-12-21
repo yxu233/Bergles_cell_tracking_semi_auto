@@ -52,7 +52,7 @@ torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.enabled = True  # new thing? what do? must be True
 
 """ Define GPU to use """
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
 
@@ -155,14 +155,14 @@ for input_path in list_folder:
     sav_dir = input_path + '/' + foldername + '_output_PYTORCH_RETRAINED_105834'
 
     """ For testing ILASTIK images """
-    images = glob.glob(os.path.join(input_path,'*.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
-    images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    examples = [dict(input=i,truth=i.replace('.tif','_truth.tif'), ilastik=i.replace('.tif','_single_Object Predictions_.tiff')) for i in images]
-
-
-    # images = glob.glob(os.path.join(input_path,'*_single_channel.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
+    # images = glob.glob(os.path.join(input_path,'*.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
     # images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
-    # examples = [dict(input=i,truth=i.replace('_single_channel.tif','_truth.tif'), ilastik=i.replace('_single_channel.tif','_single_Object Predictions_.tiff')) for i in images]
+    # examples = [dict(input=i,truth=i.replace('.tif','_truth.tif'), ilastik=i.replace('.tif','_single_Object Predictions_.tiff')) for i in images]
+
+
+    images = glob.glob(os.path.join(input_path,'*_single_channel.tif'))    # can switch this to "*truth.tif" if there is no name for "input"
+    images.sort(key=natsort_keygen(alg=ns.REAL))  # natural sorting
+    examples = [dict(input=i,truth=i.replace('_single_channel.tif','_truth.tif'), ilastik=i.replace('_single_channel.tif','_single_Object Predictions_.tiff')) for i in images]
 
 
     # images = glob.glob(os.path.join(input_path,'*_RAW_REGISTERED.tif'))    # can switch this to "*truth.tif" if there is no name for "input"

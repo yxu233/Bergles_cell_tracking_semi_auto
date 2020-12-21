@@ -235,12 +235,36 @@ for input_path in list_folder:
     filename = input_name.split('/')[-1]
     filename = filename.split('.')[0:-1]
     filename = '.'.join(filename)
-    
+
+    low_crop = 0.3; high_crop = 0.7; 
+    z_crop_h = 0.6
+    animation = 0
+                          
+                          
     for frame_num, im_dict in enumerate(examples):
+
+            input_name = examples[frame_num]['input']            
+            input_im = open_image_sequence_to_3D(input_name, width_max='default', height_max='default', depth='default')
+            input_im = convert_matrix_to_multipage_tiff(input_im)
+            input_im = convert_matrix_to_multipage_tiff(input_im)
+            if animation:
+                #im = convert_matrix_to_multipage_tiff(input_im)
+                im = input_im
+                im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
+                imsave(sav_dir + filename + '_' + str(frame_num) + '_INPUT_CLEANED_cropped.tif', im)
+
          
+        
             output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im)
-            im = convert_matrix_to_multipage_tiff(output_frame)
-            imsave(sav_dir + filename + '_' + str(frame_num) + '_output_CLEANED.tif', im)
+            if animation:
+                
+                im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
+                imsave(sav_dir + filename + '_' + str(frame_num) + '_output_CLEANED_cropped.tif', im)
+            else:
+                im = convert_matrix_to_multipage_tiff(output_frame)
+                
+                
+                imsave(sav_dir + filename + '_' + str(frame_num) + '_output_CLEANED.tif', im)
          
          
               # output_frame = gen_im_frame_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, color=1)
@@ -248,14 +272,29 @@ for input_path in list_folder:
               # imsave(sav_dir + filename + '_' + str(frame_num) + '_output_COLOR.tif', im)
     
 
-            # output_frame = gen_im_new_term_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, new=0)
-            # im = convert_matrix_to_multipage_tiff(output_frame)
-            # imsave(sav_dir + filename + '_' + str(frame_num) + '_output_TERMINATED.tif', im)
+            output_frame = gen_im_new_term_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, new=0)
+            
+            
+            if animation:
+                im = convert_matrix_to_multipage_tiff(output_frame)
+                im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
+                imsave(sav_dir + filename + '_' + str(frame_num) + '_output_TERMINATED_cropped.tif', im)
+            else:
+                im = convert_matrix_to_multipage_tiff(output_frame)
+                
+                
+                imsave(sav_dir + filename + '_' + str(frame_num) + '_output_TERMINATED.tif', im)
 
 
             output_frame = gen_im_new_term_from_array(tracked_cells_df, frame_num=frame_num, input_im=input_im, new=1)
-            im = convert_matrix_to_multipage_tiff(output_frame)
-            imsave(sav_dir + filename + '_' + str(frame_num) + '_output_NEW.tif', im)
+            if animation:
+                im = convert_matrix_to_multipage_tiff(output_frame)
+                im = im[0 : int(im.shape[0] * z_crop_h), int(im.shape[1] * low_crop) : int(im.shape[1] * high_crop),  int(im.shape[2] * low_crop) : int(im.shape[2] * high_crop)]
+                imsave(sav_dir + filename + '_' + str(frame_num) + '_output_NEW_cropped.tif', im)
+            else:
+                im = convert_matrix_to_multipage_tiff(output_frame)
+                
+                imsave(sav_dir + filename + '_' + str(frame_num) + '_output_NEW.tif', im)
             
       
         
@@ -277,6 +316,96 @@ for input_path in list_folder:
     ax_title_size = 18
     leg_size = 16
     
+    
+    
+    """ Plot animation for Dwight """
+    plt.close('all')
+    tmp_tracks = tracked_cells_df.copy()
+    value = len(np.unique(tmp_tracks.SERIES)); 
+    for num in np.unique(tracked_cells_df.SERIES):
+        idx_matched = np.where(tracked_cells_df.SERIES == num)
+        tmp_tracks.SERIES.iloc[idx_matched] = value
+        
+        #print(tmp_tracks.SERIES.iloc[idx_matched])
+        
+        value -= 1
+        
+
+    
+    for frame in range(0, np.max(tmp_tracks.FRAME)):
+        plt.figure(figsize=(3, 4));
+        plt.ylim([0, 1000])
+        plt.xlim([-0.5, np.max(tmp_tracks.FRAME) - 1])
+        for series in np.unique(tmp_tracks.SERIES):
+            
+            if series >= 1000:
+                continue;
+            
+            idx_series = np.where(tmp_tracks.SERIES == series)
+            
+            frames = tmp_tracks.FRAME.iloc[idx_series]
+            series_plot = tmp_tracks.SERIES.iloc[idx_series]
+
+               
+            marker = '*'
+            marker_size = 0.1
+            """ where the cells start """
+            if np.max(frames) >= frame and np.min(frames) == frame:   ### for the starting point of the cells
+                ### also plot scatter at location where it starts
+                plt.scatter(np.asarray(frames)[0], np.asarray(series_plot)[0], s=marker_size, marker=marker, color='tab:blue')                
+                
+           
+            elif np.max(frames) == frame and np.min(frames) < frame:
+                """ plotting cells that are terminating"""
+                ### if it's ending/dying on this frame, then mark as red
+                plt.plot(frames[0: np.where(frames == frame)[0][0] + 1], series_plot[0: np.where(frames == frame)[0][0] + 1], linewidth=0.1, color='m')
+                
+                ### also plot scatter at location where it starts
+                plt.scatter(np.asarray(frames)[0], np.asarray(series_plot)[0], s=marker_size, marker=marker, color='tab:blue')
+                                
+                ### also plot scatter at location where it ends
+                #plt.scatter(np.asarray(frames)[-1], np.asarray(series_plot)[-1], s=marker_size, marker='x', color='k')
+                
+                
+            elif np.max(frames) >= frame and np.min(frames) < frame:
+                """ Plotting cells that are still extending  """
+                plt.plot(frames[0: np.where(frames == frame)[0][0] + 1], series_plot[0: np.where(frames == frame)[0][0] + 1], linewidth=0.1, color='g')
+                
+                ### also plot scatter at location where it starts
+                plt.scatter(np.asarray(frames)[0], np.asarray(series_plot)[0], s=marker_size, marker=marker, color='tab:blue')
+                
+        ax = plt.gca()
+        """ Custom legend """
+        from matplotlib.patches import Patch
+        from matplotlib.lines import Line2D
+        
+        legend_elements = [Line2D([0], [0], color='g', lw=2, label='stable'),
+                           Line2D([0], [0], color='m', lw=2, label='dying'),
+                           Line2D([0], [0], marker='.', color='tab:blue', linestyle='None', label='track start',
+                                  markerfacecolor='tab:blue', markersize=4),
+                           ]
+    
+        ax.legend(handles=legend_elements, loc='lower left', frameon=False, fontsize=8)
+                        
+        
+        plt.xlabel('Weeks', fontsize=8); plt.ylabel('Cell number', fontsize=8)
+        plt.xticks(np.arange(0, np.max(tmp_tracks.FRAME) - 0.8, 1.0))
+        plt.rc('xtick',labelsize=8)
+        plt.rc('ytick',labelsize=8)
+        rs = ax.spines["right"]; rs.set_visible(False)
+        ts = ax.spines["top"]; ts.set_visible(False)
+        
+        plt.tight_layout()
+        
+        plt.savefig(sav_dir + str(frame) + '_animation_cells_across_time.png')
+                
+                
+ 
+            
+       
+        
+        
+        
 
     """ plot timeframes """
     norm_tots_ALL, norm_new_ALL = plot_timeframes(tracked_cells_df, sav_dir, add_name='OUTPUT_', depth_lim_lower=0, depth_lim_upper=120, ax_title_size=ax_title_size,
@@ -467,42 +596,42 @@ for input_path in list_folder:
 
 
 
-    # """ SCALE CELL COORDS to true volume 
-    # """
-    # tmp = np.zeros(np.shape(input_im))
-    # tracked_cells_df['vol_rescaled'] = np.nan
-    # print('scaling cell coords')
-    # for idx in range(len(tracked_cells_df)):
+    """ SCALE CELL COORDS to true volume 
+    """
+    tmp = np.zeros(np.shape(input_im))
+    tracked_cells_df['vol_rescaled'] = np.nan
+    print('scaling cell coords')
+    for idx in range(len(tracked_cells_df)):
         
-    #     cell = tracked_cells_df.iloc[idx]
+        cell = tracked_cells_df.iloc[idx]
         
-    #     coords = cell.coords   
-    #     tmp[coords[:, 0], coords[:, 1], coords[:, 2]] = 1
+        coords = cell.coords   
+        tmp[coords[:, 0], coords[:, 1], coords[:, 2]] = 1
         
-    #     crop, box_xyz, box_over, boundaries_crop = crop_around_centroid_with_pads(tmp, cell.X, cell.Y, cell.Z, 50/2, z_size, height_tmp, width_tmp, depth_tmp)                                                      
+        crop, box_xyz, box_over, boundaries_crop = crop_around_centroid_with_pads(tmp, cell.X, cell.Y, cell.Z, 50/2, z_size, height_tmp, width_tmp, depth_tmp)                                                      
    
-    #     crop_rescale = resize(crop, (crop.shape[0] * scale_xy, crop.shape[1] * scale_xy, crop.shape[2] * scale_z), order=0, anti_aliasing=True)
+        crop_rescale = resize(crop, (crop.shape[0] * scale_xy, crop.shape[1] * scale_xy, crop.shape[2] * scale_z), order=0, anti_aliasing=True)
         
-    #     label = measure.label(crop_rescale)       
-    #     cc = measure.regionprops(label)
-    #     new_coords = cc[0]['coords']
-    #     tracked_cells_df.iloc[idx, tracked_cells_df.columns.get_loc('vol_rescaled')] = len(new_coords)
+        label = measure.label(crop_rescale)       
+        cc = measure.regionprops(label)
+        new_coords = cc[0]['coords']
+        tracked_cells_df.iloc[idx, tracked_cells_df.columns.get_loc('vol_rescaled')] = len(new_coords)
    
-    #    tmp[tmp > 0] = 0  # reset
+        tmp[tmp > 0] = 0  # reset
         
         # import napari
         # with napari.gui_qt():
         #     viewer = napari.view_image(crop)
             
     
-    # """ 
-    #     Also do density analysis of where new cells pop-up???
+    """ 
+        Also do density analysis of where new cells pop-up???
     
-    # """        
-    # analyze = 1;    
-    # if analyze == 1:
-    #     neighbors = 10
-        
+    """        
+    analyze = 1;    
+    if analyze == 1:
+        neighbors = 10
+        vol_rescaled = 1        
         new_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)))]
         terminated_cells_per_frame = [[] for _ in range(len(np.unique(tracked_cells_df.FRAME)))]
         for cell_num in np.unique(tracked_cells_df.SERIES):
