@@ -921,6 +921,7 @@ if analyze == 1:
                                                                                    ax_title_size=ax_title_size, x_label='Weeks no treatment', intial_week=0, figsize=(6, 5))
 
 
+
     """ Anova stats """
     all_tracks = np.vstack(tracks_control)
     all_tracks_df = pd.DataFrame(data=all_tracks)
@@ -960,8 +961,48 @@ if analyze == 1:
     tracks_r = tracks_recovery[:, 0:len(sem_c)]
 
 
+    """ Normalize more """
+    tracks_r_norm = tracks_r/mean_c
+    
+    """ NORMALIZE TO CONTROL """
+    mean = np.nanmedian(tracks_r_norm, axis=0)
+    std = np.nanstd(tracks_r_norm, axis=0)
+
+    ### find sem
+    all_n = []
+    for col_idx in range(len(tracks_r_norm[0, :])):
+        all_n.append(len(np.where(~np.isnan(tracks_r_norm[:,col_idx]))[0]))
+        
+    sem = std/np.sqrt(all_n)
+    
+    mean_r = mean
+    sem_r = sem
+
+
+    
+
+
+    
+    """ Normalize to control """
     ### also get new cells in CONTROL
     tracks_c_NEW = tracks_control_new[:, :4]
+    tracks_c_NEW = tracks_c_NEW/mean_c
+    
+    mean = np.nanmedian(tracks_c_NEW, axis=0)
+    std = np.nanstd(tracks_c_NEW, axis=0)
+
+    ### find sem
+    all_n = []
+    for col_idx in range(len(tracks_c_NEW[0, :])):
+        all_n.append(len(np.where(~np.isnan(tracks_c_NEW[:,col_idx]))[0]))
+        
+    sem = std/np.sqrt(all_n)
+    
+    mean_control_new = mean
+    sem_control_new = sem    
+    
+    
+    
 
 
     """ Setup 2-way ANOVA for 
@@ -1035,26 +1076,32 @@ if analyze == 1:
     """ continue with plotting """
     
     plt.figure(figsize=(5, 5));
-    plt.plot(np.arange(1, len(mean_c) + 1), mean_c, color='k', linestyle='dotted', linewidth=2)
-    plt.scatter(np.arange(1, len(mean_c) + 1), mean_c, color='k', marker='o', s=30)
-    plt.errorbar(np.arange(1, len(mean_c) + 1), mean_c, yerr=sem_c, color='k', fmt='none', capsize=10, capthick=1)
+    # plt.plot(np.arange(1, len(mean_c) + 1), mean_c, color='k', linestyle='dotted', linewidth=2)
+    # plt.scatter(np.arange(1, len(mean_c) + 1), mean_c, color='k', marker='o', s=30)
+    # plt.errorbar(np.arange(1, len(mean_c) + 1), mean_c, yerr=sem_c, color='k', fmt='none', capsize=0, capthick=0)
+
+
+    plt.plot(np.arange(1, len(mean_c) + 1), np.ones(len(mean_c)), color='k', linestyle='dotted', linewidth=2)
+    plt.scatter(np.arange(1, len(mean_c) + 1), np.ones(len(mean_c)), color='k', marker='o', s=30)
+    #plt.errorbar(np.arange(1, len(mean_c) + 1), np.ones(len(mean_c)), yerr=sem_c, color='k', fmt='none', capsize=0, capthick=0)
+    
     
     
     plt.plot(np.arange(1, len(mean_r) + 1), mean_r, color='r', linestyle='dotted', linewidth=2)
     plt.scatter(np.arange(1, len(mean_r) + 1), mean_r, color='r', marker='o', s=30)
-    plt.errorbar(np.arange(1, len(mean_r) + 1), mean_r, yerr=sem_r, color='r', fmt='none', capsize=10, capthick=1)    
+    plt.errorbar(np.arange(1, len(mean_r) + 1), mean_r, yerr=sem_r, color='r', fmt='none', capsize=0, capthick=0)    
     
 
     ### ALSO PLOT NEW CELLS IN CONTROL
-    plt.plot(np.arange(1, len(mean_control_new[:4]) + 1), mean_control_new[:4], color='royalblue', linestyle='dotted', linewidth=2)
-    plt.scatter(np.arange(1, len(mean_control_new[:4]) + 1), mean_control_new[:4], color='royalblue', marker='o', s=30)
-    plt.errorbar(np.arange(1, len(mean_control_new[:4]) + 1), mean_control_new[:4], yerr=sem_control_new[:4], color='royalblue', fmt='none', capsize=10, capthick=1)    
+    plt.plot(np.arange(1, len(mean_control_new) + 1), mean_control_new, color='royalblue', linestyle='dotted', linewidth=2)
+    plt.scatter(np.arange(1, len(mean_control_new) + 1), mean_control_new, color='royalblue', marker='o', s=30)
+    plt.errorbar(np.arange(1, len(mean_control_new) + 1), mean_control_new, yerr=sem_control_new, color='royalblue', fmt='none', capsize=0, capthick=0)    
     
 
-    plt.ylim(0, 300)
+    plt.ylim(0, 2)
     
     plt.xlabel('Weeks', fontsize=ax_title_size)
-    plt.ylabel('Mean cell size ($\u03bcm^3$)', fontsize=ax_title_size)
+    plt.ylabel('Normalized cell size', fontsize=ax_title_size)
     ax = plt.gca()
     
     from matplotlib.ticker import MaxNLocator   ### force integer tick sizes
@@ -1071,26 +1118,53 @@ if analyze == 1:
     mean_c = mean_control[1:5]
     sem_c = sem_control[1:5]
     tracks_c = tracks_control[:, 1:5]
+
     
     mean_cup = mean_cuprizone[0:4]
     sem_cup = sem_cuprizone[0:4]
     tracks_cup = tracks_cuprizone[:, 0:4]
+    
+    
+    """ Normalize to control """
+    ### also get new cells in CONTROL
+    tracks_cup = tracks_cup/mean_c
+    
+    mean = np.nanmedian(tracks_cup, axis=0)
+    std = np.nanstd(tracks_cup, axis=0)
+
+    ### find sem
+    all_n = []
+    for col_idx in range(len(tracks_cup[0, :])):
+        all_n.append(len(np.where(~np.isnan(tracks_cup[:,col_idx]))[0]))
+        
+    sem = std/np.sqrt(all_n)
+    
+    mean_cup = mean
+    sem_cup = sem    
+    
+    
+    
 
     plt.figure(figsize=(5, 5));
-    plt.plot(np.arange(0, len(mean_c)), mean_c, color='k', linestyle='dotted', linewidth=2)
-    plt.scatter(np.arange(0, len(mean_c)), mean_c, color='k', marker='o', s=30)
-    plt.errorbar(np.arange(0, len(mean_c)), mean_c, yerr=sem_c, color='k', fmt='none', capsize=10, capthick=1)
+    # plt.plot(np.arange(0, len(mean_c)), mean_c, color='k', linestyle='dotted', linewidth=2)
+    # plt.scatter(np.arange(0, len(mean_c)), mean_c, color='k', marker='o', s=30)
+    # plt.errorbar(np.arange(0, len(mean_c)), mean_c, yerr=sem_c, color='k', fmt='none', capsize=0, capthick=0)
     
+    
+    plt.plot(np.arange(0, len(mean_c)), np.ones(len(mean_c)), color='k', linestyle='dotted', linewidth=2)
+    plt.scatter(np.arange(0, len(mean_c)), np.ones(len(mean_c)), color='k', marker='o', s=30)
+    #plt.errorbar(np.arange(1, len(mean_c) + 1), np.ones(len(mean_c)), yerr=sem_c, color='k', fmt='none', capsize=0, capthick=0)
+        
     
     plt.plot(np.arange(0, len(mean_cup)), mean_cup, color='r', linestyle='dotted', linewidth=2)
     plt.scatter(np.arange(0, len(mean_cup)), mean_cup, color='r', marker='o', s=30)
-    plt.errorbar(np.arange(0, len(mean_cup)), mean_cup, yerr=sem_cup, color='r', fmt='none', capsize=10, capthick=1)    
+    plt.errorbar(np.arange(0, len(mean_cup)), mean_cup, yerr=sem_cup, color='r', fmt='none', capsize=0, capthick=0)    
     
 
-    plt.ylim(0, 300)
+    plt.ylim(0, 2)
     
     plt.xlabel('Weeks', fontsize=ax_title_size)
-    plt.ylabel('Mean cell size ($\u03bcm^3$)', fontsize=ax_title_size)
+    plt.ylabel('Normalized cell size', fontsize=ax_title_size)
     ax = plt.gca()
     
     from matplotlib.ticker import MaxNLocator   ### force integer tick sizes

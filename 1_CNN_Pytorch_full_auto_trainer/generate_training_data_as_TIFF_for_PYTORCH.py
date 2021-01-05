@@ -172,7 +172,7 @@ for input_path in list_folder:
     total_samples = 0
     
     expectedLen = 10000
-    overlap_percent = 0.25  
+    overlap_percent = 0.40
     for i in range(0, len(images), 2):
             #if total_samples > 500:
             #    break

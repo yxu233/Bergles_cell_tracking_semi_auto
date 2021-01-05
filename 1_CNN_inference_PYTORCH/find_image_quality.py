@@ -224,120 +224,162 @@ for input_path in list_folder:
          with torch.set_grad_enabled(False):  # saves GPU RAM            
             input_name = examples[i]['input']            
             input_im = open_image_sequence_to_3D(input_name, width_max='default', height_max='default', depth='default')
-
     
             from skimage import filters
-
-    
             """ Find BRISQUE quality """
+            # plt.figure()
+            # append_mean_SNR = []
+            # for val in range(10, 50, 10):
+            #     #val = 100
+            #     all_SNR = [];
+            #     for depth in range(0, len(input_im) - 33, 33):
+                
+            #         first_slices= input_im[depth:depth + 33, ...]
+            #         max_first = plot_max(first_slices, ax=0, plot=0)
+            #         im = Image.fromarray(np.uint8(max_first))
+                    
+                    
+                    
+            #         xres = 0.83
+            #         yres = 0.83
+                    
+            #         signal = np.mean(np.where(max_first > val))
+            #         print(signal)
+            #         noise = np.std(np.where(max_first < val))
+            #         print(noise)
+                    
+            #         SNR = 10 * math.log10(signal/noise)
+                    
+            #         all_SNR.append(SNR)
+                    
+            #     plt.plot(all_SNR)
+            #     append_mean_SNR.append(all_SNR)
+                   
+            #     #zzz
+            # mean_SNR = np.nanmean(append_mean_SNR, axis=0)
+            # # #save_snr = mean_SNR
+            #zzz
+            
+            
+            """ Using otsu threshold """
+            from skimage.filters import threshold_otsu
+            from skimage.filters import threshold_triangle
             plt.figure()
             append_mean_SNR = []
-            for val in range(10, 240, 10):
-                #val = 100
-                all_SNR = [];
-                for depth in range(0, len(input_im) - 33, 33):
+            #for val in range(10, 240, 10):
+            #val = 100
+            all_SNR = [];
+            
+
+            first_slices= input_im[depth:depth + 33, ...]
+            max_first = plot_max(first_slices, ax=0, plot=0)
                 
-                    first_slices= input_im[depth:depth + 33, ...]
-                    max_first = plot_max(first_slices, ax=0, plot=0)
-                    im = Image.fromarray(np.uint8(max_first))
-                    
-                    xres = 0.83
-                    yres = 0.83
-                    
-                    signal = np.mean(np.where(max_first > val))
-                    noise = np.std(np.where(max_first < val))
-                    
-                    SNR = 10 * math.log10(signal/noise)
-                    
-                    all_SNR.append(SNR)
-                    
-                plt.plot(all_SNR)
-                append_mean_SNR.append(all_SNR)
+            thresh = threshold_otsu(input_im)
+            for depth in range(0, len(input_im) - 33, 33):
+            
+                first_slices= input_im[depth:depth + 33, ...]
+                max_first = plot_max(first_slices, ax=0, plot=0)
+                #im = Image.fromarray(np.uint8(max_first))
+                
+                
+                #thresh = threshold_otsu(max_first)
+                xres = 0.83
+                yres = 0.83
+                
+                signal = np.mean(np.where(max_first > thresh))
+                noise = np.std(np.where(max_first < thresh))
+                
+                SNR = 10 * math.log10(signal/noise)
+                
+                all_SNR.append(SNR)
+                
+            plt.plot(all_SNR)
+            #append_mean_SNR.append(all_SNR)
                    
-            mean_SNR = np.nanmean(append_mean_SNR, axis=0)
-            #save_snr = mean_SNR
+            mean_SNR = all_SNR
+            #save_snr = mean_SNR            
             
             
             zzz
             """ Try shannon entropy """
-            all_entropy = []
-            for depth in range(0, len(input_im) - 33, 33):
+            # all_entropy = []
+            # for depth in range(0, len(input_im) - 33, 33):
 
-                first_slices= input_im[depth:depth + 33, ...]
-                max_first = plot_max(first_slices, ax=0, plot=0)
-                #normalized = (max_first-np.min(max_first))/(np.max(max_first)-np.min(max_first))
-                #im = Image.fromarray
-                # max_first += 1
+            #     first_slices= input_im[depth:depth + 33, ...]
+            #     max_first = plot_max(first_slices, ax=0, plot=0)
+            #     #normalized = (max_first-np.min(max_first))/(np.max(max_first)-np.min(max_first))
+            #     #im = Image.fromarray
+            #     # max_first += 1
 
-                # pA = max_first/max_first.sum()
-                # Shannon2 = -np.nansum(pA*np.log2(pA))
+            #     # pA = max_first/max_first.sum()
+            #     # Shannon2 = -np.nansum(pA*np.log2(pA))
                 
-                import skimage.measure
-                entropy = skimage.measure.shannon_entropy(max_first)
-                plt.figure(); plt.imshow(max_first)
-                all_entropy.append(entropy)
-                print(entropy)
+            #     import skimage.measure
+            #     entropy = skimage.measure.shannon_entropy(max_first)
+            #     plt.figure(); plt.imshow(max_first)
+            #     all_entropy.append(entropy)
+            #     print(entropy)
 
 
-            """ Try with local crops """
-            first_slices= input_im[0:33, ...]
-            max_first = plot_max(first_slices, ax=0, plot=0)
-            #plt.figure(); plt.imshow(max_first)
+            # """ Try with local crops """
+            # first_slices= input_im[0:33, ...]
+            # max_first = plot_max(first_slices, ax=0, plot=0)
+            # #plt.figure(); plt.imshow(max_first)
    
             
-            crop_1 = max_first[200:200 + 160, 80:80 + 160]
-            entropy = skimage.measure.shannon_entropy(crop_1)
-            entropy = np.std(crop_3)
-            print(entropy)
-            plt.figure(); plt.imshow(crop_1); plt.title('Entropy: ' + str(entropy))
+            # crop_1 = max_first[200:200 + 160, 80:80 + 160]
+            # entropy = skimage.measure.shannon_entropy(crop_1)
+            # entropy = np.std(crop_1)
+            # print(entropy)
+            # plt.figure(); plt.imshow(crop_1); plt.title('Entropy: ' + str(entropy))
 
-            crop_2 = max_first[320:320 + 160, 320:320 + 160]
-            entropy = skimage.measure.shannon_entropy(crop_2)
-            entropy = np.std(crop_3)
-            print(entropy)
-            plt.figure(); plt.imshow(crop_2); plt.title('Entropy: ' + str(entropy))
+            # crop_2 = max_first[320:320 + 160, 320:320 + 160]
+            # entropy = skimage.measure.shannon_entropy(crop_2)
+            # entropy = np.std(crop_2)
+            # print(entropy)
+            # plt.figure(); plt.imshow(crop_2); plt.title('Entropy: ' + str(entropy))
 
         
-            # from skimage.util import random_noise
-            # plt.close('all')
+            # # from skimage.util import random_noise
+            # # plt.close('all')
             
-            # for i in np.arange(0, 4, 0.1):
-            #     crop_2_noise = random_noise(crop_2/255, mode='gaussian', var = i)
-            #     entropy = skimage.measure.shannon_entropy(crop_2_noise)
-            #     print(entropy)
-            #     plt.figure(); plt.imshow(crop_2_noise); plt.title('Entropy: ' + str(entropy))
+            # # for i in np.arange(0, 4, 0.1):
+            # #     crop_2_noise = random_noise(crop_2/255, mode='gaussian', var = i)
+            # #     entropy = skimage.measure.shannon_entropy(crop_2_noise)
+            # #     print(entropy)
+            # #     plt.figure(); plt.imshow(crop_2_noise); plt.title('Entropy: ' + str(entropy))
             
 
 
-            crop_3 = max_first[420:420 + 160, 420:420 + 160]
-            entropy = skimage.measure.shannon_entropy(crop_3)
-            entropy = np.std(crop_3)
-            print(entropy)
-            plt.figure(); plt.imshow(crop_3); plt.title('Entropy: ' + str(entropy))
+            # crop_3 = max_first[420:420 + 160, 420:420 + 160]
+            # entropy = skimage.measure.shannon_entropy(crop_3)
+            # entropy = np.std(crop_3)
+            # print(entropy)
+            # plt.figure(); plt.imshow(crop_3); plt.title('Entropy: ' + str(entropy))
             
-            """ Try with local crops """
-            first_slices= input_im[100:133, ...]
-            max_first = plot_max(first_slices, ax=0, plot=0)
-            #plt.figure(); plt.imshow(max_first)
+            # """ Try with local crops """
+            # first_slices= input_im[100:133, ...]
+            # max_first = plot_max(first_slices, ax=0, plot=0)
+            # #plt.figure(); plt.imshow(max_first)
    
             
-            crop_1 = max_first[200:200 + 160, 80:80 + 160]
-            entropy = skimage.measure.shannon_entropy(crop_1)
-            entropy = np.std(crop_3)
-            print(entropy)
-            plt.figure(); plt.imshow(crop_1); plt.title('Entropy: ' + str(entropy))
+            # crop_1 = max_first[200:200 + 160, 80:80 + 160]
+            # entropy = skimage.measure.shannon_entropy(crop_1)
+            # entropy = np.std(crop_1)
+            # print(entropy)
+            # plt.figure(); plt.imshow(crop_1); plt.title('Entropy: ' + str(entropy))
 
-            crop_2 = max_first[320:320 + 160, 320:320 + 160]
-            entropy = skimage.measure.shannon_entropy(crop_2)
-            entropy = np.std(crop_3)
-            print(entropy)
-            plt.figure(); plt.imshow(crop_2); plt.title('Entropy: ' + str(entropy))
+            # crop_2 = max_first[320:320 + 160, 320:320 + 160]
+            # entropy = skimage.measure.shannon_entropy(crop_2)
+            # entropy = np.std(crop_2)
+            # print(entropy)
+            # plt.figure(); plt.imshow(crop_2); plt.title('Entropy: ' + str(entropy))
 
-            crop_3 = max_first[420:420 + 160, 420:420 + 160]
-            entropy = skimage.measure.shannon_entropy(crop_3)
-            entropy = np.std(crop_3)
-            print(entropy)
-            plt.figure(); plt.imshow(crop_3); plt.title('Entropy: ' + str(entropy))
+            # crop_3 = max_first[420:420 + 160, 420:420 + 160]
+            # entropy = skimage.measure.shannon_entropy(crop_3)
+            # entropy = np.std(crop_3)
+            # print(entropy)
+            # plt.figure(); plt.imshow(crop_3); plt.title('Entropy: ' + str(entropy))
             
             
             
@@ -349,21 +391,22 @@ for input_path in list_folder:
             plt.rcParams['figure.dpi'] = 300
             
             """ Stop here and run again with low SNR"""
-            plt.figure(figsize=(5,4));
+            plt.figure(figsize=(4,4));
             x_axis = [100, 200, 300, 400]
             plt.plot(x_axis, save_snr[0:len(x_axis)])
             plt.plot(x_axis, mean_SNR[0:len(x_axis)])
             
-            plt.ylim([0, 4])
+            plt.ylim([0, 3])
             
             ax = plt.gca()
 
 
-            ax.legend(['optimal quality', 'degraded quality'], frameon=False, fontsize=leg_size, loc='upper right')
+            ax.legend(['optimal quality', 'degraded quality'], frameon=False, fontsize=leg_size, loc='lower left')
 
             #plt.xlabel("proportion of tracks", fontsize=14)
-            plt.xlabel('Depth of max projection', fontsize=ax_title_size)
+            plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size)
             plt.ylabel("SNR", fontsize=ax_title_size)
+            #plt.yscale("log")
             #plt.yticks(np.arange(0, max(errs)+1, 5))
             rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
             plt.tight_layout()

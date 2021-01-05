@@ -852,6 +852,7 @@ def plot_density_and_volume(tracked_cells_df, new_cells_per_frame, terminated_ce
 def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all_new_dists, all_term_dists, all_new_vol, all_term_vol, all_new_z, all_term_z, sav_dir, neighbors, ax_title_size, leg_size, name = '', figsize=(6,5)):
     plt.close('all')
     z_thresh = 300
+    x_lim = 301
     
     """ Plot density of NEW cells """
     for idx, total_dists in enumerate(all_total_dists):
@@ -866,10 +867,10 @@ def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all
         ax = plt.gca()
         plt.scatter(total_z[np.where(total_z < z_thresh)], total_dists[np.where(total_z < z_thresh)], s=5, marker='o', color='k');
         plt.scatter(new_z[np.where(new_z < z_thresh)], new_dists[np.where(new_z < z_thresh)], s=8, marker='o', color='limegreen');
-        plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Sparsity', fontsize=ax_title_size)
+        plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Sparsity (\u03bcm)', fontsize=ax_title_size)
         plt.title('Week ' + str(idx), fontsize=ax_title_size) 
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        plt.xlim(0, 300); plt.ylim(0, 200) 
+        plt.xlim(0, x_lim); plt.ylim(0, 200) 
         #ax.legend(['stable', 'new'], fontsize=leg_size, frameon=False, loc='upper right')
         
         lgnd = plt.legend(['stable', 'new'], fontsize=leg_size, frameon=False, loc='lower left')
@@ -896,10 +897,10 @@ def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all
         plt.scatter(total_z[np.where(total_z < z_thresh)], total_dists[np.where(total_z < z_thresh)], s=5, marker='o', color='k');
         if len(term_z) > 0:
              plt.scatter(term_z[np.where(term_z < z_thresh)], term_dists[np.where(term_z < z_thresh)], s=8, marker='o', color='r');
-        plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Sparsity', fontsize=ax_title_size)
+        plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Sparsity (\u03bcm)', fontsize=ax_title_size)
         plt.title('Week ' + str(idx), fontsize=ax_title_size) 
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        plt.xlim(0, 300); plt.ylim(0, 200)
+        plt.xlim(0, x_lim); plt.ylim(0, 200)
         lgnd = plt.legend(['stable', 'dying'], fontsize=leg_size, frameon=False, loc='lower left')
         lgnd.legendHandles[0]._sizes = [40]
         if len(term_z) > 0:
@@ -923,10 +924,10 @@ def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all
         ax = plt.gca()
         plt.scatter(total_z[np.where(total_z < z_thresh)], total_vols[np.where(total_z < z_thresh)], s=5, marker='o', color='k');
         plt.scatter(new_z[np.where(new_z < z_thresh)], new_vols[np.where(new_z < z_thresh)], s=8, marker='o', color='limegreen');
-        plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Volume ($\u03bcm^3$)', fontsize=ax_title_size)
+        plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Volume ($\u03bcm$)', fontsize=ax_title_size)
         plt.title('Week ' + str(idx), fontsize=ax_title_size) 
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
-        plt.xlim(0, 300); plt.ylim(30, 10000)
+        plt.xlim(0, x_lim); plt.ylim(30, 10000)
         lgnd = plt.legend(['stable', 'new'], fontsize=leg_size, frameon=False, loc='upper right')    
         lgnd.legendHandles[0]._sizes = [40]
         lgnd.legendHandles[1]._sizes = [40]
@@ -949,7 +950,7 @@ def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all
         plt.scatter(total_z[np.where(total_z < z_thresh)], total_vols[np.where(total_z < z_thresh)], s=5, marker='o', color='k');
         if len(term_z) > 0:
             plt.scatter(term_z[np.where(term_z < z_thresh)], term_vols[np.where(term_z < z_thresh)], s=8, marker='o', color='r');
-        plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Volume ($\u03bcm^3$)', fontsize=ax_title_size)
+        plt.xlabel('Depth (\u03bcm)', fontsize=ax_title_size); plt.ylabel('Volume ($\u03bcm$)', fontsize=ax_title_size)
         plt.title('Week ' + str(idx), fontsize=ax_title_size) 
         rs = ax.spines["right"]; rs.set_visible(False); ts = ax.spines["top"]; ts.set_visible(False)
         lgnd = plt.legend(['stable', 'dying'], fontsize=leg_size, frameon=False, loc='upper right')
@@ -957,7 +958,7 @@ def plot_DENSITY_VOLUME_GRAPHS(all_total_dists, all_total_vols, all_total_z, all
         if len(term_z) > 0:
             lgnd.legendHandles[1]._sizes = [40]
         
-        plt.xlim(0, 300); plt.ylim(30, 8000)
+        plt.xlim(0, x_lim); plt.ylim(30, 8000)
         plt.tight_layout()
         plt.savefig(sav_dir +  name + '_VOLUME_term_' + str(neighbors + idx) + '.png')              
 
